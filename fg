@@ -1,0 +1,93 @@
+<SCRipt>
+// 4. Handle Form Submission for Adding or Updating Research Conducted Data
+$('#researchconducted_form').on('submit', function(event) {
+    event.preventDefault();
+    if ($('#researchconducted_form').parsley().isValid()) {
+        $.ajax({
+            url: "researchconducted_action.php",
+            method: "POST",
+            data: $(this).serialize(),
+            dataType: 'json',
+            beforeSend: function() {
+                $('#submit_button_researchedconducted').attr('disabled', 'disabled').val('Wait...');
+            },
+            success: function(data)    {
+                $('#submit_button_researchedconducted').attr('disabled', false);
+                if(data.error != '')
+                {
+                
+                    $('#form_message').html(data.error);
+                    $('#submit_button_researchedconducted').val('Add');
+                }
+                else
+                {
+                    $('#researchconductedModal').modal('hide');
+                    $('#message').html(data.success);
+                
+
+                // S=document.getElementById("submit_button_researchedconducted").value
+                    var Svalue = $('#action_researchedconducted').val();
+                    if (Svalue == "Add") {
+    Swal.fire({
+        title: 'Added!',
+        text: 'The record has been successfully added.',
+        icon: 'success',
+        timer: 600,  // Automatically closes after 2 seconds
+        showConfirmButton: false,  // Hide the confirm button
+        customClass: { confirmButton: 'btn-success' }
+    });
+} else {
+    Swal.fire({
+        title: 'Updated!',
+        text: 'The record has been successfully updated.',
+        icon: 'success',
+        timer: 600,  // Automatically closes after 2 seconds
+        showConfirmButton: false,  // Hide the confirm button
+        customClass: { confirmButton: 'btn-success' }
+    });
+}
+
+                // researcherconducteddataTable.ajax.reload(null, false);
+                var researcherID = $('#researcherModala').data('id'); // Get the Researcher ID
+                    var rcdataTable = loadResearchConductedTab(researcherID); // Reload the table data
+
+                    
+
+                    setTimeout(function(){
+
+                        $('#message').html('');
+
+                    }, 5000);
+                }
+            }
+        });
+    }
+});
+$('#researchconductedModal').on('hidden.bs.modal', function() {
+        // Check if the first modal is still open
+        if ($('.modal.show').length > 0) {
+            // Reapply the `modal-open` class to allow body scrolling for the first modal
+            $('body').addClass('modal-open');
+        }
+    
+        // Optionally scroll the first modal to the top
+        $('#researcherModala .modal-body').scrollTop(0);
+        });
+
+
+// 5. Handle Add Button for Research Conducted Tab
+$('#add_researcherconducted').click(function() {
+    // Reset form fields and validation for adding a new record
+    $('#researchconducted_form')[0].reset();
+    $('#researchconducted_form').parsley().reset();
+    $('#modal_title').text('Add Researcher Conducted');
+    $('#action_researchedconducted').val('Add');
+    $('#submit_button_researchedconducted').val('Add');
+    var rid = $('#researcherModala').data('id');  // Get the Researcher ID
+    alert(rid);
+    $('#hiddeny').val(rid);  // Store Researcher ID in hidden field
+    $('#researchconductedModal').modal('show');
+    $('#form_message').html('');
+});
+
+</SCRipt>
