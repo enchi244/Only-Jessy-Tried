@@ -13,23 +13,16 @@ function loadTrainingsAttendedTab(researcherID) {
             type: "POST",
             data: { rid: researcherID, action_training: 'fetch' }
         },
-        "columnDefs": [
-            {
-                "targets": [0],
-                "orderable": false,
-            },
-        ],
+        "columnDefs": [{ "targets": [0], "orderable": false }],
     });
     return trainingsAttendedTable;
 }
 
-// Handle Tab Switching for Dynamic Content (e.g., Trainings Attended)
-$('#trainingsAttendedModal').on('shown.bs.tab', function () {
-    var id = $('#hidden_id_training').val(); // Get the ID from the hidden field in the modal
-    loadTrainingsAttendedTab(id);  // Load the content dynamically when the tab is shown
+$('#tra-tab').on('shown.bs.tab', function () {
+    var id = $('#hidden_id_rd').val(); 
+    loadTrainingsAttendedTab(id);  
 });
 
-// Handle Form Submission for Trainings Attended
 $('#trainings_attended_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#trainings_attended_form').parsley().isValid()) {
@@ -48,70 +41,70 @@ $('#trainings_attended_form').on('submit', function (event) {
                     $('#submit_button_training').val('Add');
                 } else {
                     $('#trainingsAttendedModal').modal('hide');
-                    $('#message').html(data.success);
-
                     var Svalue = $('#action_training').val();
                     if (Svalue == "Add") {
-                        Swal.fire({
-                            title: 'Added!',
-                            text: 'The training has been successfully added.',
-                            icon: 'success',
-                            timer: 600,  // Automatically closes after 2 seconds
-                            showConfirmButton: false,  // Hide the confirm button
-                            customClass: { confirmButton: 'btn-success' }
-                        });
+                        Swal.fire({ title: 'Added!', text: 'The training has been successfully added.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
                     } else {
-                        Swal.fire({
-                            title: 'Updated!',
-                            text: 'The training has been successfully updated.',
-                            icon: 'success',
-                            timer: 600,  // Automatically closes after 2 seconds
-                            showConfirmButton: false,  // Hide the confirm button
-                            customClass: { confirmButton: 'btn-success' }
-                        });
+                        Swal.fire({ title: 'Updated!', text: 'The training has been successfully updated.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
                     }
-
-                    // Reload the table data
-                    var researcherID = $('#researcherModala').data('id');  // Get the Researcher ID
-                    loadTrainingsAttendedTab(researcherID);  // Reload the table data
-
-                    setTimeout(function () {
-                        $('#message').html('');
-                    }, 5000);
+                    var researcherID = $('#researcherModala').data('id');  
+                    loadTrainingsAttendedTab(researcherID);
+                    setTimeout(function () { $('#message').html(''); }, 5000);
                 }
             }
         });
     }
 });
 
-// Handle the Modal Close Behavior
 $('#trainingsAttendedModal').on('hidden.bs.modal', function () {
-    if ($('.modal.show').length > 0) {
-        $('body').addClass('modal-open');
-    }
-
+    if ($('.modal.show').length > 0) { $('body').addClass('modal-open'); }
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
 // Add New Training Attended
 $('#add_training_attended').click(function () {
-    $('#trainings_attended_form')[0].reset();  // Reset form fields
-    $('#trainings_attended_form').parsley().reset();  // Reset validation
-    $('#modal_title').text('Add Training Attended');  // Set modal title
+    $('#trainings_attended_form')[0].reset();  
+    $('#trainings_attended_form').parsley().reset();  
+    $('#modal_title').text('Add Training Attended');  
     $('#action_training').val('Add');
-    var rid = $('#researcherModala').data('id');  // Get the Researcher ID
-    $('#hidden_researcherID_training').val(rid);  // Store Researcher ID in hidden field
+    var rid = $('#researcherModala').data('id');  
+    $('#hidden_researcherID_training').val(rid);  
     $('#submit_button_training').val('Add');
-    $('#trainingsAttendedModal').modal('show');  // Show the modal
+    $('#trainingsAttendedModal').modal('show');  
+    $('#form_message').html('');
+});
+
+// Edit Existing Training Attended
+// Add New Training Attended
+$('#add_training_attended').click(function () {
+    // CRASH-PROOF RESET
+    var form = $('#trainings_attended_form');
+    if (form.length > 0) {
+        form[0].reset();  
+        var p = form.parsley();
+        if (p) { p.reset(); }
+    }
+
+    $('#modal_title').text('Add Training Attended');  
+    $('#action_training').val('Add');
+    var rid = $('#researcherModala').data('id');  
+    $('#hidden_researcherID_training').val(rid);  
+    $('#submit_button_training').val('Add');
+    $('#trainingsAttendedModal').modal('show');  
     $('#form_message').html('');
 });
 
 // Edit Existing Training Attended
 $(document).on('click', '.edit_button_training', function () {
-    var trainingID = $(this).data('id');  // Get the selected Training ID
-//alert(trainingID);
-    $('#trainings_attended_form')[0].reset();
-    $('#trainings_attended_form').parsley().reset();
+    var trainingID = $(this).data('id');  
+    
+    // CRASH-PROOF RESET
+    var form = $('#trainings_attended_form');
+    if (form.length > 0) {
+        form[0].reset();
+        var p = form.parsley();
+        if (p) { p.reset(); }
+    }
     $('#form_message').html('');
 
     $.ajax({
@@ -120,13 +113,10 @@ $(document).on('click', '.edit_button_training', function () {
         data: { trainingID: trainingID, action_training: 'fetch_single' },
         dataType: 'JSON',
         success: function (data) {
-            const inputDatestarted_training = data.date_train; // MM-DD-YYYY format for started date
-   
-            // Convert started date
+            const inputDatestarted_training = data.date_train; 
             const [monthStarted, dayStarted, yearStarted] = inputDatestarted_training.split('-');
             const formattedDateStarted_training = `${yearStarted}-${monthStarted}-${dayStarted}`;
             
-
             $('#title_training').val(data.title);
             $('#type_training').val(data.type);
             $('#venue_training').val(data.venue);
@@ -135,7 +125,6 @@ $(document).on('click', '.edit_button_training', function () {
             $('#type_learning_dev').val(data.type_learning_dev);
             $('#sponsor_org').val(data.sponsor_org);
             $('#total_hours_training').val(data.totnh);
-
             $('#modal_title').text('Edit Training Attended');
             $('#action_training').val('Edit');
             $('#submit_button_training').val('Edit');
@@ -145,21 +134,11 @@ $(document).on('click', '.edit_button_training', function () {
     });
 });
 
-// Handle Delete Button for Training Attended
+// Delete Training Attended
 $(document).on('click', '.delete_button_training', function () {
-    var trainingID = $(this).data('id');  // Get the Training ID to delete
+    var trainingID = $(this).data('id');  
     Swal.fire({
-        title: 'Are you sure?',
-        text: 'You will not be able to recover this record!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'No, keep it',
-        reverseButtons: true,
-        customClass: {
-            confirmButton: 'btn-danger',
-            cancelButton: 'btn-secondary'
-        }
+        title: 'Are you sure?', text: 'You will not be able to recover this record!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!', cancelButtonText: 'No, keep it', reverseButtons: true, customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -167,31 +146,9 @@ $(document).on('click', '.delete_button_training', function () {
                 method: "POST",
                 data: { trainingID: trainingID, action_training: 'delete' },
                 success: function (data) {
-                    Swal.fire({
-                        title: 'Deleted!',
-                        text: 'The training has been successfully deleted.',
-                        icon: 'success',
-                        timer: 600,
-                        showConfirmButton: false,
-                    });
-
-                    // Reload the DataTable to reflect the deletion
+                    Swal.fire({ title: 'Deleted!', text: 'The training has been successfully deleted.', icon: 'success', timer: 600, showConfirmButton: false });
                     var researcherID = $('#researcherModala').data('id');
-                    loadTrainingsAttendedTab(researcherID);  // Reload the table data after delete
-                    setTimeout(function () {
-                        $('#message').html('');
-                    }, 5000);
-                },
-                error: function (xhr, status, error) {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Something went wrong: ' + error,
-                        icon: 'error',
-                        confirmButtonText: 'Try Again',
-                        customClass: {
-                            confirmButton: 'btn-danger'
-                        }
-                    });
+                    loadTrainingsAttendedTab(researcherID);  
                 }
             });
         }

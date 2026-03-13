@@ -14,40 +14,114 @@ include('../../includes/header.php');
 
 <link rel="stylesheet" type="text/css" href="<?php echo $object->base_url; ?>css/select2.min.css">
 <style>
-.red{ background-color: #610d0d; }
-.red:hover{ background-color: #610d0d; }
-.modal-xl { max-width: 90%; }
-.modal { z-index: 1051 !important; }
-.custom-confirm-button { background-color: #ff0000 !important; color: white !important; border: none !important; border-radius: 5px !important; } 
-.swal2-confirm.btn-danger { background-color: red !important; border-color: red !important; }
-.swal2-cancel.btn-secondary { background-color: gray !important; border-color: gray !important; }
+    /* Sleek Table Header */
+    #researcher_table thead th {
+        background-color: #f8f9fc;
+        color: #5a5c69;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #e3e6f0;
+        border-top: none;
+    }
+    /* Soften Table Body */
+    #researcher_table td {
+        vertical-align: middle;
+        color: #444;
+        border-right: none;
+        border-left: none;
+    }
+    /* Modernize the Grouping Row */
+    tr.group td {
+        background-color: #eaecf4 !important;
+        color: #4e73df !important;
+        font-size: 1rem;
+        padding-top: 15px !important;
+        padding-bottom: 15px !important;
+        border-top: 1px solid #d1d3e2;
+    }
+    /* Elevate the Add Button */
+    .btn-elevated {
+        box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-elevated:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(242, 62, 93, 0.3);
+    }
 </style>
 
-<h1 class="h3 mb-4 text-gray-800">Researchers' Data</h1>
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800 font-weight-bold">Researchers Directory</h1>
+        <p class="text-muted mb-0 mt-1">Manage, update, and track university research personnel.</p>
+    </div>
+    <button type="button" name="add_researcher" id="add_researcher" class="btn btn-danger pink btn-elevated px-4 py-2">
+        <i class="fas fa-plus-circle mr-2"></i> Add New Researcher
+    </button>
+</div>
 
-<span id="message"></span>
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <div class="row">
-            <div class="col">
-                <h6 class="m-0 font-weight-bold text-primary">Researchers' List</h6>
-            </div>
-            <div class="col" align="right">
-                <button type="button" name="add_researcher" id="add_researcher" class="btn btn-danger pink btn-sm"><i class="fas fa-plus"> Add Researcher</i></button>
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-danger shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Researchers</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi_total_researchers">--</div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="card-body">
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-primary shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Active Departments</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi_total_departments">--</div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-building fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-success shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Database Status</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">Synchronized</div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-check-circle fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<span id="message"></span>
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-header py-3 bg-white border-bottom-0 pt-4">
+        <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-list-ul mr-2"></i>Personnel Roster</h6>
+    </div>
+    <div class="card-body pt-0">
         <div class="table-responsive">
-            <table class="table table-bordered" id="researcher_table" width="100%" cellspacing="0">
+            <table class="table table-hover w-100" id="researcher_table" cellspacing="0">
                 <thead>
                     <tr>
-                        <th>Researcher ID</th>
-                        <th>Name</th>
-                        <th>Department</th>
-                        <th>Program</th>
-                        <th>User Created On</th>
-                        <th>Action</th>
+                        <th width="15%">ID</th>
+                        <th width="25%">Name</th>
+                        <th width="20%">Department</th>
+                        <th width="20%">Program</th>
+                        <th width="10%">Joined</th>
+                        <th width="10%" class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -61,6 +135,7 @@ include('../../includes/header.php');
 <?php include('modals/add_publication.php'); ?>
 <?php include('modals/add_intellectualProperty.php'); ?>
 <?php include('modals/add_paperPresentation.php'); ?>
+<?php include('modals/add_trainingsAttended.php'); ?>
 <?php include('modals/add_extensionProject.php'); ?>
 <?php include('modals/add_extension.php'); ?>
 <?php include('modals/add_researcher.php'); ?>
@@ -310,9 +385,9 @@ include('../../includes/header.php');
 
 <script src="scripts/profile.js"></script>
 <script src="scripts/research_conducted.js"></script>
-<script src="scripts/publications.js"></script>
+<script src="scripts/publication.js"></script>
 <script src="scripts/intellectual_prop.js"></script>
 <script src="scripts/paper_presentation.js"></script>
-<script src="scripts/trainings.js"></script>
+<script src="scripts/training.js"></script>
 <script src="scripts/extension_project.js"></script>
 <script src="scripts/extension.js"></script>

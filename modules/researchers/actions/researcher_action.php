@@ -97,7 +97,7 @@ $sub_array[] = $row["program"];
 $sub_array[] = $row["user_created_on"];
 			$sub_array[] = '
 			<div align="center">
-			<button type="button" name="edit_buttona" title="Update Researcher" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-primary btn-sm edit_buttona" name="edit_buttona"  data-id="'.$row["id"].'"><i class="fas fa-pencil-alt"></i></button>
+			<a href="view_researcher.php?id='.$row["id"].'" title="View Profile" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-primary btn-sm"><i class="fas fa-user-edit"></i></a>
 			
 			<button type="button" name="delete_buttona" title="Delete Researcher" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_buttona" data-id="'.$row["id"].'"><i class="far fa-trash-alt"></i></button>
 			</div>

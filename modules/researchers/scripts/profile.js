@@ -1,8 +1,15 @@
 $(document).ready(function() {
-    // THE MAGIC BOOTSTRAP FIX: Rips modals out of the wrapper and puts them on top!
     $('.modal').appendTo('body');
+    $(document).on('show.bs.modal', '.modal', function () {
+        var zIndex = 1040 + (10 * $('.modal:visible').length);
+        $(this).css('z-index', zIndex);
+        setTimeout(function() {
+            $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
+        }, 0);
+    });
 
     // 1. Initialize Main Researcher Table
+// 1. Initialize Main Researcher Table
     var dataTable = $('#researcher_table').DataTable({
         "processing": true,
         "serverSide": true,
@@ -13,29 +20,31 @@ $(document).ready(function() {
             data: { action: 'fetch' },
         },
         "columnDefs": [{ "targets": [0], "orderable": false }],
-        "rowGroup": {
-            "dataSrc": "department",
-            "startRender": function(rows, group) {
-                var departmentCount = rows.length;
-                return $('<tr class="group"><td colspan="6" style="font-weight: bold; background-color: #f1f1f1;">' + group + ' (' + departmentCount + ' Researchers)</td></tr>');
-            }
-        },
         "order": [[2, 'asc']],
         "stateSave": true,
         "drawCallback": function(settings) {
             var api = this.api();
             var rows = api.rows({ page: 'all' }).nodes();
             var departments = {};
+            var totalResearchers = rows.length; // Count total researchers
+
+            // Count researchers per department
             api.column(2, { page: 'all' }).data().each(function(department, i) {
                 if (department) {
                     if (!departments[department]) { departments[department] = 0; }
                     departments[department]++;
                 }
             });
+
+            // Update the Modern KPI UI Widgets at the top of the page!
+            $('#kpi_total_researchers').text(totalResearchers);
+            $('#kpi_total_departments').text(Object.keys(departments).length);
+
+            // Render the sleek new department headers
             var last = null;
             api.column(2, { page: 'all' }).data().each(function(department, i) {
                 if (last !== department) {
-                    $(rows).eq(i).before('<tr class="group"><td colspan="6" style="font-weight: bold; background-color: #f1f1f1;">' + department + ' (' + (departments[department] || 0) + ' Researchers)</td></tr>');
+                    $(rows).eq(i).before('<tr class="group"><td colspan="6"><i class="fas fa-folder-open mr-2 text-primary"></i><strong class="text-primary">' + department + '</strong> <span class="badge badge-light text-primary ml-2 rounded-pill shadow-sm" style="border: 1px solid #eaecf4;">' + (departments[department] || 0) + ' Members</span></td></tr>');
                 }
                 last = department;
             });

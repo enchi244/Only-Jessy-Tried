@@ -14,6 +14,17 @@
             <input type="text" name="title_pub" id="title_pub" class="form-control" placeholder="Enter publication title" required />
           </div>
 
+          <div class="form-group row">
+              <div class="col-md-6">
+                  <label for="start">Start Date</label>
+                  <input type="date" name="start" id="start" class="form-control" required />
+              </div>
+              <div class="col-md-6">
+                  <label for="end">End Date</label>
+                  <input type="date" name="end" id="end" class="form-control" required />
+              </div>
+          </div>
+
           <div class="form-group">
             <label for="journal">Journal</label>
             <input type="text" name="journal" id="journal" class="form-control" placeholder="Enter journal name" required />
@@ -31,7 +42,7 @@
 
           <div class="form-group">
             <label for="indexing">Indexing</label>
-            <input type="text" name="indexing" id="indexing" class="form-control" placeholder="Enter indexing details (e.g., Scopus, Web of Science)" required />
+            <input type="text" name="indexing" id="indexing" class="form-control" placeholder="Enter indexing details" required />
           </div>
 
           <div class="form-group">

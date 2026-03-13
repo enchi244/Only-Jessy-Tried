@@ -1,3 +1,31 @@
+// Load Publication Table
+function loadPublicationTab(researcherID) {
+    $('#publication_form').parsley();
+    if ($.fn.dataTable.isDataTable('#publication_table')) {
+        $('#publication_table').DataTable().clear().destroy();
+    }
+
+    var publicationTable = $('#publication_table').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "order": [],
+        "ajax": {
+            url: "actions/publication_action.php",
+            type: "POST",
+            data: { rid: researcherID, action_publication: 'fetch' }
+        },
+        "columnDefs": [{ "targets": [0], "orderable": false }],
+    });
+    return publicationTable;
+}
+
+// Handle Tab Switching
+$('#degree-tab').on('shown.bs.tab', function () {
+    var id = $('#hidden_id_rd').val(); 
+    loadPublicationTab(id); 
+});
+
+// Handle Form Submit
 $('#publication_form').on('submit', function(event) {
     event.preventDefault();
     if ($('#publication_form').parsley().isValid()) {
@@ -9,173 +37,85 @@ $('#publication_form').on('submit', function(event) {
             beforeSend: function() {
                 $('#submit_button_publication').attr('disabled', 'disabled').val('Wait...');
             },
-            success: function(data)    {
+            success: function(data) {
                 $('#submit_button_publication').attr('disabled', false);
-                if(data.error != '')
-                {
-                
+                if(data.error != '') {
                     $('#form_message').html(data.error);
                     $('#submit_button_publication').val('Add');
-                }
-                else
-                {
+                } else {
                     $('#publicationModal').modal('hide');
-                    $('#message').html(data.success);
-                
-
-                // S=document.getElementById("submit_button_researchedconducted").value
-                    var Svalue6 = $('#action_publication').val();
-                    if (Svalue6 == "Add") {
-    Swal.fire({
-        title: 'Added!',
-        text: 'The publication has been successfully added.',
-        icon: 'success',
-        timer: 600,  // Automatically closes after 2 seconds
-        showConfirmButton: false,  // Hide the confirm button
-        customClass: { confirmButton: 'btn-success' }
-    });
-} else {
-    Swal.fire({
-        title: 'Updated!',
-        text: 'The publication has been successfully updated.',
-        icon: 'success',
-        timer: 600,  // Automatically closes after 2 seconds
-        showConfirmButton: false,  // Hide the confirm button
-        customClass: { confirmButton: 'btn-success' }
-    });
-}
-
-                // researcherconducteddataTable.ajax.reload(null, false);
-                var publicationIDad = $('#researcherModala').data('id');  // Get the Publication ID
-                var publicationTable = loadPublicationTab(publicationIDad); // Reload the table data
-
-                    
-
-                    setTimeout(function(){
-
-                        $('#message').html('');
-
-                    }, 5000);
+                    var Svalue = $('#action_publication').val();
+                    if (Svalue == "Add") {
+                        Swal.fire({ title: 'Added!', text: 'The publication has been successfully added.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
+                    } else {
+                        Swal.fire({ title: 'Updated!', text: 'The publication has been successfully updated.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
+                    }
+                    var researcherID = $('#researcherModala').data('id');  
+                    loadPublicationTab(researcherID);
+                    setTimeout(function(){ $('#message').html(''); }, 5000);
                 }
             }
         });
     }
 });
+
 $('#publicationModal').on('hidden.bs.modal', function() {
-        // Check if the first modal is still open
-        if ($('.modal.show').length > 0) {
-            // Reapply the `modal-open` class to allow body scrolling for the first modal
-            $('body').addClass('modal-open');
-        }
-    
-        // Optionally scroll the first modal to the top
-        $('#researcherModala .modal-body').scrollTop(0);
-        });
+    if ($('.modal.show').length > 0) { $('body').addClass('modal-open'); }
+    $('#researcherModala .modal-body').scrollTop(0);
+});
 
-
-
-$('#add_publication').click(function() {
-    $('#publication_form')[0].reset();  // Reset form fields
-    $('#publication_form').parsley().reset();  // Reset validation
-    $('#modal_title').text('Add Publication');  // Set modal title
+// Add New Publication
+$('#add_publication').click(function () {
+    $('#publication_form')[0].reset();  
+    $('#publication_form').parsley().reset();  
+    $('#modal_title').text('Add Publication');  
     $('#action_publication').val('Add');
-    var ridp = $('#researcherModala').data('id');  // Get the Researcher ID
-   // alert(rid);     
-    $('#hidden_researcherID').val(ridp);  // Store Researcher ID in hidden field
+    var rid = $('#researcherModala').data('id');  
+    $('#hidden_researcherID').val(rid); 
     $('#submit_button_publication').val('Add');
-    $('#publicationModal').modal('show');  // Show the modal
+    $('#publicationModal').modal('show');  
     $('#form_message').html('');
 });
 
-
-
-
+// Edit Existing Publication
 $(document).on('click', '.edit_button_publication', function(){
-    // var ridy = $('#researcherModala').data('id');
     var publicationID = $(this).data('id');
-     // alert(rcid+''+ridy);
+    $('#publication_form')[0].reset();
+    $('#publication_form').parsley().reset();
+    $('#form_message').html('');
 
-    // var editID = $(this).data('id'); // Get the selected ID from the clicked row
-
-
-
-$('#publication_form')[0].reset();
-$('#publication_form').parsley().reset();
-$('#form_message').html('');
-
-$.ajax({
-
- url:"actions/publication_action.php",
- method:"POST",
- data:{publicationID: publicationID, action_publication: 'fetch_single'},
- dataType:'JSON',
- success:function(data)
- {
-const inputDatecompleted = data.publication_date; // MM-DD-YYYY format for completed date
-
-// Convert completed date
-const [monthCompleted, dayCompleted, yearCompleted] = inputDatecompleted.split('-');
-const formattedDateCompleted = `${yearCompleted}-${monthCompleted}-${dayCompleted}`;
-$('#title_pub').val(data.title);
-$('#start').val(data.start);
-$('#end').val(data.end);
-$('#journal').val(data.journal);
-$('#vol_num_issue_num').val(data.vol_num_issue_num);
-$('#issn_isbn').val(data.issn_isbn);
-$('#indexing').val(data.indexing);
-$('#publication_date').val(formattedDateCompleted);
-     $('#modal_title').text('Edit Publication');
-     $('#action_publication').val('Edit');
-     $('#submit_button_publication').val('Edit');
-     $('#publicationModal').modal('show');
-     $('#hidden_publicationID').val(publicationID);
-             
-
- }
- 
-})
-
+    $.ajax({
+        url:"actions/publication_action.php",
+        method:"POST",
+        data:{publicationID: publicationID, action_publication: 'fetch_single'},
+        dataType:'JSON',
+        success:function(data) {
+            const inputDatecompleted = data.publication_date; 
+            const [monthCompleted, dayCompleted, yearCompleted] = inputDatecompleted.split('-');
+            const formattedDateCompleted = `${yearCompleted}-${monthCompleted}-${dayCompleted}`;
+            
+            $('#title_pub').val(data.title);
+            $('#start').val(data.start);
+            $('#end').val(data.end);
+            $('#journal').val(data.journal);
+            $('#vol_num_issue_num').val(data.vol_num_issue_num);
+            $('#issn_isbn').val(data.issn_isbn);
+            $('#indexing').val(data.indexing);
+            $('#publication_date').val(formattedDateCompleted);
+            $('#modal_title').text('Edit Publication');
+            $('#action_publication').val('Edit');
+            $('#submit_button_publication').val('Edit');
+            $('#publicationModal').modal('show');
+            $('#hidden_publicationID').val(publicationID);
+        }
+    });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// 5. Handle Delete Button for Publication
+// Delete Publication
 $(document).on('click', '.delete_button_publication', function() {
-    var publicationID = $(this).data('id');  // Get the publication ID to delete
+    var publicationID = $(this).data('id'); 
     Swal.fire({
-        title: 'Are you sure?',
-        text: 'You will not be able to recover this record!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'No, keep it',
-        reverseButtons: true,
-        customClass: {
-            confirmButton: 'btn-danger',
-            cancelButton: 'btn-secondary'
-        }
+        title: 'Are you sure?', text: 'You will not be able to recover this record!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!', cancelButtonText: 'No, keep it', reverseButtons: true, customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -183,31 +123,9 @@ $(document).on('click', '.delete_button_publication', function() {
                 method: "POST",
                 data: {publicationID: publicationID, action_publication: 'delete'},
                 success: function(data) {
-                    Swal.fire({
-                        title: 'Deleted!',
-                        text: 'The publication has been successfully deleted.',
-                        icon: 'success',
-                        timer: 600,
-                        showConfirmButton: false,
-                    });
-
-                    // Reload the DataTable to reflect the deletion
-                    var researcherIDaae = $('#researcherModala').data('id');
-                    loadPublicationTab(researcherIDaae);  // Reload the table data after delete
-                    setTimeout(function() {
-                        $('#message').html('');
-                    }, 5000);
-                },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Something went wrong: ' + error,
-                        icon: 'error',
-                        confirmButtonText: 'Try Again',
-                        customClass: {
-                            confirmButton: 'btn-danger'
-                        }
-                    });
+                    Swal.fire({ title: 'Deleted!', text: 'The publication has been successfully deleted.', icon: 'success', timer: 600, showConfirmButton: false });
+                    var researcherID = $('#researcherModala').data('id');
+                    loadPublicationTab(researcherID);  
                 }
             });
         }
