@@ -131,40 +131,40 @@ body.sidebar-toggled #content-wrapper {
             </div>
 
             <li class="nav-item">
-                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>researcher.php">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/researchers/researcher.php">
                     <i class="fas fa-fw fa-users"></i>
                     <span>Researchers' Data</span>
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>colleges.php">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/colleges/colleges.php">
                     <i class="fas fa-fw fa-university"></i>
                     <span>Colleges</span>
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>disciplines.php">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/disciplines/disciplines.php">
                     <i class="fas fa-fw fa-book-open"></i>
                     <span>Discipline</span>
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="<?php echo $object->base_url; ?>report.php">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>modules/reports/report.php">
                     <i class="fas fa-fw fa-chart-bar"></i>
                     <span>Reports</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="<?php echo $object->base_url; ?>manage_documents.php">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>modules/documents/manage_documents.php">
                     <i class="fas fa-fw fa-file-signature"></i>
                     <span>Manage SO & MOA</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="<?php echo $object->base_url; ?>track_agenda_sdg.php">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>modules/trackers/track_agenda_sdg.php">
                     <i class="fas fa-fw fa-globe"></i>
                     <span>Agenda & SDG Tracker</span>
                 </a>
@@ -225,7 +225,7 @@ body.sidebar-toggled #content-wrapper {
                             </a>
                             
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="<?php echo $object->base_url; ?>profile.php">
+                                <a class="dropdown-item" href="<?php echo $object->base_url; ?>modules/profile/profile.php">
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Profile
                                 </a>

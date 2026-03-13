@@ -2,7 +2,7 @@
 
 //user_action.php
 
-include('../core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 

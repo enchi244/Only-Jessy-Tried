@@ -1,6 +1,6 @@
 <?php
 // report.php
-include('core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 
@@ -185,7 +185,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
 }
 // ==============================================================================
 
-include('includes/header.php');
+include('../../includes/header.php');
 ?>
 
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap4.min.css">
@@ -319,13 +319,13 @@ include('includes/header.php');
 
 </div> 
 
-<?php include('includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>
 
-<script src="vendor/jquery/jquery.min.js"></script>
-<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-<script src="vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/jquery-easing/jquery.easing.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap4.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>

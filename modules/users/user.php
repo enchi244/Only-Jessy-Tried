@@ -2,7 +2,7 @@
 
 //product.php
 
-include('core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 
@@ -16,7 +16,7 @@ if(!$object->is_master_user())
     header("location:".$object->base_url."dashboard");
 }
 
-include('includes/header.php');
+include('../../includes/header.php');
                 
 ?>
 
@@ -70,9 +70,9 @@ include('includes/header.php');
                     </div>
 
                 <?php
-                include('includes/footer.php');
+                include('../../includes/footer.php');
                 ?>
-<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <div id="userModal" class="modal fade">
   	<div class="modal-dialog">
     	<form method="post" id="user_form" enctype="multipart/form-data">

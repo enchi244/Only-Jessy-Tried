@@ -1,6 +1,6 @@
 <?php
 // track_agenda_sdg.php
-include('core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 
@@ -15,7 +15,7 @@ if (!$object->is_master_user()) {
     exit;
 }
 
-include('includes/header.php');
+include('../../includes/header.php');
 
 // Connect to DB securely
 $conn = new mysqli("localhost", "root", "", "rms");
@@ -194,13 +194,13 @@ if ($result) {
 
 <?php 
 $conn->close();
-include('includes/footer.php'); 
+include('../../includes/footer.php'); 
 ?>
 
-<script src="vendor/jquery/jquery.min.js"></script>
-<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
 
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap4.min.js"></script>

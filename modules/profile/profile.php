@@ -1,6 +1,6 @@
 <?php
 
-include('rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 
@@ -16,7 +16,7 @@ $object->query = "
 
     $result = $object->get_result();
 
-include('includes/header.php');
+include('../../includes/header.php');
 
 ?>
 
@@ -81,7 +81,7 @@ include('includes/header.php');
                         </div></div></div>
                     </form>
                 <?php
-                include('includes/footer.php');
+                include('../../includes/footer.php');
                 ?>
 
 <script>
@@ -125,7 +125,7 @@ $(document).ready(function(){
 		if($('#profile_form').parsley().isValid())
 		{		
 			$.ajax({
-				url:"actions/user_action.php",
+				url:"user_action.php",
 				method:"POST",
 				data:new FormData(this),
                 dataType:'json',

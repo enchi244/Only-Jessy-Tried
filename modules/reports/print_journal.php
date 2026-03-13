@@ -5,7 +5,7 @@ ini_set('pcre.backtrack_limit', '5000000');
 ini_set('max_execution_time', '300'); 
 
 require_once __DIR__ . '/vendor/autoload.php';
-include('core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 

@@ -24,11 +24,7 @@ class rms
             // ----- NEW: GLOBAL BASE URL CONFIGURATION -----
             $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
             $host = $_SERVER['HTTP_HOST'];
-            $project_dir = dirname($_SERVER['SCRIPT_NAME']);
-            $project_dir = str_replace('\\', '/', $project_dir); // Fix for Windows XAMPP
-            
-            // This guarantees the system always knows your exact root URL
-            $this->base_url = rtrim($protocol . '://' . $host . $project_dir, '/') . '/';
+            $this->base_url = $protocol . '://' . $host . '/rms/rms/';
             // ----------------------------------------------
 
         } catch (PDOException $e) {

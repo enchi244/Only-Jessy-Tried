@@ -1,6 +1,6 @@
 <?php
 
-include('core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 
@@ -14,7 +14,7 @@ if(!$object->is_master_user())
     header("location:".$object->base_url."dashboard");
 }
 
-include('includes/header.php');
+include('../../includes/header.php');
 
 ?>
 
@@ -63,9 +63,9 @@ include('includes/header.php');
                     </div>
 
                 <?php
-                include('includes/footer.php');
+                include('../../includes/footer.php');
                 ?>
-				<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+				<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
 <div id="categoryModal" class="modal fade">
   	<div class="modal-dialog">
@@ -101,7 +101,7 @@ $(document).ready(function(){
 		"serverSide" : true,
 		"order" : [],
 		"ajax" : {
-			url:"actions/college_action.php",
+			url:"college_action.php",
 			type:"POST",
 			data:{action:'fetch'}
 		},
@@ -138,7 +138,7 @@ $(document).ready(function(){
 		if($('#category_form').parsley().isValid())
 		{		
 			$.ajax({
-				url:"actions/college_action.php",
+				url:"college_action.php",
 				method:"POST",
 				data:$(this).serialize(),
 				dataType:'json',
@@ -182,7 +182,7 @@ $(document).ready(function(){
 
 		$.ajax({
 
-	      	url:"actions/college_action.php",
+	      	url:"college_action.php",
 
 	      	method:"POST",
 
@@ -224,7 +224,7 @@ $(document).ready(function(){
 
       		$.ajax({
 
-        		url:"actions/college_action.php",
+        		url:"college_action.php",
 
         		method:"POST",
 
@@ -259,7 +259,7 @@ $(document).ready(function(){
 
       		$.ajax({
 
-        		url:"actions/college_action.php",
+        		url:"college_action.php",
 
         		method:"POST",
 

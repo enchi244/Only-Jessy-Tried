@@ -1,6 +1,6 @@
 <?php
 // manage_documents.php
-include('core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 
@@ -75,7 +75,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'upload_document') {
 }
 // ==============================================================================
 
-include('includes/header.php');
+include('../../includes/header.php');
 
 // Connect to DB to fetch data for our tables
 $conn = new mysqli("localhost", "root", "", "rms");
@@ -265,12 +265,12 @@ $conn->set_charset("utf8mb4");
     </div>
 </div>
 
-<?php include('includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>
 
-<script src="vendor/jquery/jquery.min.js"></script>
-<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>

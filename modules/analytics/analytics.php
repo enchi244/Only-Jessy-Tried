@@ -1,6 +1,6 @@
 <?php
 
-include('core/rms.php');
+include('../../core/rms.php');
 
 $object = new rms();
 
@@ -29,7 +29,7 @@ if(!$object->is_login())
     
 }
 
-include('header.php');
+include('../../includes/header.php');
 
 
 $totalDepartments = $object->Get_total_departments();
@@ -645,12 +645,12 @@ border-left: 0.25rem solid #f23e5d !important;
 
 
 <?php
-include('footer.php');
+include('../../includes/footer.php');
 ?>
-<script src="vendor/jquery/jquery.min.js"></script>
-<script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-<script src="vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/jquery-easing/jquery.easing.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
 <script>
