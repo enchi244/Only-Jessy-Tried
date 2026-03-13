@@ -8,7 +8,6 @@
                 </div>
                 <div class="modal-body">
                     <span id="form_message"></span>
-
                     <div class="form-group"><label>Title</label><input type="text" name="title_ext" id="title_ext" class="form-control" required /></div>
                     <div class="form-group"><label>Description</label><textarea name="description_ext" id="description_ext" class="form-control" required></textarea></div>
                     <div class="form-group"><label>Project Leader</label><input type="text" name="proj_lead" id="proj_lead" class="form-control" required /></div>
@@ -28,7 +27,6 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="modal-footer">
                     <input type="hidden" name="hidden_researcherID_ext" id="hidden_researcherID_ext" />
                     <input type="hidden" name="hidden_extID" id="hidden_extID" />

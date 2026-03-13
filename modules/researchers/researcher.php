@@ -61,8 +61,8 @@ include('../../includes/header.php');
 <?php include('modals/add_publication.php'); ?>
 <?php include('modals/add_intellectualProperty.php'); ?>
 <?php include('modals/add_paperPresentation.php'); ?>
+<?php include('modals/add_extensionProject.php'); ?>
 <?php include('modals/add_extension.php'); ?>
-<?php include('modals/add_ext.php'); ?>
 <?php include('modals/add_researcher.php'); ?>
 
 <div id="researcherModala" class="modal fade" data-backdrop="static">
@@ -303,4 +303,16 @@ include('../../includes/header.php');
 <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-<?php include('scripts/main_scripts.php'); ?>
+<script src="<?php echo $object->base_url; ?>js/app.js"></script>
+<script src="<?php echo $object->base_url; ?>js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script src="scripts/profile.js"></script>
+<script src="scripts/research_conducted.js"></script>
+<script src="scripts/publications.js"></script>
+<script src="scripts/intellectual_prop.js"></script>
+<script src="scripts/paper_presentation.js"></script>
+<script src="scripts/trainings.js"></script>
+<script src="scripts/extension_project.js"></script>
+<script src="scripts/extension.js"></script>

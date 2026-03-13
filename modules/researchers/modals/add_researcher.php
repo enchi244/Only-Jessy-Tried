@@ -128,5 +128,13 @@
             <label>Post Year Graduated</label>
             <input type="text" name="postYearGraduate" id="postYearGraduate" class="form-control" placeholder="Year Graduated" maxlength="4" />
         </div>
+
+        </div> <div class="modal-footer">
+                    <input type="hidden" name="hidden_id" id="hidden_id" />
+                    <input type="hidden" name="action" id="action" value="Add" />
+                    <input type="submit" name="submit_button" id="submit_button" class="btn btn-danger pink" value="Add" />
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
     </div>
 </div>
+
