@@ -1,7 +1,7 @@
 <?php
 // paper_presentation_action.php
 
-include('../core/rms.php');  // Assuming this is your database handler class
+include('../../../core/rms.php');  // Assuming this is your database handler class
 
 $object = new rms();
 

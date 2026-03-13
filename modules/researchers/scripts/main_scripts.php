@@ -242,15 +242,22 @@
 			})
 		}
 	});
+    
+    $(document).on('click', '.edit_buttona', function(){
+                var id = $(this).data('id');
+                var rid = $(this).data('id');
+                
+                // CRASH-PROOF FORM RESET
+                var editForm = $('#researcherModala_form');
+                if (editForm.length > 0) {
+                    editForm[0].reset(); // Clear text fields natively
+                    var parsleyInstance = editForm.parsley();
+                    if (parsleyInstance) {
+                        parsleyInstance.reset(); // Only reset Parsley if it actually exists!
+                    }
+                }
 
-        $(document).on('click', '.edit_buttona', function(){
-            var id = $(this).data('id');
-            var rid = $(this).data('id');
-        // research
-    //
-  //  alert("Researcher ID: " + rid);
-            $('#researcherModala_form').parsley().reset();
-            $('#form_message').html('');
+                $('#form_message').html('');
 
             $.ajax({
 
@@ -311,7 +318,7 @@
     loadPaperPresentationTab(id); 
     loadTrainingsAttendedTab(id);
     loadExtensionProjectsTab(id);
-   // loadextprotab(id);
+    loadextprotab(id);
 
 
     }
@@ -1478,220 +1485,166 @@ $(document).on('click', '.delete_button_training', function () {
     });
 });
 
+// Function to Load Extension Data using the Researcher ID
+function loadextprotab(researcherID) {
+    $('#ext_project_form').parsley(); // Initialize form validation
+    if ($.fn.dataTable.isDataTable('#ext_project_table')) {
+        $('#ext_project_table').DataTable().clear().destroy();
+    }
 
+    var extProjectsTable = $('#ext_project_table').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "order": [],
+        "ajax": {
+            url: "actions/extension_action.php", // THIS POINTS TO YOUR NEW BACKEND FILE
+            type: "POST",
+            data: { rid: researcherID, action_ext: 'fetch' }
+        },
+        "columnDefs": [
+            {
+                "targets": [0],
+                "orderable": false,
+            },
+        ],
+    });
+    return extProjectsTable;
+}
 
+// Handle Tab Switching for Dynamic Content
+$('#extModal').on('shown.bs.tab', function () {
+    var id = $('#hidden_id_ext').val();
+    loadextprotab(id);
+});
 
+// Handle Form Submission for Extension
+$('#ext_project_form').on('submit', function (event) {
+    event.preventDefault();
+    if ($('#ext_project_form').parsley().isValid()) {
+        $.ajax({
+            url: "actions/extension_action.php",
+            method: "POST",
+            data: $(this).serialize(),
+            dataType: 'json',
+            beforeSend: function () {
+                $('#submit_button_ext').attr('disabled', 'disabled').val('Wait...');
+            },
+            success: function (data) {
+                $('#submit_button_ext').attr('disabled', false);
+                if (data.error != '') {
+                    $('#form_message').html(data.error);
+                    $('#submit_button_ext').val('Add');
+                } else {
+                    $('#extModal').modal('hide');
+                    $('#message').html(data.success);
 
-// // Function to Load Extension Projects Data using the Researcher ID
-// function loadextprotab(researcherID) {
-//     $('#ext_project_form').parsley(); // Initialize form validation
-//     if ($.fn.dataTable.isDataTable('#ext_project_table')) {
-//         $('#ext_project_table').DataTable().clear().destroy();
-//     }
+                    var Svalue = $('#action_ext').val();
+                    if (Svalue == "Add") {
+                        Swal.fire({ title: 'Added!', text: 'The extension has been successfully added.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
+                    } else {
+                        Swal.fire({ title: 'Updated!', text: 'The extension has been successfully updated.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
+                    }
 
-//     var extProjectsTable = $('#ext_project_table').DataTable({
-//         "processing": true,
-//         "serverSide": true,
-//         "order": [],
-//         "ajax": {
-//             url: "actions/extension_projects_action.php",
-//             type: "POST",
-//             data: { rid: researcherID, action_ext: 'fetch' }
-//         },
-//         "columnDefs": [
-//             {
-//                 "targets": [0],
-//                 "orderable": false,
-//             },
-//         ],
-//     });
-//     return extProjectsTable;
-// }
+                    var researcherID = $('#researcherModala').data('id');
+                    loadextprotab(researcherID);
+                    setTimeout(function () { $('#message').html(''); }, 5000);
+                }
+            }
+        });
+    }
+});
 
-// // Handle Tab Switching for Dynamic Content (e.g., Extension Projects)
-// $('#extModal').on('shown.bs.tab', function () {
-//     var id = $('#hidden_id_ext').val(); // Get the ID from the hidden field in the modal
-//     loadextprotab(id);  // Load the content dynamically when the tab is shown
-// });
+// Handle the Modal Close Behavior
+$('#extModal').on('hidden.bs.modal', function () {
+    if ($('.modal.show').length > 0) {
+        $('body').addClass('modal-open');
+    }
+    $('#researcherModala .modal-body').scrollTop(0);
+});
 
-// // Handle Form Submission for Extension Projects
-// $('#ext_project_form').on('submit', function (event) {
-//     event.preventDefault();
-//     if ($('#ext_project_form').parsley().isValid()) {
-//         $.ajax({
-//             url: "actions/extension_projects_action.php",
-//             method: "POST",
-//             data: $(this).serialize(),
-//             dataType: 'json',
-//             beforeSend: function () {
-//                 $('#submit_button_ext').attr('disabled', 'disabled').val('Wait...');
-//             },
-//             success: function (data) {
-//                 $('#submit_button_ext').attr('disabled', false);
-//                 if (data.error != '') {
-//                     $('#form_message').html(data.error);
-//                     $('#submit_button_ext').val('Add');
-//                 } else {
-//                     $('#extModal').modal('hide');
-//                     $('#message').html(data.success);
+// Add New Extension
+$('#add_extension').click(function () {
+    $('#ext_project_form')[0].reset();
+    $('#ext_project_form').parsley().reset();
+    $('#modal_title').text('Add Extension');
+    $('#action_ext').val('Add');
+    var rid = $('#researcherModala').data('id');
+    $('#hidden_researcherID_ext').val(rid);
+    $('#submit_button_ext').val('Add');
+    $('#extModal').modal('show');
+    $('#form_message').html('');
+});
 
-//                     var Svalue = $('#action_ext').val();
-//                     if (Svalue == "Add") {
-//                         Swal.fire({
-//                             title: 'Added!',
-//                             text: 'The extension project has been successfully added.',
-//                             icon: 'success',
-//                             timer: 600,  // Automatically closes after 2 seconds
-//                             showConfirmButton: false,  // Hide the confirm button
-//                             customClass: { confirmButton: 'btn-success' }
-//                         });
-//                     } else {
-//                         Swal.fire({
-//                             title: 'Updated!',
-//                             text: 'The extension project has been successfully updated.',
-//                             icon: 'success',
-//                             timer: 600,  // Automatically closes after 2 seconds
-//                             showConfirmButton: false,  // Hide the confirm button
-//                             customClass: { confirmButton: 'btn-success' }
-//                         });
-//                     }
+// Edit Existing Extension
+$(document).on('click', '.edit_button_ext', function () {
+    var extID = $(this).data('id');
 
-//                     // Reload the table data
-//                     var researcherID = $('#researcherModala').data('id');  // Get the Researcher ID
-//                     loadextprotab(researcherID);  // Reload the table data
+    $('#ext_project_form')[0].reset();
+    $('#ext_project_form').parsley().reset();
+    $('#form_message').html('');
 
-//                     setTimeout(function () {
-//                         $('#message').html('');
-//                     }, 5000);
-//                 }
-//             }
-//         });
-//     }
-// });
+    $.ajax({
+        url: "actions/extension_action.php",
+        method: "POST",
+        data: { extID: extID, action_ext: 'fetch_single' },
+        dataType: 'JSON',
+        success: function (data) {
+            const inputDateStarted_ext = data.period_implement;
+            const [monthStarted, dayStarted, yearStarted] = inputDateStarted_ext.split('-');
+            const formattedDateStarted_ext = `${yearStarted}-${monthStarted}-${dayStarted}`;
 
-// // Handle the Modal Close Behavior
-// $('#extModal').on('hidden.bs.modal', function () {
-//     if ($('.modal.show').length > 0) {
-//         $('body').addClass('modal-open');
-//     }
+            $('#title_ext').val(data.title);
+            $('#description_ext').val(data.description);
+            $('#proj_lead').val(data.proj_lead);
+            $('#assist_coordinators').val(data.assist_coordinators);
+            $('#period_implement').val(formattedDateStarted_ext);
+            $('#budget').val(data.budget);
+            $('#fund_source').val(data.fund_source);
+            $('#target_beneficiaries').val(data.target_beneficiaries);
+            $('#partners').val(data.partners);
+            $('#stat_ext').val(data.stat_ext);
 
-//     $('#researcherModala .modal-body').scrollTop(0);
-// });
+            $('#modal_title').text('Edit Extension');
+            $('#action_ext').val('Edit');
+            $('#submit_button_ext').val('Edit');
+            $('#extModal').modal('show');
+            $('#hidden_extID').val(extID);
+        }
+    });
+});
 
-// // Add New Extension Project
-// $('#add_extension').click(function () {
-//     $('#ext_project_form')[0].reset();  // Reset form fields
-//     $('#ext_project_form').parsley().reset();  // Reset validation
-//     $('#modal_title').text('Add Extension Project');  // Set modal title
-//     $('#action_ext').val('Add');
-//     var rid = $('#researcherModala').data('id');  // Get the Researcher ID
-//     $('#hidden_researcherID_ext').val(rid);  // Store Researcher ID in hidden field
-//     $('#submit_button_ext').val('Add');
-//     $('#extModal').modal('show');  // Show the modal
-//     $('#form_message').html('');
-// });
+// Handle Delete Button for Extension
+$(document).on('click', '.delete_button_ext', function () {
+    var extID = $(this).data('id');
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'You will not be able to recover this record!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, keep it',
+        reverseButtons: true,
+        customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "actions/extension_action.php",
+                method: "POST",
+                data: { extID: extID, action_ext: 'delete' },
+                success: function (data) {
+                    Swal.fire({ title: 'Deleted!', text: 'The extension has been successfully deleted.', icon: 'success', timer: 600, showConfirmButton: false });
+                    var researcherID = $('#researcherModala').data('id');
+                    loadextprotab(researcherID);
+                    setTimeout(function () { $('#message').html(''); }, 5000);
+                },
+                error: function (xhr, status, error) {
+                    Swal.fire({ title: 'Error!', text: 'Something went wrong.', icon: 'error', customClass: { confirmButton: 'btn-danger' } });
+                }
+            });
+        }
+    });
+});
 
-// // Edit Existing Extension Project
-// $(document).on('click', '.edit_button_ext', function () {
-//     var extID = $(this).data('id');  // Get the selected Extension Project ID
-
-//     $('#ext_project_form')[0].reset();
-//     $('#ext_project_form').parsley().reset();
-//     $('#form_message').html('');
-
-//     $.ajax({
-//         url: "actions/extension_projects_action.php",
-//         method: "POST",
-//         data: { extID: extID, action_ext: 'fetch_single' },
-//         dataType: 'JSON',
-//         success: function (data) {
-//             const inputDateStarted_ext = data.period_implement; // MM-DD-YYYY format for started date
-
-//             // Convert started date
-//             const [monthStarted, dayStarted, yearStarted] = inputDateStarted_ext.split('-');
-//             const formattedDateStarted_ext = `${yearStarted}-${monthStarted}-${dayStarted}`;
-
-//             // Populate the form fields with data
-//             $('#title_ext').val(data.title);
-//             $('#description_ext').val(data.description);
-//             $('#proj_lead').val(data.proj_lead);
-//             $('#assist_coordinators').val(data.assist_coordinators);
-//             $('#period_implement').val(formattedDateStarted_ext);
-//             $('#budget').val(data.budget);
-//             $('#fund_source').val(data.fund_source);
-//             $('#target_beneficiaries').val(data.target_beneficiaries);
-//             $('#partners').val(data.partners);
-//             $('#stat_ext').val(data.stat_ext);
-
-//             $('#modal_title').text('Edit Extension Project');
-//             $('#action_ext').val('Edit');
-//             $('#submit_button_ext').val('Edit');
-//             $('#extModal').modal('show');
-//             $('#hidden_extID').val(extID);
-//         }
-//     });
-// });
-
-// // Handle Delete Button for Extension Projects
-// $(document).on('click', '.delete_button_ext', function () {
-//     var extID = $(this).data('id');  // Get the Extension Project ID to delete
-//     Swal.fire({
-//         title: 'Are you sure?',
-//         text: 'You will not be able to recover this record!',
-//         icon: 'warning',
-//         showCancelButton: true,
-//         confirmButtonText: 'Yes, delete it!',
-//         cancelButtonText: 'No, keep it',
-//         reverseButtons: true,
-//         customClass: {
-//             confirmButton: 'btn-danger',
-//             cancelButton: 'btn-secondary'
-//         }
-//     }).then((result) => {
-//         if (result.isConfirmed) {
-//             $.ajax({
-//                 url: "actions/extension_projects_action.php",
-//                 method: "POST",
-//                 data: { extID: extID, action_ext: 'delete' },
-//                 success: function (data) {
-//                     Swal.fire({
-//                         title: 'Deleted!',
-//                         text: 'The extension project has been successfully deleted.',
-//                         icon: 'success',
-//                         timer: 600,
-//                         showConfirmButton: false,
-//                     });
-
-//                     // Reload the DataTable to reflect the deletion
-//                     var researcherID = $('#researcherModala').data('id');
-//                     loadextprotab(researcherID);  // Reload the table data after delete
-//                     setTimeout(function () {
-//                         $('#message').html('');
-//                     }, 5000);
-//                 },
-//                 error: function (xhr, status, error) {
-//                     Swal.fire({
-//                         title: 'Error!',
-//                         text: 'Something went wrong: ' + error,
-//                         icon: 'error',
-//                         confirmButtonText: 'Try Again',
-//                         customClass: {
-//                             confirmButton: 'btn-danger'
-//                         }
-//                     });
-//                 }
-//             });
-//         }
-//     });
-// });
-
-
-
-
-
-
-
-// Function to Load Extension Projects Data using the Researcher ID
 function loadExtensionProjectsTab(researcherID) {
     $('#extension_project_form').parsley();
     if ($.fn.dataTable.isDataTable('#extension_project_table')) {

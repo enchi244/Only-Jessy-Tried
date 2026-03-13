@@ -1,147 +1,39 @@
-<div id="extensionProjectModal" class="modal fade" data-backdrop="static" tabindex="-1" aria-labelledby="extensionProjectModalLabel" aria-hidden="true">
+<div id="extModal" class="modal fade" data-backdrop="static" tabindex="-1" aria-labelledby="extModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <form method="post" id="extension_project_form">
+        <form method="post" id="ext_project_form">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title" id="modal_title">Add Extension Project</h4>
+                    <h4 class="modal-title" id="modal_title">Add Extension</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
                 </div>
                 <div class="modal-body">
                     <span id="form_message"></span>
 
-                    <!-- Title of the Extension Project -->
+                    <div class="form-group"><label>Title</label><input type="text" name="title_ext" id="title_ext" class="form-control" required /></div>
+                    <div class="form-group"><label>Description</label><textarea name="description_ext" id="description_ext" class="form-control" required></textarea></div>
+                    <div class="form-group"><label>Project Leader</label><input type="text" name="proj_lead" id="proj_lead" class="form-control" required /></div>
+                    <div class="form-group"><label>Assistant Coordinators</label><input type="text" name="assist_coordinators" id="assist_coordinators" class="form-control" required /></div>
+                    <div class="form-group"><label>Period of Implementation</label><input type="text" name="period_implement" id="period_implement" class="form-control" required /></div>
+                    <div class="form-group"><label>Budget</label><input type="number" name="budget" id="budget" class="form-control" required /></div>
+                    <div class="form-group"><label>Funding Source</label><input type="text" name="fund_source" id="fund_source" class="form-control" required /></div>
+                    <div class="form-group"><label>Target Beneficiaries</label><input type="text" name="target_beneficiaries" id="target_beneficiaries" class="form-control" required /></div>
+                    <div class="form-group"><label>Partners</label><input type="text" name="partners" id="partners" class="form-control" required /></div>
                     <div class="form-group">
-                        <label for="title_extp">Title</label>
-                        <input 
-                            type="text" 
-                            name="title_extp" 
-                            id="title_extp" 
-                            class="form-control" 
-                            placeholder="Enter project title" 
-                            required 
-                        />
-                    </div>
-
-                    <!-- Start Date -->
-                    <div class="form-group">
-                        <label for="start_date">Start Date</label>
-                        <input 
-                            type="date" 
-                            name="start_date_extc" 
-                            id="start_date_extc" 
-                            class="form-control" 
-                            required 
-                        />
-                    </div>
-
-                    <!-- Completion Date -->
-                    <div class="form-group">
-                        <label for="completion_date">Completion Date</label>
-                        <input 
-                            type="date" 
-                            name="completion_date_extc" 
-                            id="completion_date_extc" 
-                            class="form-control" 
-                            required 
-                        />
-                    </div>
-
-                    <!-- Funding Source -->
-                    <div class="form-group">
-                        <label for="funding_source">Funding Source</label>
-                        <input 
-                            type="text" 
-                            name="funding_source_exct" 
-                            id="funding_source_exct" 
-                            class="form-control" 
-                            placeholder="Enter the funding source" 
-                            required 
-                        />
-                    </div>
-
-                    <!-- Approved Budget -->
-                    <div class="form-group">
-                        <label for="approved_budget">Approved Budget</label>
-                        <input 
-                            type="number" 
-                            name="approved_budget_exct" 
-                            id="approved_budget_exct" 
-                            class="form-control" 
-                            placeholder="Enter the approved budget" 
-                            required 
-                        />
-                    </div>
-
-                    <!-- Target Beneficiaries/Communities -->
-                    <div class="form-group">
-                        <label for="target_beneficiaries_communities">Target Beneficiaries/Communities</label>
-                        <input 
-                            type="text" 
-                            name="target_beneficiaries_communities" 
-                            id="target_beneficiaries_communities" 
-                            class="form-control" 
-                            placeholder="Enter target beneficiaries/communities" 
-                            required 
-                        />
-                    </div>
-
-                    <!-- Partners -->
-                    <div class="form-group">
-                        <label for="partners">Partners</label>
-                        <input 
-                            type="text" 
-                            name="partners" 
-                            id="partners" 
-                            class="form-control" 
-                            placeholder="Enter project partners" 
-                            required 
-                        />
-                    </div>
-
-                    <!-- Status -->
-                    <div class="form-group">
-                        <label for="status">Status</label>
-                        <select 
-                            name="status_exct" 
-                            id="status_exct" 
-                            class="form-control" 
-                            required
-                        >
+                        <label>Status</label>
+                        <select name="stat_ext" id="stat_ext" class="form-control" required>
                             <option value="">Select Status</option>
                             <option value="Ongoing">Ongoing</option>
                             <option value="Completed">Completed</option>
                             <option value="Pending">Pending</option>
                         </select>
                     </div>
-
-                    <!-- Terminal Report -->
-                    <div class="form-group">
-                        <label for="terminal_report">Terminal Report</label>
-                        <select 
-                            name="terminal_report_extc" 
-                            id="terminal_report_extc" 
-                            class="form-control" 
-                            required
-                        >
-                            <option value="">Select Status</option>
-                            <option value="With">With</option>
-                            <option value="None">None</option>
-                        </select>
-                    </div>
                 </div>
 
                 <div class="modal-footer">
-                    <!-- Hidden Fields for IDs -->
-                    <input type="hidden" name="hidden_researcherID_extension" id="hidden_researcherID_extension" />
-                    <input type="hidden" name="hidden_extensionID" id="hidden_extensionID" />
-                    
-                    <!-- Action to identify the operation (Add or Edit) -->
-                    <input type="hidden" name="action_extension" id="action_extension" value="Add" />
-                    
-                    <!-- Submit Button -->
-                    <input type="submit" name="submit_button_extension" id="submit_button_extension" class="btn btn-danger" value="Add" />
-                    
-                    <!-- Close Button -->
+                    <input type="hidden" name="hidden_researcherID_ext" id="hidden_researcherID_ext" />
+                    <input type="hidden" name="hidden_extID" id="hidden_extID" />
+                    <input type="hidden" name="action_ext" id="action_ext" value="Add" />
+                    <input type="submit" name="submit_button_ext" id="submit_button_ext" class="btn btn-danger pink" value="Add" />
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                 </div>
             </div>
