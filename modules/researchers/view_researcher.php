@@ -26,6 +26,7 @@ $researcher_data = $object->statement->fetch(PDO::FETCH_ASSOC);
 
 // Format the name nicely
 $full_name = trim($researcher_data['firstName'] . ' ' . $researcher_data['middleName'] . ' ' . $researcher_data['familyName'] . ' ' . $researcher_data['Suffix']);
+
 // --- FETCH ALL ASSOCIATED DATA ---
 
 // 1. Fetch Research Conducted
@@ -36,7 +37,7 @@ $research_conducted = $object->get_result();
 $object->query = "SELECT * FROM tbl_publication WHERE researcherID = '$researcher_id' ORDER BY publication_date DESC";
 $publications = $object->get_result();
 
-// 3. Fetch Intellectual Property (Using EXACT DB spelling: tbl_itelectualprop)
+// 3. Fetch Intellectual Property
 $object->query = "SELECT * FROM tbl_itelectualprop WHERE researcherID = '$researcher_id' ORDER BY date_applied DESC";
 $intellectual_props = $object->get_result();
 
@@ -56,6 +57,7 @@ $ext_projects = $object->get_result();
 $object->query = "SELECT * FROM tbl_ext WHERE researcherID = '$researcher_id' ORDER BY period_implement DESC";
 $extensions = $object->get_result();
 // ---------------------------------
+
 include('../../includes/header.php');
 ?>
 
@@ -78,12 +80,12 @@ include('../../includes/header.php');
     .timeline-item::before {
         content: '';
         position: absolute;
-        left: -33px; /* Centers the dot on the line */
+        left: -33px;
         top: 5px;
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background-color: #f23e5d; /* Your pink theme color */
+        background-color: #f23e5d;
         border: 3px solid white;
         box-shadow: 0 0 0 2px #eaecf4;
     }
@@ -142,9 +144,6 @@ include('../../includes/header.php');
         color: white;
         box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2);
     }
-
-    /* Table Adjustments */
-    .table th { background-color: #f8f9fc; color: #5a5c69; font-size: 0.85rem; text-transform: uppercase; }
 </style>
 
 <a href="researcher.php" class="btn btn-light btn-sm mb-3 shadow-sm font-weight-bold text-gray-700">
@@ -201,242 +200,248 @@ include('../../includes/header.php');
                 <span id="message"></span>
                 <div class="tab-content" id="v-pills-tabContent">
 
-    <div class="tab-pane fade show active" id="personal-info" role="tabpanel">
-        <h4 class="font-weight-bold text-gray-800 mb-4 border-bottom pb-2">Academic Background</h4>
-        <div class="row mb-3">
-            <div class="col-md-4 text-muted">Bachelor's Degree</div>
-            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['bachelor_degree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['bachelor_YearGraduated'] ?? ''); ?>)</div>
-        </div>
-        <div class="row mb-3">
-            <div class="col-md-4 text-muted">Master's Degree</div>
-            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['masterDegree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['masterYearGraduated'] ?? ''); ?>)</div>
-        </div>
-        <div class="row mb-3">
-            <div class="col-md-4 text-muted">Doctorate Degree</div>
-            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['doctorateDegree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['doctorateYearGraduate'] ?? ''); ?>)</div>
-        </div>
-    </div>
-
-    <!--- Research Conducted --->
-<div class="tab-pane fade" id="education" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold text-gray-800 m-0">Research Timeline</h4>
-            <button type="button" id="add_researcherconducted" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Record</button>
-        </div>
-        
-        <?php if(count($research_conducted) > 0): ?>
-            <div class="timeline mt-4">
-                <?php foreach($research_conducted as $rc): ?>
-                    <div class="timeline-item">
-                        <div class="timeline-date"><?php echo htmlspecialchars($rc['started_date']); ?> to <?php echo htmlspecialchars($rc['completed_date']); ?></div>
-                        <div class="card shadow-sm border-0 bg-light">
-                            <div class="card-body py-3">
-                                <div class="float-right">
-                                    <button class="btn btn-sm btn-link text-primary edit_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-link text-danger delete_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-trash"></i></button>
-                                </div>
-                                <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($rc['title']); ?></h6>
-                                <p class="text-muted small mb-2">
-                                    <i class="fas fa-bullseye mr-1"></i> SDG: <?php echo htmlspecialchars($rc['sdgs']); ?> | 
-                                    <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($rc['funding_source']); ?> (₱<?php echo number_format((float)$rc['approved_budget'], 2); ?>)
-                                </p>
-                                <span class="badge badge-primary px-2 py-1"><?php echo htmlspecialchars($rc['stat']); ?></span>
-                                <span class="badge badge-light px-2 py-1 ml-1 border">Cluster: <?php echo htmlspecialchars($rc['research_agenda_cluster']); ?></span>
-                            </div>
+                    <div class="tab-pane fade show active" id="personal-info" role="tabpanel">
+                        <h4 class="font-weight-bold text-gray-800 mb-4 border-bottom pb-2">Academic Background</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4 text-muted">Bachelor's Degree</div>
+                            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['bachelor_degree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['bachelor_YearGraduated'] ?? ''); ?>)</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 text-muted">Master's Degree</div>
+                            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['masterDegree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['masterYearGraduated'] ?? ''); ?>)</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 text-muted">Doctorate Degree</div>
+                            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['doctorateDegree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['doctorateYearGraduate'] ?? ''); ?>)</div>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
-        <?php else: ?>
-            <div class="alert alert-light text-center py-4 border">No research conducted records found.</div>
-        <?php endif; ?>
-    </div>
 
-    <!--- publications --->
-    <div class="tab-pane fade" id="degree" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold text-gray-800 m-0">Publications</h4>
-            <button type="button" id="add_publication" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Publication</button>
-        </div>
-
-        <div class="card shadow-sm mb-3 border-left-primary position-relative">
-            <div class="card-body py-3">
-                <div class="position-absolute" style="top: 15px; right: 15px;">
-                    <button class="btn btn-sm btn-light text-primary shadow-sm mr-1"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-light text-danger shadow-sm"><i class="fas fa-trash"></i></button>
-                </div>
-                <h5 class="font-weight-bold text-gray-800 mb-1 pr-5">Artificial Intelligence in Automated Grading Systems</h5>
-                <p class="text-muted mb-2 font-size-sm">
-                    <i class="fas fa-book-open mr-2"></i> Journal of Educational Technology | Vol 12, Issue 4
-                </p>
-                <div class="mt-2">
-                    <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-check-circle mr-1"></i> Scopus Indexed</span>
-                    <span class="badge badge-light text-dark px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Published: Nov 15, 2023</span>
-                    <span class="badge badge-light text-dark px-2 py-1"><i class="fas fa-barcode mr-1"></i> ISSN: 1934-5678</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!--- Intelectual Propery --->
-    <div class="tab-pane fade" id="ip" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold text-gray-800 m-0">Intellectual Property</h4>
-            <button type="button" id="add_intellectualprop" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add IP</button>
-        </div>
-
-        <?php if(count($intellectual_props) > 0): ?>
-            <div class="row">
-                <?php foreach($intellectual_props as $ip): ?>
-                    <div class="col-md-6 mb-3">
-                        <div class="card shadow-sm border-left-warning h-100">
-                            <div class="card-body py-3 position-relative">
-                                <div class="position-absolute" style="top: 10px; right: 10px;">
-                                    <button class="btn btn-sm btn-light text-primary edit_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-light text-danger delete_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-trash"></i></button>
-                                </div>
-                                <h6 class="font-weight-bold text-gray-800 pr-5"><?php echo htmlspecialchars($ip['title']); ?></h6>
-                                <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Co-authors: <?php echo htmlspecialchars($ip['coauth']); ?></p>
-                                
-                                <div class="mt-3">
-                                    <span class="badge badge-warning text-dark px-2 py-1 mb-1"><i class="fas fa-certificate mr-1"></i> <?php echo htmlspecialchars($ip['type']); ?></span><br>
-                                    <small class="text-muted"><b>Applied:</b> <?php echo htmlspecialchars($ip['date_applied']); ?> | <b>Granted:</b> <?php echo htmlspecialchars($ip['date_granted']); ?></small>
-                                </div>
-                            </div>
+                    <div class="tab-pane fade" id="education" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Research Timeline</h4>
+                            <button type="button" id="add_researcherconducted" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Record</button>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php else: ?>
-            <div class="alert alert-light text-center py-4 border">No intellectual property records found.</div>
-        <?php endif; ?>
-    </div>
-
-    <!--- Paper presentations --->
-    <div class="tab-pane fade" id="pp" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold text-gray-800 m-0">Paper Presentations</h4>
-            <button type="button" id="add_paper_presentation" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Presentation</button>
-        </div>
-
-        <div class="card shadow-sm border-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                    <div>
-                        <h6 class="font-weight-bold text-gray-800 mb-1"><i class="fas fa-microphone-alt text-primary mr-2"></i> Data Mining for Student Retention</h6>
-                        <small class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i> 2023 International Conference on IT (Manila, PH) | Aug 12, 2023</small>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-circle btn-light text-primary"><i class="fas fa-edit"></i></button>
-                    </div>
-                </li>
-                <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                    <div>
-                        <h6 class="font-weight-bold text-gray-800 mb-1"><i class="fas fa-microphone-alt text-primary mr-2"></i> IoT Applications in Smart Campuses</h6>
-                        <small class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i> Regional Tech Summit (Cebu, PH) | Feb 05, 2022</small>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-circle btn-light text-primary"><i class="fas fa-edit"></i></button>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!--- training --->
-    <div class="tab-pane fade" id="tra" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold text-gray-800 m-0">Trainings & Development</h4>
-            <button type="button" id="add_training_attended" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Training</button>
-        </div>
-        
-        <div class="timeline mt-4">
-            <div class="timeline-item">
-                <div class="timeline-date">Sept 2023 (40 Hours)</div>
-                <div class="card shadow-sm border-0 bg-light">
-                    <div class="card-body py-3">
-                        <h6 class="font-weight-bold text-gray-800 mb-1">Advanced Data Analytics Masterclass</h6>
-                        <p class="text-muted small mb-2"><i class="fas fa-building mr-1"></i> Sponsored by DataScience PH | Venue: Online</p>
-                        <span class="badge badge-info px-2 py-1">International Level</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!---Extension Projects Conducted--->
-        <div class="tab-pane fade" id="epc" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold text-gray-800 m-0">Extension Projects Conducted</h4>
-            <button type="button" id="add_extension_project" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Ext. Project</button>
-        </div>
-
-        <?php if(count($ext_projects) > 0): ?>
-            <div class="timeline mt-4">
-                <?php foreach($ext_projects as $ep): ?>
-                    <div class="timeline-item">
-                        <div class="timeline-date"><?php echo htmlspecialchars($ep['start_date']); ?> to <?php echo htmlspecialchars($ep['completed_date']); ?></div>
-                        <div class="card shadow-sm border-0 bg-light">
-                            <div class="card-body py-3">
-                                <div class="float-right">
-                                    <button class="btn btn-sm btn-link text-primary edit_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-link text-danger delete_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-trash"></i></button>
-                                </div>
-                                <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($ep['title']); ?></h6>
-                                <p class="text-muted small mb-2">
-                                    <i class="fas fa-handshake mr-1"></i> Partners: <?php echo htmlspecialchars($ep['partners']); ?> | 
-                                    <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($ep['funding_source']); ?> (₱<?php echo number_format((float)$ep['approved_budget'], 2); ?>)
-                                </p>
-                                <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Beneficiaries: <?php echo htmlspecialchars($ep['target_beneficiaries_communities']); ?></p>
-                                <span class="badge badge-success px-2 py-1"><?php echo htmlspecialchars($ep['status_exct']); ?></span>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php else: ?>
-            <div class="alert alert-light text-center py-4 border">No extension projects found.</div>
-        <?php endif; ?>
-    </div>
-
-    <!---Extension--->
-    <div class="tab-pane fade" id="ext" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold text-gray-800 m-0">Extension Activities</h4>
-            <button type="button" id="add_extension" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Extension</button>
-        </div>
-
-        <?php if(count($extensions) > 0): ?>
-            <?php foreach($extensions as $ext): ?>
-                <div class="card shadow-sm mb-3 border-left-success position-relative">
-                    <div class="card-body py-3">
-                        <div class="position-absolute" style="top: 15px; right: 15px;">
-                            <button class="btn btn-sm btn-light text-primary shadow-sm mr-1 edit_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-trash"></i></button>
-                        </div>
-                        <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($ext['title']); ?></h5>
-                        <p class="text-muted mb-2 font-size-sm">
-                            <i class="fas fa-user-tie mr-1"></i> Lead: <?php echo htmlspecialchars($ext['proj_lead']); ?> | Assist: <?php echo htmlspecialchars($ext['assist_coordinators']); ?>
-                        </p>
-                        <p class="mb-2 text-dark small"><?php echo htmlspecialchars($ext['description']); ?></p>
                         
-                        <div class="mt-2 bg-light p-2 rounded small">
-                            <b><i class="far fa-calendar-alt mr-1"></i> Period:</b> <?php echo htmlspecialchars($ext['period_implement']); ?> | 
-                            <b><i class="fas fa-users ml-2 mr-1"></i> Beneficiaries:</b> <?php echo htmlspecialchars($ext['target_beneficiaries']); ?> |
-                            <b><i class="fas fa-money-bill-wave ml-2 mr-1"></i> Budget:</b> ₱<?php echo number_format((float)$ext['budget'], 2); ?>
+                        <?php if(count($research_conducted) > 0): ?>
+                            <div class="timeline mt-4">
+                                <?php foreach($research_conducted as $rc): ?>
+                                    <div class="timeline-item">
+                                        <div class="timeline-date"><?php echo htmlspecialchars($rc['started_date']); ?> to <?php echo htmlspecialchars($rc['completed_date']); ?></div>
+                                        <div class="card shadow-sm border-0 bg-light">
+                                            <div class="card-body py-3">
+                                                <div class="float-right">
+                                                    <button class="btn btn-sm btn-link text-primary edit_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-link text-danger delete_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                                <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($rc['title']); ?></h6>
+                                                <p class="text-muted small mb-2">
+                                                    <i class="fas fa-bullseye mr-1"></i> SDG: <?php echo htmlspecialchars($rc['sdgs']); ?> | 
+                                                    <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($rc['funding_source']); ?> (₱<?php echo number_format((float)$rc['approved_budget'], 2); ?>)
+                                                </p>
+                                                <span class="badge badge-primary px-2 py-1"><?php echo htmlspecialchars($rc['stat']); ?></span>
+                                                <span class="badge badge-light px-2 py-1 ml-1 border">Cluster: <?php echo htmlspecialchars($rc['research_agenda_cluster']); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No research conducted records found.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="tab-pane fade" id="degree" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Publications</h4>
+                            <button type="button" id="add_publication" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Publication</button>
                         </div>
-                        <div class="mt-2">
-                            <span class="badge badge-success px-2 py-1"><i class="fas fa-info-circle mr-1"></i> <?php echo htmlspecialchars($ext['stat']); ?></span>
+
+                        <?php if(count($publications) > 0): ?>
+                            <?php foreach($publications as $pub): ?>
+                                <div class="card shadow-sm mb-3 border-left-primary position-relative">
+                                    <div class="card-body py-3">
+                                        <div class="position-absolute" style="top: 15px; right: 15px;">
+                                            <button class="btn btn-sm btn-light text-primary shadow-sm mr-1 edit_button_publication" data-id="<?php echo $pub['id']; ?>"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_publication" data-id="<?php echo $pub['id']; ?>"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                        <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($pub['title']); ?></h5>
+                                        <p class="text-muted mb-2 font-size-sm">
+                                            <i class="fas fa-book-open mr-2"></i> <?php echo htmlspecialchars($pub['journal']); ?> | Vol/Issue: <?php echo htmlspecialchars($pub['vol_num_issue_num']); ?>
+                                        </p>
+                                        <div class="mt-2">
+                                            <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-check-circle mr-1"></i> <?php echo htmlspecialchars($pub['indexing']); ?></span>
+                                            <span class="badge badge-light text-dark px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Published: <?php echo htmlspecialchars($pub['publication_date']); ?></span>
+                                            <span class="badge badge-light text-dark px-2 py-1"><i class="fas fa-barcode mr-1"></i> ISSN: <?php echo htmlspecialchars($pub['issn_isbn']); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No publications recorded yet.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="tab-pane fade" id="ip" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Intellectual Property</h4>
+                            <button type="button" id="add_intellectualprop" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add IP</button>
+                        </div>
+
+                        <?php if(count($intellectual_props) > 0): ?>
+                            <div class="row">
+                                <?php foreach($intellectual_props as $ip): ?>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card shadow-sm border-left-warning h-100">
+                                            <div class="card-body py-3 position-relative">
+                                                <div class="position-absolute" style="top: 10px; right: 10px;">
+                                                    <button class="btn btn-sm btn-light text-primary edit_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-light text-danger delete_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                                <h6 class="font-weight-bold text-gray-800 pr-5"><?php echo htmlspecialchars($ip['title']); ?></h6>
+                                                <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Co-authors: <?php echo htmlspecialchars($ip['coauth']); ?></p>
+                                                <div class="mt-3">
+                                                    <span class="badge badge-warning text-dark px-2 py-1 mb-1"><i class="fas fa-certificate mr-1"></i> <?php echo htmlspecialchars($ip['type']); ?></span><br>
+                                                    <small class="text-muted"><b>Applied:</b> <?php echo htmlspecialchars($ip['date_applied']); ?> | <b>Granted:</b> <?php echo htmlspecialchars($ip['date_granted']); ?></small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No intellectual property records found.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="tab-pane fade" id="pp" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Paper Presentations</h4>
+                            <button type="button" id="add_paper_presentation" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Presentation</button>
+                        </div>
+
+                        <div class="card shadow-sm border-0">
+                            <?php if(count($presentations) > 0): ?>
+                                <ul class="list-group list-group-flush">
+                                    <?php foreach($presentations as $paper): ?>
+                                        <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                                            <div>
+                                                <h6 class="font-weight-bold text-gray-800 mb-1"><i class="fas fa-microphone-alt text-primary mr-2"></i> <?php echo htmlspecialchars($paper['title']); ?></h6>
+                                                <small class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i> <?php echo htmlspecialchars($paper['conference_title']); ?> (<?php echo htmlspecialchars($paper['conference_venue']); ?>) | <?php echo htmlspecialchars($paper['date_paper']); ?></small>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-circle btn-light text-primary edit_button_paper_presentation" data-id="<?php echo $paper['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm btn-circle btn-light text-danger delete_button_paper_presentation" data-id="<?php echo $paper['id']; ?>"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <div class="card-body text-center py-4 text-muted">No paper presentations recorded yet.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="alert alert-light text-center py-4 border">No extension activities found.</div>
-        <?php endif; ?>
-    </div>
-    </div>
-</div>
 
-<div id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>"></div>
+                    <div class="tab-pane fade" id="tra" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Trainings & Development</h4>
+                            <button type="button" id="add_training_attended" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Training</button>
+                        </div>
+                        
+                        <?php if(count($trainings) > 0): ?>
+                            <div class="timeline mt-4">
+                                <?php foreach($trainings as $train): ?>
+                                    <div class="timeline-item">
+                                        <div class="timeline-date"><?php echo htmlspecialchars($train['date_train']); ?> (<?php echo htmlspecialchars($train['totnh']); ?> Hours)</div>
+                                        <div class="card shadow-sm border-0 bg-light">
+                                            <div class="card-body py-3">
+                                                <div class="float-right">
+                                                    <button class="btn btn-sm btn-link text-primary edit_button_training" data-id="<?php echo $train['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-link text-danger delete_button_training" data-id="<?php echo $train['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                                <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($train['title']); ?></h6>
+                                                <p class="text-muted small mb-2"><i class="fas fa-building mr-1"></i> <?php echo htmlspecialchars($train['sponsor_org']); ?> | Venue: <?php echo htmlspecialchars($train['venue']); ?></p>
+                                                <span class="badge badge-info px-2 py-1"><?php echo htmlspecialchars($train['lvl']); ?> Level</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No training records found.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="tab-pane fade" id="epc" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Extension Projects Conducted</h4>
+                            <button type="button" id="add_extension_project" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Ext. Project</button>
+                        </div>
+
+                        <?php if(count($ext_projects) > 0): ?>
+                            <div class="timeline mt-4">
+                                <?php foreach($ext_projects as $ep): ?>
+                                    <div class="timeline-item">
+                                        <div class="timeline-date"><?php echo htmlspecialchars($ep['start_date']); ?> to <?php echo htmlspecialchars($ep['completed_date']); ?></div>
+                                        <div class="card shadow-sm border-0 bg-light">
+                                            <div class="card-body py-3">
+                                                <div class="float-right">
+                                                    <button class="btn btn-sm btn-link text-primary edit_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-link text-danger delete_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                                <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($ep['title']); ?></h6>
+                                                <p class="text-muted small mb-2">
+                                                    <i class="fas fa-handshake mr-1"></i> Partners: <?php echo htmlspecialchars($ep['partners']); ?> | 
+                                                    <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($ep['funding_source']); ?> (₱<?php echo number_format((float)$ep['approved_budget'], 2); ?>)
+                                                </p>
+                                                <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Beneficiaries: <?php echo htmlspecialchars($ep['target_beneficiaries_communities']); ?></p>
+                                                <span class="badge badge-success px-2 py-1"><?php echo htmlspecialchars($ep['status_exct']); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No extension projects found.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="tab-pane fade" id="ext" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Extension Activities</h4>
+                            <button type="button" id="add_extension" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Extension</button>
+                        </div>
+
+                        <?php if(count($extensions) > 0): ?>
+                            <?php foreach($extensions as $ext): ?>
+                                <div class="card shadow-sm mb-3 border-left-success position-relative">
+                                    <div class="card-body py-3">
+                                        <div class="position-absolute" style="top: 15px; right: 15px;">
+                                            <button class="btn btn-sm btn-light text-primary shadow-sm mr-1 edit_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                        <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($ext['title']); ?></h5>
+                                        <p class="text-muted mb-2 font-size-sm">
+                                            <i class="fas fa-user-tie mr-1"></i> Lead: <?php echo htmlspecialchars($ext['proj_lead']); ?> | Assist: <?php echo htmlspecialchars($ext['assist_coordinators']); ?>
+                                        </p>
+                                        <p class="mb-2 text-dark small"><?php echo htmlspecialchars($ext['description']); ?></p>
+                                        
+                                        <div class="mt-2 bg-light p-2 rounded small">
+                                            <b><i class="far fa-calendar-alt mr-1"></i> Period:</b> <?php echo htmlspecialchars($ext['period_implement']); ?> | 
+                                            <b><i class="fas fa-users ml-2 mr-1"></i> Beneficiaries:</b> <?php echo htmlspecialchars($ext['target_beneficiaries']); ?> |
+                                            <b><i class="fas fa-money-bill-wave ml-2 mr-1"></i> Budget:</b> ₱<?php echo number_format((float)$ext['budget'], 2); ?>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="badge badge-success px-2 py-1"><i class="fas fa-info-circle mr-1"></i> <?php echo htmlspecialchars($ext['stat']); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No extension activities found.</div>
+                        <?php endif; ?>
+                    </div>
+
+                </div> </div> </div> </div> </div> <div id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>"></div>
 <div id="researcherModala" data-id="<?php echo htmlspecialchars($researcher_id); ?>"></div>
 
 <?php include('../../includes/footer.php'); ?>
@@ -448,6 +453,7 @@ include('../../includes/header.php');
 
 <script>
 $(document).ready(function() {
+    // 1. MAGIC OVERLAPPING MODAL FIX
     $('.modal').appendTo('body');
     $(document).on('show.bs.modal', '.modal', function () {
         var zIndex = 1040 + (10 * $('.modal:visible').length);
@@ -455,6 +461,20 @@ $(document).ready(function() {
         setTimeout(function() {
             $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
         }, 0);
+    });
+
+    // 2. BULLETPROOF TAB SWITCHER (Bypasses Bootstrap completely!)
+    $('.nav-pills .nav-link').on('click', function(e) {
+        e.preventDefault(); // Stop page jump
+        
+        // Remove 'active' color from all links, add to the one clicked
+        $('.nav-pills .nav-link').removeClass('active');
+        $(this).addClass('active');
+        
+        // Hide all tab panes, then force the target pane to show
+        var targetPane = $(this).attr('href');
+        $('.tab-pane').removeClass('show active');
+        $(targetPane).addClass('show active');
     });
 });
 </script>
