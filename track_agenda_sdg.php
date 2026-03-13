@@ -1,6 +1,6 @@
 <?php
 // track_agenda_sdg.php
-include('rms.php');
+include('core/rms.php');
 
 $object = new rms();
 
@@ -15,7 +15,7 @@ if (!$object->is_master_user()) {
     exit;
 }
 
-include('header.php');
+include('includes/header.php');
 
 // Connect to DB securely
 $conn = new mysqli("localhost", "root", "", "rms");
@@ -194,7 +194,7 @@ if ($result) {
 
 <?php 
 $conn->close();
-include('footer.php'); 
+include('includes/footer.php'); 
 ?>
 
 <script src="vendor/jquery/jquery.min.js"></script>

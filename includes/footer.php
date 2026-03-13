@@ -1,10 +1,5 @@
+</div>
                 </div>
-                <!-- /.container-fluid -->
-
-            </div>
-            <!-- End of Main Content -->
-
-            <!-- Footer -->
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
@@ -12,15 +7,8 @@
                     </div>
                 </div>
             </footer>
-            <!-- End of Footer -->
-
+            </div>
         </div>
-        <!-- End of Content Wrapper -->
-
-    </div>
-    <!-- End of Page Wrapper -->
-
-    <!-- Scroll to Top Button-->
     <a class="scroll-to-top rounded" href="#page-top">
         <i class="fas fa-angle-up"></i>
     </a>
@@ -35,7 +23,6 @@
 </style>
 
 
-    <!-- Logout Modal-->
     <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -49,29 +36,25 @@
                 <div class="modal-body">If you are ready to exit RMS Portal, select "Logout" below.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-danger pink" href="logout.php">Logout</a>
+                    <a class="btn btn-danger pink" href="<?php echo $object->base_url; ?>logout.php">Logout</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap core JavaScript-->
-    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
 
 
-    <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="<?php echo $object->base_url; ?>vendor/jquery-easing/jquery.easing.min.js"></script>
 
-    <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
+    <script src="<?php echo $object->base_url; ?>js/sb-admin-2.min.js"></script>
 
-    <!-- Page level plugins -->
-    <script src="vendor/datatables/jquery.dataTables.min.js"></script>
-    <script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+    <script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
 
-    <script type="text/javascript" src="vendor/parsley/dist/parsley.min.js"></script>
+    <script type="text/javascript" src="<?php echo $object->base_url; ?>vendor/parsley/dist/parsley.min.js"></script>
 
-    <script type="text/javascript" src="vendor/bootstrap-select/bootstrap-select.min.js"></script>
+    <script type="text/javascript" src="<?php echo $object->base_url; ?>vendor/bootstrap-select/bootstrap-select.min.js"></script>
     
 <script>
     $(document).ready(function() {

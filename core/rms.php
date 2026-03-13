@@ -15,13 +15,22 @@ class rms
     {
         try {
              $this->connect = new PDO("mysql:host=localhost;dbname=rms", "root", "");
- 
-			//$this->connect = new PDO("mysql:host=185.193.17.130;dbname=chedro9mobt_rms", "chedro9mobt_trialuser98", "Tim_09102022");
             $this->connect->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             if (session_status() == PHP_SESSION_NONE) {
                 session_start();
             }
+
+            // ----- NEW: GLOBAL BASE URL CONFIGURATION -----
+            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'];
+            $project_dir = dirname($_SERVER['SCRIPT_NAME']);
+            $project_dir = str_replace('\\', '/', $project_dir); // Fix for Windows XAMPP
+            
+            // This guarantees the system always knows your exact root URL
+            $this->base_url = rtrim($protocol . '://' . $host . $project_dir, '/') . '/';
+            // ----------------------------------------------
+
         } catch (PDOException $e) {
             die("Database connection failed: " . $e->getMessage());
         }

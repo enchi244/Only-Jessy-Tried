@@ -1,7 +1,7 @@
 <?php
 
 // Include necessary file
-include('rms.php');
+include('../core/rms.php');
 
 // Instantiate the rms object to maintain any session/auth checks intact
 $object = new rms();

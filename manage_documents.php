@@ -1,6 +1,6 @@
 <?php
 // manage_documents.php
-include('rms.php');
+include('core/rms.php');
 
 $object = new rms();
 
@@ -75,7 +75,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'upload_document') {
 }
 // ==============================================================================
 
-include('header.php');
+include('includes/header.php');
 
 // Connect to DB to fetch data for our tables
 $conn = new mysqli("localhost", "root", "", "rms");
@@ -265,7 +265,7 @@ $conn->set_charset("utf8mb4");
     </div>
 </div>
 
-<?php include('footer.php'); ?>
+<?php include('includes/footer.php'); ?>
 
 <script src="vendor/jquery/jquery.min.js"></script>
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

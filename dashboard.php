@@ -1,6 +1,6 @@
 <?php
 // dashboard.php
-include('rms.php');
+include('core/rms.php');
 
 // ==============================================================================
 // DYNAMIC DASHBOARD AJAX HANDLER (Perfectly mapped to your actual schema!)
@@ -114,7 +114,7 @@ if(!$object->is_login())
     exit; 
 }
 
-include('header.php');
+include('includes/header.php');
 $totalDepartments = $object->Get_total_departments();
 ?>
 
@@ -857,7 +857,7 @@ $totalDepartments = $object->Get_total_departments();
 
     <?php } // End if is_master_user ?>
 
-</div> <?php include('footer.php'); ?>
+</div> <?php include('includes/footer.php'); ?>
 
 <script src="vendor/jquery/jquery.min.js"></script>
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

@@ -5,7 +5,7 @@
 require_once('class/pdf.php');
 require('vendor/vendor/autoload.php');
 
-include('rms.php');
+include('core/rms.php');
 
 $object = new rms();
 

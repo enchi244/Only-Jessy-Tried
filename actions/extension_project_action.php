@@ -1,7 +1,7 @@
 <?php
 // extension_project_action.php
 
-include('rms.php');  // Assuming this is your database handler class
+include('../core/rms.php');  // Assuming this is your database handler class
 
 $object = new rms();
 

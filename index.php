@@ -1,7 +1,7 @@
 
 <?php
 
-include('rms.php');
+include('core/rms.php');
 
 $object = new rms();
 
@@ -155,7 +155,7 @@ $(document).ready(function(){
         if($('#login_form').parsley().isValid())
         {       
             $.ajax({
-                url:"login_action.php",
+                url:"actions/login_action.php",
                 method:"POST",
                 data:$(this).serialize(),
                 dataType:'json',

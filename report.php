@@ -1,6 +1,6 @@
 <?php
 // report.php
-include('rms.php');
+include('core/rms.php');
 
 $object = new rms();
 
@@ -185,7 +185,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
 }
 // ==============================================================================
 
-include('header.php');
+include('includes/header.php');
 ?>
 
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap4.min.css">
@@ -319,7 +319,7 @@ include('header.php');
 
 </div> 
 
-<?php include('footer.php'); ?>
+<?php include('includes/footer.php'); ?>
 
 <script src="vendor/jquery/jquery.min.js"></script>
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

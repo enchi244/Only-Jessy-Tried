@@ -1,7 +1,7 @@
 <?php
 // category_action.php
 
-include('rms.php');  // Include your database logic
+include('../core/rms.php');  // Include your database logic
 
 $object = new rms();
 

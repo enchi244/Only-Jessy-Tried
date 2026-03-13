@@ -16,17 +16,17 @@ $time = date('h:i:s a', time());
 
     <title>RAS | Dashboard</title>
 
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="vendor/font.css" rel="stylesheet">
+    <link href="<?php echo $object->base_url; ?>vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="<?php echo $object->base_url; ?>vendor/font.css" rel="stylesheet">
 
-    <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="vendor/parsley/parsley.css"/>
-    <link rel="stylesheet" type="text/css" href="vendor/bootstrap-select/bootstrap-select.min.css"/>
-    <link rel="shortcut icon" type="image/x-icon" href="img/hs.ico"/>
+    <link href="<?php echo $object->base_url; ?>css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="<?php echo $object->base_url; ?>vendor/parsley/parsley.css"/>
+    <link rel="stylesheet" type="text/css" href="<?php echo $object->base_url; ?>vendor/bootstrap-select/bootstrap-select.min.css"/>
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo $object->base_url; ?>img/hs.ico"/>
 
-    <script src="js/sweetalert2.js"></script>
-    <script src="js/canvasjs.min.js"></script>
+    <script src="<?php echo $object->base_url; ?>js/sweetalert2.js"></script>
+    <script src="<?php echo $object->base_url; ?>js/canvasjs.min.js"></script>
 
     <style type="text/css">
         /* Professional Academic Gradient for Sidebar */
@@ -107,9 +107,9 @@ body.sidebar-toggled #content-wrapper {
 
         <ul class="navbar-nav bg-gradient-primary-custom sidebar sidebar-dark accordion shadow" id="accordionSidebar">
 
-            <a class="sidebar-brand d-flex align-items-center justify-content-center py-4" href="dashboard" title="Dashboard">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center py-4" href="<?php echo $object->base_url; ?>dashboard.php" title="Dashboard">
                 <div>
-                    <img src="img/wmsu_logo.png" alt="RAS Logo" width="40" height="40">
+                    <img src="<?php echo $object->base_url; ?>img/wmsu_logo.png" alt="RAS Logo" width="40" height="40">
                 </div>
                 <div class="sidebar-brand-text mx-3">RAS Admin</div>
             </a>
@@ -117,7 +117,7 @@ body.sidebar-toggled #content-wrapper {
             <hr class="sidebar-divider my-0">
 
             <li class="nav-item">
-                <a class="nav-link" href="dashboard">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>dashboard.php">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
@@ -131,40 +131,40 @@ body.sidebar-toggled #content-wrapper {
             </div>
 
             <li class="nav-item">
-                <a class="nav-link pb-2" href="researcher">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>researcher.php">
                     <i class="fas fa-fw fa-users"></i>
                     <span>Researchers' Data</span>
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link pb-2" href="category">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>colleges.php">
                     <i class="fas fa-fw fa-university"></i>
                     <span>Colleges</span>
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link pb-2" href="disc">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>disciplines.php">
                     <i class="fas fa-fw fa-book-open"></i>
                     <span>Discipline</span>
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="report">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>report.php">
                     <i class="fas fa-fw fa-chart-bar"></i>
                     <span>Reports</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="manage_documents.php">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>manage_documents.php">
                     <i class="fas fa-fw fa-file-signature"></i>
                     <span>Manage SO & MOA</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="track_agenda_sdg.php">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>track_agenda_sdg.php">
                     <i class="fas fa-fw fa-globe"></i>
                     <span>Agenda & SDG Tracker</span>
                 </a>
@@ -221,11 +221,11 @@ body.sidebar-toggled #content-wrapper {
                                 <span class="mr-2 d-none d-lg-inline text-gray-700 font-weight-bold">
                                     <?php echo htmlspecialchars($user_name); ?>
                                 </span>
-                                <img class="img-profile rounded-circle border" src="<?php echo htmlspecialchars($user_profile_image); ?>" alt="Profile">
+                                <img class="img-profile rounded-circle border" src="<?php echo $object->base_url; ?><?php echo htmlspecialchars($user_profile_image); ?>" alt="Profile">
                             </a>
                             
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="profile">
+                                <a class="dropdown-item" href="<?php echo $object->base_url; ?>profile.php">
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Profile
                                 </a>

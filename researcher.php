@@ -1,6 +1,6 @@
 <?php
 
-include('rms.php');
+include('core/rms.php');
 
 $object = new rms();
 
@@ -14,7 +14,7 @@ if(!$object->is_master_user())
     header("location:".$object->base_url."dashboard");
 }
 
-include('header.php');
+include('includes/header.php');
 
 ?>
 
@@ -123,7 +123,7 @@ include('header.php');
 </div>
 
                 <?php
-                include('footer.php');
+                include('includes/footer.php');
                 ?>
 
 <script src="js/app.js"></script>
@@ -2113,7 +2113,7 @@ $(document).ready(function(){
     "serverSide": true,
     "order": [],  // Disable default sorting
     "ajax": {
-        url: "researcher_action.php",  // Your API endpoint
+        url: "actions/researcher_action.php",  // Your API endpoint
         type: "POST",
         data: { action: 'fetch' },
     },
@@ -2194,7 +2194,7 @@ $(document).ready(function() {
     var postYearGraduateu = $('#postYearGraduateu').val();
     // AJAX request to send data to the backend
     $.ajax({
-  url: 'update_researcher.php', // Backend script URL
+  url: 'actions/update_researcher.php', // Backend script URL
   method: 'POST',
   data: {
     researcherIDu: researcherIDu,
@@ -2310,7 +2310,7 @@ $(document).ready(function() {
 		if($('#researcher_form').parsley().isValid())
 		{		
 			$.ajax({
-				url:"researcher_action.php",
+				url:"actions/researcher_action.php",
 				method:"POST",
 				data:$(this).serialize(),
 				dataType:'json',
@@ -2364,7 +2364,7 @@ $(document).ready(function() {
 
             $.ajax({
 
-                url:"researcher_action.php",
+                url:"actions/researcher_action.php",
 
                 method:"POST",
 
@@ -2443,7 +2443,7 @@ var rcdataTable = $('#researcherconducted_table').DataTable({
 "serverSide": true,
 "order": [],
 "ajax": {
-    url: "researchconducted_action.php",
+    url: "actions/researchconducted_action.php",
     type: "POST",
     data: {rid: researcherID, action_researchedconducted: 'fetch'}
     // alert(rid); // you can place the alert for debugging if needed
@@ -2473,7 +2473,7 @@ $('#researchconducted_form').on('submit', function(event) {
     event.preventDefault();
     if ($('#researchconducted_form').parsley().isValid()) {
         $.ajax({
-            url: "researchconducted_action.php",
+            url: "actions/researchconducted_action.php",
             method: "POST",
             data: $(this).serialize(),
             dataType: 'json',
@@ -2597,7 +2597,7 @@ $(document).on('click', '.edit_buttonrc', function(){
 
     $.ajax({
 
-        url:"researchconducted_action.php",
+        url:"actions/researchconducted_action.php",
 
         method:"POST",
 
@@ -2685,7 +2685,7 @@ $(document).on('click', '.edit_buttonrc', function(){
             if (result.isConfirmed) {
                 // Perform the delete action via AJAX
                 $.ajax({
-                    url: "researchconducted_action.php",
+                    url: "actions/researchconducted_action.php",
                     method: "POST",
                     data: { xid: xid, action_researchedconducted: 'delete' },
                     success: function(data) {
@@ -2738,7 +2738,7 @@ var publicationTable = $('#publication_table').DataTable({
 "serverSide": true,
 "order": [],
 "ajax": {
-    url: "publication_action.php",
+    url: "actions/publication_action.php",
     type: "POST",
     data: {rid: researcherID, action_publication: 'fetch'}
     // alert(rid); // you can place the alert for debugging if needed
@@ -2770,7 +2770,7 @@ $('#publication_form').on('submit', function(event) {
     event.preventDefault();
     if ($('#publication_form').parsley().isValid()) {
         $.ajax({
-            url: "publication_action.php",
+            url: "actions/publication_action.php",
             method: "POST",
             data: $(this).serialize(),
             dataType: 'json',
@@ -2873,7 +2873,7 @@ $('#form_message').html('');
 
 $.ajax({
 
- url:"publication_action.php",
+ url:"actions/publication_action.php",
  method:"POST",
  data:{publicationID: publicationID, action_publication: 'fetch_single'},
  dataType:'JSON',
@@ -2947,7 +2947,7 @@ $(document).on('click', '.delete_button_publication', function() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: "publication_action.php",
+                url: "actions/publication_action.php",
                 method: "POST",
                 data: {publicationID: publicationID, action_publication: 'delete'},
                 success: function(data) {
@@ -2996,7 +2996,7 @@ function loadIntellectualPropTab(researcherID) {
         "serverSide": true,
         "order": [],
         "ajax": {
-            url: "intellectualprop_action.php",
+            url: "actions/intellectualprop_action.php",
             type: "POST",
             data: { rid: researcherID, action_intellectualprop: 'fetch' }
         },
@@ -3021,7 +3021,7 @@ $('#intellectualprop_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#intellectualprop_form').parsley().isValid()) {
         $.ajax({
-            url: "intellectualprop_action.php",
+            url: "actions/intellectualprop_action.php",
             method: "POST",
             data: $(this).serialize(),
             dataType: 'json',
@@ -3102,7 +3102,7 @@ $(document).on('click', '.edit_button_intellectualprop', function () {
     $('#form_message').html('');
 
     $.ajax({
-        url: "intellectualprop_action.php",
+        url: "actions/intellectualprop_action.php",
         method: "POST",
         data: { intellectualPropID: intellectualPropID, action_intellectualprop: 'fetch_single' },
         dataType: 'JSON',
@@ -3153,7 +3153,7 @@ $(document).on('click', '.delete_button_intellectualprop', function () {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: "intellectualprop_action.php",
+                url: "actions/intellectualprop_action.php",
                 method: "POST",
                 data: { intellectualPropID: intellectualPropID, action_intellectualprop: 'delete' },
                 success: function (data) {
@@ -3200,7 +3200,7 @@ function loadPaperPresentationTab(researcherID) {
         "serverSide": true,
         "order": [],
         "ajax": {
-            url: "paper_presentation_action.php",
+            url: "actions/paper_presentation_action.php",
             type: "POST",
             data: { rid: researcherID, action_paper_presentation: 'fetch' }
         },
@@ -3225,7 +3225,7 @@ $('#paper_presentation_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#paper_presentation_form').parsley().isValid()) {
         $.ajax({
-            url: "paper_presentation_action.php",
+            url: "actions/paper_presentation_action.php",
             method: "POST",
             data: $(this).serialize(),
             dataType: 'json',
@@ -3306,7 +3306,7 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
     $('#form_message').html('');
 
     $.ajax({
-        url: "paper_presentation_action.php",
+        url: "actions/paper_presentation_action.php",
         method: "POST",
         data: { paperPresentationID: paperPresentationID, action_paper_presentation: 'fetch_single' },
         dataType: 'JSON',
@@ -3352,7 +3352,7 @@ $(document).on('click', '.delete_button_paper_presentation', function () {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: "paper_presentation_action.php",
+                url: "actions/paper_presentation_action.php",
                 method: "POST",
                 data: { paperPresentationID: paperPresentationID, action_paper_presentation: 'delete' },
                 success: function (data) {
@@ -3399,7 +3399,7 @@ function loadTrainingsAttendedTab(researcherID) {
         "serverSide": true,
         "order": [],
         "ajax": {
-            url: "trainings_attended_action.php",
+            url: "actions/trainings_attended_action.php",
             type: "POST",
             data: { rid: researcherID, action_training: 'fetch' }
         },
@@ -3424,7 +3424,7 @@ $('#trainings_attended_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#trainings_attended_form').parsley().isValid()) {
         $.ajax({
-            url: "trainings_attended_action.php",
+            url: "actions/trainings_attended_action.php",
             method: "POST",
             data: $(this).serialize(),
             dataType: 'json',
@@ -3505,7 +3505,7 @@ $(document).on('click', '.edit_button_training', function () {
     $('#form_message').html('');
 
     $.ajax({
-        url: "trainings_attended_action.php",
+        url: "actions/trainings_attended_action.php",
         method: "POST",
         data: { trainingID: trainingID, action_training: 'fetch_single' },
         dataType: 'JSON',
@@ -3553,7 +3553,7 @@ $(document).on('click', '.delete_button_training', function () {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: "trainings_attended_action.php",
+                url: "actions/trainings_attended_action.php",
                 method: "POST",
                 data: { trainingID: trainingID, action_training: 'delete' },
                 success: function (data) {
@@ -3604,7 +3604,7 @@ $(document).on('click', '.delete_button_training', function () {
 //         "serverSide": true,
 //         "order": [],
 //         "ajax": {
-//             url: "extension_projects_action.php",
+//             url: "actions/extension_projects_action.php",
 //             type: "POST",
 //             data: { rid: researcherID, action_ext: 'fetch' }
 //         },
@@ -3629,7 +3629,7 @@ $(document).on('click', '.delete_button_training', function () {
 //     event.preventDefault();
 //     if ($('#ext_project_form').parsley().isValid()) {
 //         $.ajax({
-//             url: "extension_projects_action.php",
+//             url: "actions/extension_projects_action.php",
 //             method: "POST",
 //             data: $(this).serialize(),
 //             dataType: 'json',
@@ -3710,7 +3710,7 @@ $(document).on('click', '.delete_button_training', function () {
 //     $('#form_message').html('');
 
 //     $.ajax({
-//         url: "extension_projects_action.php",
+//         url: "actions/extension_projects_action.php",
 //         method: "POST",
 //         data: { extID: extID, action_ext: 'fetch_single' },
 //         dataType: 'JSON',
@@ -3760,7 +3760,7 @@ $(document).on('click', '.delete_button_training', function () {
 //     }).then((result) => {
 //         if (result.isConfirmed) {
 //             $.ajax({
-//                 url: "extension_projects_action.php",
+//                 url: "actions/extension_projects_action.php",
 //                 method: "POST",
 //                 data: { extID: extID, action_ext: 'delete' },
 //                 success: function (data) {
@@ -3813,7 +3813,7 @@ function loadExtensionProjectsTab(researcherID) {
         "serverSide": true,
         "order": [],
         "ajax": {
-            url: "extension_project_action.php",
+            url: "actions/extension_project_action.php",
             type: "POST",
             data: { rid: researcherID, action_extension: 'fetch' }
         },
@@ -3838,7 +3838,7 @@ $('#extension_project_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#extension_project_form').parsley().isValid()) {
         $.ajax({
-            url: "extension_project_action.php",
+            url: "actions/extension_project_action.php",
             method: "POST",
             data: $(this).serialize(),
             dataType: 'json',
@@ -3919,7 +3919,7 @@ $(document).on('click', '.edit_button_extension', function () {
     $('#form_message').html('');
 
     $.ajax({
-        url: "extension_project_action.php",
+        url: "actions/extension_project_action.php",
         method: "POST",
         data: { extensionID: extensionID, action_extension: 'fetch_single' },
         dataType: 'JSON',
@@ -3985,7 +3985,7 @@ $(document).on('click', '.delete_button_extension', function () {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: "extension_project_action.php",
+                url: "actions/extension_project_action.php",
                 method: "POST",
                 data: { extensionID: extensionID, action_extension: 'delete' },
                 success: function (data) {
@@ -4064,7 +4064,7 @@ $(document).on('click', '.delete_button_extension', function () {
         if (result.isConfirmed) {
             // If confirmed, proceed with the delete action
             $.ajax({
-                url: "researcher_action.php",
+                url: "actions/researcher_action.php",
                 method: "POST",
                 data: { id: id, action: 'delete' },
                 success: function(data) {

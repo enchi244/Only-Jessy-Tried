@@ -1,6 +1,6 @@
 <?php
 
-include('rms.php');
+include('core/rms.php');
 
 $object = new rms();
 
@@ -14,7 +14,7 @@ if(!$object->is_master_user())
     header("location:".$object->base_url."dashboard");
 }
 
-include('header.php');
+include('includes/header.php');
 
 ?>
 
@@ -29,7 +29,7 @@ include('header.php');
 </style>
 
                     <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Colleges' Management</h1>
+                    <h1 class="h3 mb-4 text-gray-800">Disciplines' Management</h1>
 
                     <!-- DataTales Example -->
                     <span id="message"></span>
@@ -37,19 +37,19 @@ include('header.php');
                         <div class="card-header py-3">
                         	<div class="row">
                             	<div class="col">
-                            		<h6 class="m-0 font-weight-bold text-primary">Colleges' List</h6>
+                            		<h6 class="m-0 font-weight-bold text-primary">Disciplines List</h6>
                             	</div>
                             	<div class="col" align="right">
-                            		<button type="button" name="add_category" id="add_category" class="btn btn-danger pink  btn-sm"><i class="fas fa-plus"> Add College</i></button>
+                            		<button type="button" name="add_category" id="add_category" class="btn btn-danger pink  btn-sm"><i class="fas fa-plus"> Add Discipline</i></button>
                             	</div>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="table-responsive">
+                            <div class="table-responsive">	
                                 <table class="table table-bordered" id="category_table" width="100%" cellspacing="0">
                                     <thead>
                                         <tr>
-                                            <th>College Name</th>
+                                            <th>Discipline Name</th>
                                             <th>Status</th>
                                             <th>Action</th>
                                         </tr>
@@ -63,7 +63,7 @@ include('header.php');
                     </div>
 
                 <?php
-                include('footer.php');
+                include('includes/footer.php');
                 ?>
 				<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
@@ -72,13 +72,13 @@ include('header.php');
     	<form method="post" id="category_form">
       		<div class="modal-content">
         		<div class="modal-header">
-          			<h4 class="modal-title" id="modal_title">Add Data</h4>
+          			<h4 class="modal-title" id="modal_title">Add Discipline</h4>
           			<button type="button" class="close" data-dismiss="modal">&times;</button>
         		</div>
         		<div class="modal-body">
         			<span id="form_message"></span>
 		          	<div class="form-group">
-		          		<label>College Name</label>
+		          		<label>Discipline</label>
 		          		<input type="text" name="category_name" id="category_name" class="form-control" required data-parsley-pattern="/^[a-zA-Z0-9 \s]+$/" data-parsley-trigger="keyup" />
 		          	</div>
         		</div>
@@ -101,7 +101,7 @@ $(document).ready(function(){
 		"serverSide" : true,
 		"order" : [],
 		"ajax" : {
-			url:"category_action.php",
+			url:"actions/discipline_action.php",
 			type:"POST",
 			data:{action:'fetch'}
 		},
@@ -138,7 +138,7 @@ $(document).ready(function(){
 		if($('#category_form').parsley().isValid())
 		{		
 			$.ajax({
-				url:"category_action.php",
+				url:"actions/discipline_action.php",
 				method:"POST",
 				data:$(this).serialize(),
 				dataType:'json',
@@ -182,7 +182,7 @@ $(document).ready(function(){
 
 		$.ajax({
 
-	      	url:"category_action.php",
+	      	url:"actions/discipline_action.php",
 
 	      	method:"POST",
 
@@ -224,7 +224,7 @@ $(document).ready(function(){
 
       		$.ajax({
 
-        		url:"category_action.php",
+        		url:"actions/discipline_action.php",
 
         		method:"POST",
 
@@ -259,7 +259,7 @@ $(document).ready(function(){
 
       		$.ajax({
 
-        		url:"category_action.php",
+        		url:"actions/discipline_action.php",
 
         		method:"POST",
 
