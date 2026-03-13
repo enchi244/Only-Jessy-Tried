@@ -149,7 +149,7 @@ $('#sdgs').selectpicker('refresh');  // For Bootstrap-Select
 
 
 
-$(document).on('click', '.edit_buttonrc', function(){
+$(document).on('click', '.edit_button_researchconducted', function(){
            // var ridy = $('#researcherModala').data('id');
             var rcid = $(this).data('id');
             // alert(rcid+''+ridy);
@@ -233,7 +233,7 @@ $(document).on('click', '.edit_buttonrc', function(){
     });
 
 
-    $(document).on('click', '.delete_buttonrc', function() {
+    $(document).on('click', '.delete_button_researchconducted', function() {
         var xid = $(this).data('id');
         // Use SweetAlert instead of default confirm
         Swal.fire({

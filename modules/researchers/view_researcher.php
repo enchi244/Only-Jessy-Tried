@@ -27,36 +27,33 @@ $researcher_data = $object->statement->fetch(PDO::FETCH_ASSOC);
 // Format the name nicely
 $full_name = trim($researcher_data['firstName'] . ' ' . $researcher_data['middleName'] . ' ' . $researcher_data['familyName'] . ' ' . $researcher_data['Suffix']);
 
-// --- FETCH ALL ASSOCIATED DATA ---
-
-// 1. Fetch Research Conducted
 $object->query = "SELECT * FROM tbl_researchconducted WHERE researcherID = '$researcher_id' ORDER BY started_date DESC";
-$research_conducted = $object->get_result();
+$object->execute();
+$research_conducted = $object->statement_result();
 
-// 2. Fetch Publications
 $object->query = "SELECT * FROM tbl_publication WHERE researcherID = '$researcher_id' ORDER BY publication_date DESC";
-$publications = $object->get_result();
+$object->execute();
+$publications = $object->statement_result();
 
-// 3. Fetch Intellectual Property
 $object->query = "SELECT * FROM tbl_itelectualprop WHERE researcherID = '$researcher_id' ORDER BY date_applied DESC";
-$intellectual_props = $object->get_result();
+$object->execute();
+$intellectual_props = $object->statement_result();
 
-// 4. Fetch Paper Presentations
 $object->query = "SELECT * FROM tbl_paperpresentation WHERE researcherID = '$researcher_id' ORDER BY date_paper DESC";
-$presentations = $object->get_result();
+$object->execute();
+$presentations = $object->statement_result();
 
-// 5. Fetch Trainings Attended
 $object->query = "SELECT * FROM tbl_trainingsattended WHERE researcherID = '$researcher_id' ORDER BY date_train DESC";
-$trainings = $object->get_result();
+$object->execute();
+$trainings = $object->statement_result();
 
-// 6. Fetch Extension Projects Conducted
 $object->query = "SELECT * FROM tbl_extension_project_conducted WHERE researcherID = '$researcher_id' ORDER BY start_date DESC";
-$ext_projects = $object->get_result();
+$object->execute();
+$ext_projects = $object->statement_result();
 
-// 7. Fetch Extensions
 $object->query = "SELECT * FROM tbl_ext WHERE researcherID = '$researcher_id' ORDER BY period_implement DESC";
-$extensions = $object->get_result();
-// ---------------------------------
+$object->execute();
+$extensions = $object->statement_result();
 
 include('../../includes/header.php');
 ?>
@@ -67,83 +64,22 @@ include('../../includes/header.php');
     .pink:hover { background-color: #e32747; color: white; }
 
     /* Custom Vertical Timeline */
-    .timeline {
-        border-left: 3px solid #eaecf4;
-        padding-left: 25px;
-        margin-left: 15px;
-        position: relative;
-    }
-    .timeline-item {
-        margin-bottom: 30px;
-        position: relative;
-    }
-    .timeline-item::before {
-        content: '';
-        position: absolute;
-        left: -33px;
-        top: 5px;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background-color: #f23e5d;
-        border: 3px solid white;
-        box-shadow: 0 0 0 2px #eaecf4;
-    }
-    .timeline-date {
-        font-size: 0.85rem;
-        font-weight: bold;
-        color: #4e73df;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 5px;
-    }
+    .timeline { border-left: 3px solid #eaecf4; padding-left: 25px; margin-left: 15px; position: relative; }
+    .timeline-item { margin-bottom: 30px; position: relative; }
+    .timeline-item::before { content: ''; position: absolute; left: -33px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background-color: #f23e5d; border: 3px solid white; box-shadow: 0 0 0 2px #eaecf4; }
+    .timeline-date { font-size: 0.85rem; font-weight: bold; color: #4e73df; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
     
     /* Hover effects for Minimalist Lists */
-    .list-group-item-action:hover {
-        background-color: #f8f9fc;
-        transform: translateX(5px);
-        transition: transform 0.2s ease-in-out;
-    }
+    .list-group-item-action:hover { background-color: #f8f9fc; transform: translateX(5px); transition: transform 0.2s ease-in-out; }
     
     /* Modern Profile Header */
-    .profile-header {
-        background: linear-gradient(135deg, #800000 0%, #4a0000 100%);
-        border-radius: 10px;
-        color: white;
-        padding: 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    .profile-avatar {
-        width: 100px;
-        height: 100px;
-        background-color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 40px;
-        color: #800000;
-        font-weight: bold;
-    }
+    .profile-header { background: linear-gradient(135deg, #800000 0%, #4a0000 100%); border-radius: 10px; color: white; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .profile-avatar { width: 100px; height: 100px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #800000; font-weight: bold; }
     
     /* Sleek Vertical Nav */
-    .nav-pills .nav-link {
-        color: #5a5c69;
-        font-weight: 600;
-        padding: 12px 20px;
-        border-radius: 8px;
-        margin-bottom: 5px;
-        transition: all 0.2s;
-    }
-    .nav-pills .nav-link:hover {
-        background-color: #eaecf4;
-    }
-    .nav-pills .nav-link.active, .nav-pills .show>.nav-link {
-        background-color: #f23e5d;
-        color: white;
-        box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2);
-    }
+    .nav-pills .nav-link { color: #5a5c69; font-weight: 600; padding: 12px 20px; border-radius: 8px; margin-bottom: 5px; transition: all 0.2s; cursor: pointer; }
+    .nav-pills .nav-link:hover { background-color: #eaecf4; }
+    .nav-pills .nav-link.active, .nav-pills .show>.nav-link { background-color: #f23e5d; color: white; box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2); }
 </style>
 
 <a href="researcher.php" class="btn btn-light btn-sm mb-3 shadow-sm font-weight-bold text-gray-700">
@@ -181,14 +117,14 @@ include('../../includes/header.php');
         <div class="card shadow-sm border-0">
             <div class="card-body p-3">
                 <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                    <a class="nav-link active" id="tab-personal-info" data-toggle="pill" href="#personal-info" role="tab"><i class="fas fa-user mr-2"></i> Profile Overview</a>
-                    <a class="nav-link" id="tab-education" data-toggle="pill" href="#education" role="tab"><i class="fas fa-microscope mr-2"></i> Research Conducted</a>
-                    <a class="nav-link" id="tab-degree" data-toggle="pill" href="#degree" role="tab"><i class="fas fa-book mr-2"></i> Publications</a>
-                    <a class="nav-link" id="tab-ip" data-toggle="pill" href="#ip" role="tab"><i class="fas fa-lightbulb mr-2"></i> Intellectual Property</a>
-                    <a class="nav-link" id="tab-pp" data-toggle="pill" href="#pp" role="tab"><i class="fas fa-file-alt mr-2"></i> Paper Presentation</a>
-                    <a class="nav-link" id="tab-tra" data-toggle="pill" href="#tra" role="tab"><i class="fas fa-chalkboard-teacher mr-2"></i> Trainings</a>
-                    <a class="nav-link" id="tab-epc" data-toggle="pill" href="#epc" role="tab"><i class="fas fa-project-diagram mr-2"></i> Extension Projects</a>
-                    <a class="nav-link" id="tab-ext" data-toggle="pill" href="#ext" role="tab"><i class="fas fa-hands-helping mr-2"></i> Extension</a>
+                    <a class="nav-link active custom-tab-btn" id="tab-personal-info" href="#personal-info" role="tab"><i class="fas fa-user mr-2"></i> Profile Overview</a>
+                    <a class="nav-link custom-tab-btn" id="tab-education" href="#education" role="tab"><i class="fas fa-microscope mr-2"></i> Research Conducted</a>
+                    <a class="nav-link custom-tab-btn" id="tab-degree" href="#degree" role="tab"><i class="fas fa-book mr-2"></i> Publications</a>
+                    <a class="nav-link custom-tab-btn" id="tab-ip" href="#ip" role="tab"><i class="fas fa-lightbulb mr-2"></i> Intellectual Property</a>
+                    <a class="nav-link custom-tab-btn" id="tab-pp" href="#pp" role="tab"><i class="fas fa-file-alt mr-2"></i> Paper Presentation</a>
+                    <a class="nav-link custom-tab-btn" id="tab-tra" href="#tra" role="tab"><i class="fas fa-chalkboard-teacher mr-2"></i> Trainings</a>
+                    <a class="nav-link custom-tab-btn" id="tab-epc" href="#epc" role="tab"><i class="fas fa-project-diagram mr-2"></i> Extension Projects</a>
+                    <a class="nav-link custom-tab-btn" id="tab-ext" href="#ext" role="tab"><i class="fas fa-hands-helping mr-2"></i> Extension</a>
                 </div>
             </div>
         </div>
@@ -200,7 +136,7 @@ include('../../includes/header.php');
                 <span id="message"></span>
                 <div class="tab-content" id="v-pills-tabContent">
 
-                    <div class="tab-pane fade show active" id="personal-info" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane active" id="personal-info" role="tabpanel" style="display: block;">
                         <h4 class="font-weight-bold text-gray-800 mb-4 border-bottom pb-2">Academic Background</h4>
                         <div class="row mb-3">
                             <div class="col-md-4 text-muted">Bachelor's Degree</div>
@@ -216,7 +152,7 @@ include('../../includes/header.php');
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="education" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane" id="education" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Research Timeline</h4>
                             <button type="button" id="add_researcherconducted" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Record</button>
@@ -250,7 +186,7 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
-                    <div class="tab-pane fade" id="degree" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane" id="degree" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Publications</h4>
                             <button type="button" id="add_publication" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Publication</button>
@@ -281,7 +217,7 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
-                    <div class="tab-pane fade" id="ip" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane" id="ip" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Intellectual Property</h4>
                             <button type="button" id="add_intellectualprop" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add IP</button>
@@ -313,7 +249,7 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
-                    <div class="tab-pane fade" id="pp" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane" id="pp" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Paper Presentations</h4>
                             <button type="button" id="add_paper_presentation" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Presentation</button>
@@ -341,7 +277,7 @@ include('../../includes/header.php');
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="tra" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane" id="tra" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Trainings & Development</h4>
                             <button type="button" id="add_training_attended" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Training</button>
@@ -371,7 +307,7 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
-                    <div class="tab-pane fade" id="epc" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane" id="epc" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Extension Projects Conducted</h4>
                             <button type="button" id="add_extension_project" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Ext. Project</button>
@@ -405,7 +341,7 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
-                    <div class="tab-pane fade" id="ext" role="tabpanel">
+                    <div class="tab-pane custom-tab-pane" id="ext" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Extension Activities</h4>
                             <button type="button" id="add_extension" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Extension</button>
@@ -441,7 +377,13 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
-                </div> </div> </div> </div> </div> <div id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>"></div>
 <div id="researcherModala" data-id="<?php echo htmlspecialchars($researcher_id); ?>"></div>
 
 <?php include('../../includes/footer.php'); ?>
@@ -452,29 +394,47 @@ include('../../includes/header.php');
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
-$(document).ready(function() {
-    // 1. MAGIC OVERLAPPING MODAL FIX
-    $('.modal').appendTo('body');
-    $(document).on('show.bs.modal', '.modal', function () {
-        var zIndex = 1040 + (10 * $('.modal:visible').length);
-        $(this).css('z-index', zIndex);
-        setTimeout(function() {
-            $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
-        }, 0);
-    });
+document.addEventListener("DOMContentLoaded", function() {
+    
+    // 1. MODAL OVERLAP FIX (Preserved)
+    if (typeof $ !== 'undefined') {
+        $('.modal').appendTo('body');
+        $(document).on('show.bs.modal', '.modal', function () {
+            var zIndex = 1040 + (10 * $('.modal:visible').length);
+            $(this).css('z-index', zIndex);
+            setTimeout(function() {
+                $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
+            }, 0);
+        });
+    }
 
-    // 2. BULLETPROOF TAB SWITCHER (Bypasses Bootstrap completely!)
-    $('.nav-pills .nav-link').on('click', function(e) {
-        e.preventDefault(); // Stop page jump
-        
-        // Remove 'active' color from all links, add to the one clicked
-        $('.nav-pills .nav-link').removeClass('active');
-        $(this).addClass('active');
-        
-        // Hide all tab panes, then force the target pane to show
-        var targetPane = $(this).attr('href');
-        $('.tab-pane').removeClass('show active');
-        $(targetPane).addClass('show active');
+    // 2. ISOLATED VANILLA JS TAB CONTROLLER
+    const tabBtns = document.querySelectorAll('.custom-tab-btn');
+    const tabPanes = document.querySelectorAll('.custom-tab-pane');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Remove active states from all buttons
+            tabBtns.forEach(b => b.classList.remove('active'));
+            // Add active state to clicked button
+            this.classList.add('active');
+
+            // Hide all tab panes
+            tabPanes.forEach(pane => {
+                pane.style.display = 'none';
+                pane.classList.remove('active');
+            });
+
+            // Show target tab pane
+            const targetId = this.getAttribute('href');
+            const targetPane = document.querySelector(targetId);
+            if (targetPane) {
+                targetPane.style.display = 'block';
+                targetPane.classList.add('active');
+            }
+        });
     });
 });
 </script>
@@ -486,13 +446,3 @@ $(document).ready(function() {
 <script src="scripts/training.js"></script>
 <script src="scripts/extension_project.js"></script>
 <script src="scripts/extension.js"></script>
-
-<script>
-    window.loadResearchConductedTab = function() { location.reload(); };
-    window.loadPublicationTab = function() { location.reload(); };
-    window.loadIntellectualPropTab = function() { location.reload(); };
-    window.loadPaperPresentationTab = function() { location.reload(); };
-    window.loadTrainingsAttendedTab = function() { location.reload(); };
-    window.loadExtensionProjectsTab = function() { location.reload(); };
-    window.loadextprotab = function() { location.reload(); };
-</script>

@@ -107,7 +107,7 @@ $('#add_extension_project').click(function () {
 });
 
 // Edit Existing Extension Project
-$(document).on('click', '.edit_button_extension', function () {
+$(document).on('click', '.edit_button_extension_project', function () {
     var extensionID = $(this).data('id');  // Get the selected Extension Project ID
 
     $('#extension_project_form')[0].reset();
@@ -164,7 +164,7 @@ $(document).on('click', '.edit_button_extension', function () {
 });
 
 // Handle Delete Button for Extension Project
-$(document).on('click', '.delete_button_extension', function () {
+$(document).on('click', '.delete_button_extension_project', function () {
     var extensionID = $(this).data('id');  // Get the Extension Project ID to delete
     Swal.fire({
         title: 'Are you sure?',
