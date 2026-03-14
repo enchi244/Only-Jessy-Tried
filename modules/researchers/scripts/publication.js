@@ -90,18 +90,43 @@ $(document).on('click', '.edit_button_publication', function(){
         data:{publicationID: publicationID, action_publication: 'fetch_single'},
         dataType:'JSON',
         success:function(data) {
-            const inputDatecompleted = data.publication_date; 
-            const [monthCompleted, dayCompleted, yearCompleted] = inputDatecompleted.split('-');
-            const formattedDateCompleted = `${yearCompleted}-${monthCompleted}-${dayCompleted}`;
+// Ultimate Date Parser: Crash-proof, handles integers, nulls, slashes, and raw years
+            function parseLegacyDate(val) {
+                if (!val || val === 'null' || val === '0000-00-00') return '';
+                
+                // Safely cast to string to prevent crashes, clean spaces, and swap slashes to dashes
+                let str = String(val).trim().replace(/\//g, '-');
+                let parts = str.split('-');
+                
+                // Case 1: Just a Year (e.g. "2022" or 2022) -> HTML5 requires YYYY-MM-DD
+                if (parts.length === 1 && parts[0].length === 4) {
+                    return `${parts[0]}-01-01`;
+                }
+                
+                // Case 2: 2 parts (MM-YYYY or YYYY-MM)
+                if (parts.length === 2) {
+                    if (parts[1].length === 4) return `${parts[1]}-${parts[0].padStart(2, '0')}-01`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-01`;
+                }
+                
+                // Case 3: 3 parts (MM-DD-YYYY or YYYY-MM-DD)
+                if (parts.length === 3) {
+                    if (parts[2].length === 4) return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+                
+                // Fallback: If it's completely unreadable, return empty so it doesn't break the input
+                return ''; 
+            }
             
             $('#title_pub').val(data.title);
-            $('#start').val(data.start);
-            $('#end').val(data.end);
+            $('#start').val(parseLegacyDate(data.start));
+            $('#end').val(parseLegacyDate(data.end));
             $('#journal').val(data.journal);
             $('#vol_num_issue_num').val(data.vol_num_issue_num);
             $('#issn_isbn').val(data.issn_isbn);
             $('#indexing').val(data.indexing);
-            $('#publication_date').val(formattedDateCompleted);
+            $('#publication_date').val(parseLegacyDate(data.publication_date));
             $('#modal_title').text('Edit Publication');
             $('#action_publication').val('Edit');
             $('#submit_button_publication').val('Edit');

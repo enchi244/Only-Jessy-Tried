@@ -8,6 +8,26 @@ $object = new rms();
 
 if(isset($_POST["action_publication"]))
 {
+	// Global Server-Side Legacy Date Parser
+	if (!function_exists('parse_legacy_date_php')) {
+		function parse_legacy_date_php($date_str) {
+			if (empty($date_str) || $date_str === 'null' || $date_str === '0000-00-00') return '';
+			$date_str = trim(str_replace('/', '-', $date_str));
+			$parts = explode('-', $date_str);
+			if (count($parts) === 1 && strlen($parts[0]) === 4) { return $parts[0] . '-01-01'; }
+			if (count($parts) === 2) {
+				if (strlen($parts[1]) === 4) return $parts[1] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-01';
+				if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-01';
+			}
+			if (count($parts) === 3) {
+				if (strlen($parts[2]) === 4) return $parts[2] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+				if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[2], 2, '0', STR_PAD_LEFT);
+			}
+			$time = strtotime($date_str);
+			return ($time !== false) ? date('Y-m-d', $time) : '';
+		}
+	}
+
 	if($_POST["action_publication"] == 'fetch')
 	{
 		$order_column = array(
@@ -68,8 +88,8 @@ $limit_query = "";
 		{
 			$sub_array = array();
             $sub_array[] = $row["title"];
-            $sub_array[] = $row["start"];  // start as a number (e.g., year or identifier)
-            $sub_array[] = $row["end"];
+			$sub_array[] = parse_legacy_date_php($row["start"]);
+            $sub_array[] = parse_legacy_date_php($row["end"]);
             $sub_array[] = $row["journal"];
             $sub_array[] = $row["vol_num_issue_num"];
             $sub_array[] = $row["issn_isbn"];
@@ -211,16 +231,46 @@ $fpublication_date = date("m-d-Y", $timestamp);
 
 		$data = array();
 
+// PHP Server-Side Legacy Date Parser
+		if (!function_exists('parse_legacy_date_php')) {
+			function parse_legacy_date_php($date_str) {
+				if (empty($date_str) || $date_str === 'null' || $date_str === '0000-00-00') return '';
+				
+				// Clean string and swap slashes for dashes
+				$date_str = trim(str_replace('/', '-', $date_str));
+				$parts = explode('-', $date_str);
+				
+				// Case 1: Just a year
+				if (count($parts) === 1 && strlen($parts[0]) === 4) {
+					return $parts[0] . '-01-01';
+				}
+				// Case 2: MM-YYYY or YYYY-MM
+				if (count($parts) === 2) {
+					if (strlen($parts[1]) === 4) return $parts[1] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-01';
+					if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-01';
+				}
+				// Case 3: MM-DD-YYYY or YYYY-MM-DD
+				if (count($parts) === 3) {
+					if (strlen($parts[2]) === 4) return $parts[2] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+					if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[2], 2, '0', STR_PAD_LEFT);
+				}
+				
+				// Fallback to PHP's built-in parser if the format is highly unusual
+				$time = strtotime($date_str);
+				return ($time !== false) ? date('Y-m-d', $time) : '';
+			}
+		}
+
 		foreach($result as $row)
 		{
             $data['title'] = $row["title"];
-            $data['start'] = $row["start"];  // 'start' is now a number
-            $data['end'] = $row["end"];
+            $data['start'] = parse_legacy_date_php($row["start"]);
+            $data['end'] = parse_legacy_date_php($row["end"]);
             $data['journal'] = $row["journal"];
             $data['vol_num_issue_num'] = $row["vol_num_issue_num"];
             $data['issn_isbn'] = $row["issn_isbn"];
             $data['indexing'] = $row["indexing"];
-            $data['publication_date'] = $row["publication_date"];
+            $data['publication_date'] = parse_legacy_date_php($row["publication_date"]);
 		}
 
 		echo json_encode($data);
@@ -333,5 +383,86 @@ $fpublication_date = date("m-d-Y", $timestamp);
 		echo '<div class="alert alert-success">Publication Deleted</div>';
 	}
 }
+if($_POST["action_publication"] == 'fetch_all')
+	{
+		$order_column = array(
+			'tbl_researchdata.familyName',
+			'tbl_publication.title',
+			'tbl_publication.journal',
+			'tbl_publication.publication_date',
+			'tbl_publication.issn_isbn'
+		);
 
+		$output = array();
+
+		// Use a LEFT JOIN to pull the author's name alongside their publication
+		$main_query = "
+			SELECT tbl_publication.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix 
+			FROM tbl_publication 
+			LEFT JOIN tbl_researchdata ON tbl_publication.researcherID = tbl_researchdata.id
+		";
+		$search_query = " WHERE 1=1 ";
+
+		if (isset($_POST["search"]["value"])) {
+			$search_value = $_POST["search"]["value"];
+			$search_query .= "AND (tbl_publication.title LIKE '%" . $search_value . "%' ";
+			$search_query .= "OR tbl_researchdata.familyName LIKE '%" . $search_value . "%' ";
+			$search_query .= "OR tbl_publication.journal LIKE '%" . $search_value . "%' ) ";
+		}
+
+		if (isset($_POST["order"])) {
+			$order_query = "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " ";
+		} else {
+			$order_query = "ORDER BY tbl_publication.id DESC ";
+		}
+
+		$limit_query = "";
+		if($_POST["length"] != -1) {
+			$limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
+		}
+
+		$object->query = $main_query . $search_query . $order_query;
+		$object->execute();
+		$filtered_rows = $object->row_count();
+
+		$object->query .= $limit_query;
+		$result = $object->get_result();
+
+		$object->query = $main_query;
+		$object->execute();
+		$total_rows = $object->row_count();
+
+		$data = array();
+
+		foreach($result as $row) {
+			$sub_array = array();
+			
+			// Reconstruct Full Name
+			$author_name = $row["familyName"] ? $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"] : "Unknown Author";
+			
+			$sub_array[] = '<span class="font-weight-bold">'.$author_name.'</span>';
+			$sub_array[] = $row["title"];
+			$sub_array[] = $row["journal"];
+			$sub_array[] = $row["publication_date"];
+			$sub_array[] = $row["issn_isbn"];
+			
+			// Clickable button to jump right into the author's profile view
+			$sub_array[] = '
+			<div align="center">
+				<button type="button" class="btn btn-danger btn-sm delete_master_publication" data-id="'.$row["id"].'" title="Delete Publication"><i class="far fa-trash-alt"></i></button>
+				<a href="view_researcher.php?id='.$row["author_db_id"].'&tab=degree" class="btn d-none"></a>
+			</div>
+			';
+			$data[] = $sub_array;
+		}
+
+		$output = array(
+			"draw"    			=> 	intval($_POST["draw"]),
+			"recordsTotal"  	=>  $total_rows,
+			"recordsFiltered" 	=> 	$filtered_rows,
+			"data"    			=> 	$data
+		);
+			
+		echo json_encode($output);
+	}
 ?>

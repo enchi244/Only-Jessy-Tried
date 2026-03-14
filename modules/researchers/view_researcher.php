@@ -276,7 +276,9 @@ include('../../includes/header.php');
                                         <div class="mt-2">
                                             <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-check-circle mr-1"></i> <?php echo htmlspecialchars($pub['indexing']); ?></span>
                                             <span class="badge badge-light text-dark px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Published: <?php echo htmlspecialchars($pub['publication_date']); ?></span>
-                                            <span class="badge badge-light text-dark px-2 py-1"><i class="fas fa-barcode mr-1"></i> ISSN: <?php echo htmlspecialchars($pub['issn_isbn']); ?></span>
+                                            <span class="badge badge-light border border-primary text-primary px-2 py-1 mr-2"><i class="fas fa-hourglass-start mr-1"></i> Start: <?php echo !empty($pub['start']) ? htmlspecialchars($pub['start']) : 'N/A'; ?></span>
+                                            <span class="badge badge-light border border-danger text-danger px-2 py-1 mr-2"><i class="fas fa-flag-checkered mr-1"></i> End: <?php echo !empty($pub['end']) ? htmlspecialchars($pub['end']) : 'N/A'; ?></span>
+                                            <span class="badge badge-light text-dark px-2 py-1 mt-1 d-inline-block"><i class="fas fa-barcode mr-1"></i> ISSN: <?php echo htmlspecialchars($pub['issn_isbn']); ?></span>
                                         </div>
                                     </div>
                                 </div>
@@ -580,3 +582,25 @@ document.addEventListener("DOMContentLoaded", function() {
 <script src="scripts/training.js"></script>
 <script src="scripts/extension_project.js"></script>
 <script src="scripts/extension.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Check the URL for a 'tab' parameter (e.g., &tab=degree)
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    
+    if (activeTab) {
+        // Find your new custom vertical tab button
+        let tabLink = document.querySelector('.custom-tab-btn[href="#' + activeTab + '"]');
+        if (tabLink) {
+            // Click it so your Vanilla JS handles the panes and the FAB button!
+            tabLink.click();
+            
+            // Smooth scroll down to the tabs so the user sees it immediately
+            setTimeout(function() {
+                tabLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        }
+    }
+});
+</script>

@@ -90,16 +90,15 @@ if (isset($_POST["search"]["value"])) {
 		{
 			$sub_array = array();
 			$sub_array[] = $row["researcherID"];
-$sub_array[] = $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"];
-$sub_array[] = $row["department"];
-$sub_array[] = $row["program"];
+			$sub_array[] = $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"];
+			$sub_array[] = $row["department"];
+			$sub_array[] = $row["program"];
 
-$sub_array[] = $row["user_created_on"];
+			$sub_array[] = $row["user_created_on"];
 			$sub_array[] = '
 			<div align="center">
-			<a href="view_researcher.php?id='.$row["id"].'" title="View Profile" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-primary btn-sm"><i class="fas fa-user-edit"></i></a>
-			
-			<button type="button" name="delete_buttona" title="Delete Researcher" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_buttona" data-id="'.$row["id"].'"><i class="far fa-trash-alt"></i></button>
+				<button type="button" name="delete_buttona" title="Delete Researcher" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_buttona" data-id="'.$row["id"].'"><i class="far fa-trash-alt"></i></button>
+				<a href="view_researcher.php?id='.$row["id"].'" class="btn d-none"></a>
 			</div>
 			';
 			$data[] = $sub_array;

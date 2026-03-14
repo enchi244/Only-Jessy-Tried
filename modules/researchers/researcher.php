@@ -64,6 +64,12 @@ include('../../includes/header.php');
         transform: scale(1.05);
         box-shadow: 0 12px 25px rgba(242, 62, 93, 0.5);
     }
+    /* Master View Toggles */
+    .master-toggles .btn {
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        margin-bottom: 5px;
+    }
 </style>
 
 <div style="display: none;">
@@ -72,15 +78,28 @@ include('../../includes/header.php');
 
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-0 text-gray-800 font-weight-bold">Researchers Directory</h1>
-        <p class="text-muted mb-0 mt-1">Manage, update, and track university research personnel.</p>
+        <h1 class="h3 mb-0 text-gray-800 font-weight-bold">University Research Directory</h1>
+        <p class="text-muted mb-0 mt-1">Manage, update, and track university research personnel and outputs.</p>
+    </div>
+</div>
+
+<div class="mb-4">
+    <div class="btn-group shadow-sm master-toggles flex-wrap" role="group" aria-label="Master Table Toggles">
+        <button type="button" class="btn btn-danger pink active" id="btn_view_researchers"><i class="fas fa-users mr-1"></i> Researchers Profile</button>
+        <button type="button" class="btn btn-outline-danger" id="btn_view_conducted"><i class="fas fa-flask mr-1"></i> Research Conducted</button>
+        <button type="button" class="btn btn-outline-danger" id="btn_view_publications"><i class="fas fa-book mr-1"></i> Publications</button>
+        <button type="button" class="btn btn-outline-danger" id="btn_view_ip"><i class="fas fa-lightbulb mr-1"></i> Intellectual Property</button>
+        <button type="button" class="btn btn-outline-danger" id="btn_view_pp"><i class="fas fa-file-alt mr-1"></i> Paper Presentation</button>
+        <button type="button" class="btn btn-outline-danger" id="btn_view_tra"><i class="fas fa-chalkboard-teacher mr-1"></i> Trainings</button>
+        <button type="button" class="btn btn-outline-danger" id="btn_view_epc"><i class="fas fa-project-diagram mr-1"></i> Ext. Projects</button>
+        <button type="button" class="btn btn-outline-danger" id="btn_view_ext"><i class="fas fa-hands-helping mr-1"></i> Extensions</button>
     </div>
 </div>
 
 <span id="message"></span>
 <div class="card shadow-sm mb-4 border-0">
     <div class="card-header py-3 bg-white border-bottom-0 pt-4 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-list-ul mr-2"></i>Personnel Roster</h6>
+        <h6 class="m-0 font-weight-bold text-gray-700" id="master_table_title"><i class="fas fa-list-ul mr-2"></i>Personnel Roster</h6>
         <button class="btn btn-sm btn-outline-secondary font-weight-bold shadow-sm" id="toggleIDColumn">
             <i class="fas fa-eye-slash mr-1"></i> <span>Hidden ID</span>
         </button>
@@ -105,7 +124,7 @@ include('../../includes/header.php');
     </div>
 </div>
 
-<div class="fab-container">
+<div class="fab-container" id="fab_container">
     <button class="btn btn-danger pink fab-btn text-white" id="fab_add_researcher" title="Add New Researcher">
         <i class="fas fa-plus"></i>
     </button>
@@ -360,46 +379,39 @@ include('../../includes/header.php');
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    
     // 1. Connect FAB to the hidden Add button so legacy jQuery scripts run
     document.getElementById('fab_add_researcher').addEventListener('click', function() {
         document.getElementById('add_researcher').click();
     });
 
     // 2. Delegate Row Click to open Profile/Edit
-    $('#researcher_table tbody').on('click', 'tr', function(e) {
+    $(document).on('click', '#researcher_table tbody tr', function(e) {
         if ($(e.target).closest('button').length || $(e.target).closest('a').length) {
             return; 
         }
         let viewBtn = $(this).find('.view_button'); 
         let editBtn = $(this).find('.edit_button'); 
+        let editBtna = $(this).find('.edit_buttona'); 
         let linkBtn = $(this).find('a.btn'); 
 
-        if (viewBtn.length) {
-            viewBtn[0].click();
-        } else if (editBtn.length) {
-            editBtn[0].click();
-        } else if (linkBtn.length) {
-            linkBtn[0].click();
-        }
+        if (viewBtn.length) { viewBtn[0].click(); } 
+        else if (editBtn.length) { editBtn[0].click(); } 
+        else if (editBtna.length) { editBtna[0].click(); } 
+        else if (linkBtn.length) { linkBtn[0].click(); }
     });
 
     // 3. DataTable ID Column Toggle Logic
-    // We wait briefly for the external DataTables script to finish initializing
     setTimeout(function() {
         if ($.fn.DataTable.isDataTable('#researcher_table')) {
-            var table = $('#researcher_table').DataTable();
-            var idColumn = table.column(0);
             var toggleBtn = $('#toggleIDColumn');
             var icon = toggleBtn.find('i');
             var text = toggleBtn.find('span');
-            
-            // Hide ID column initially
-            idColumn.visible(false);
 
             // Toggle logic
             toggleBtn.on('click', function(e) {
                 e.preventDefault();
+                var table = $('#researcher_table').DataTable();
+                var idColumn = table.column(0);
                 idColumn.visible(!idColumn.visible());
                 
                 if (idColumn.visible()) {
@@ -413,7 +425,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
         }
-    }, 500); // 500ms delay to ensure table is drawn
+    }, 500); 
 });
 </script>
 

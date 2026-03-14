@@ -8,6 +8,41 @@ $object = new rms();
 if (isset($_POST["action_paper_presentation"])) {
 
     // Fetch Paper Presentation data for the Researcher
+    if ($_POST["action_paper_presentation"] == 'fetch_all') {
+        $order_column = array('tbl_researchdata.familyName', 'tbl_paperpresentation.title', 'tbl_paperpresentation.conference_title', 'tbl_paperpresentation.conference_venue', 'tbl_paperpresentation.date_paper');
+        $main_query = "SELECT tbl_paperpresentation.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix FROM tbl_paperpresentation LEFT JOIN tbl_researchdata ON tbl_paperpresentation.researcherID = tbl_researchdata.id";
+        $search_query = " WHERE 1=1 ";
+        if (isset($_POST["search"]["value"])) {
+            $search_value = $_POST["search"]["value"];
+            $search_query .= "AND (tbl_paperpresentation.title LIKE '%" . $search_value . "%' OR tbl_researchdata.familyName LIKE '%" . $search_value . "%') ";
+        }
+        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY tbl_paperpresentation.id DESC ";
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
+
+        $object->query = $main_query . $search_query . $order_query;
+        $object->execute();
+        $filtered_rows = $object->row_count();
+        $object->query .= $limit_query;
+        $result = $object->get_result();
+        $object->query = $main_query;
+        $object->execute();
+        $total_rows = $object->row_count();
+
+        $data = array();
+        foreach ($result as $row) {
+            $sub_array = array();
+            $author_name = $row["familyName"] ? $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"] : "Unknown Author";
+            $sub_array[] = '<span class="font-weight-bold">'.$author_name.'</span>';
+            $sub_array[] = $row["title"];
+            $sub_array[] = $row["conference_title"];
+            $sub_array[] = $row["conference_venue"];
+            $sub_array[] = $row["date_paper"];
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_paper_presentation" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=pp" class="btn d-none"></a></div>';
+            $data[] = $sub_array;
+        }
+        echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
+        exit;
+    }
     if ($_POST["action_paper_presentation"] == 'fetch') {
         $order_column = array(
             'title',  // Title of the paper presentation
