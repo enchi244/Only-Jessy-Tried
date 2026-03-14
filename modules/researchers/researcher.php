@@ -32,88 +32,62 @@ include('../../includes/header.php');
         border-right: none;
         border-left: none;
     }
-    /* Modernize the Grouping Row */
-    tr.group td {
-        background-color: #eaecf4 !important;
-        color: #4e73df !important;
-        font-size: 1rem;
-        padding-top: 15px !important;
-        padding-bottom: 15px !important;
-        border-top: 1px solid #d1d3e2;
+    
+    /* Make table rows clickable */
+    #researcher_table tbody tr {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
     }
-    /* Elevate the Add Button */
-    .btn-elevated {
-        box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2);
-        transition: transform 0.2s, box-shadow 0.2s;
+    #researcher_table tbody tr:hover {
+        background-color: #f1f3f9 !important;
     }
-    .btn-elevated:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(242, 62, 93, 0.3);
+
+    /* Floating Action Button */
+    .fab-container {
+        position: fixed;
+        bottom: 40px;
+        right: 40px;
+        z-index: 1000;
+    }
+    .fab-btn {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 20px rgba(242, 62, 93, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .fab-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 12px 25px rgba(242, 62, 93, 0.5);
     }
 </style>
+
+<div style="display: none;">
+    <button type="button" name="add_researcher" id="add_researcher"></button>
+</div>
 
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h3 mb-0 text-gray-800 font-weight-bold">Researchers Directory</h1>
         <p class="text-muted mb-0 mt-1">Manage, update, and track university research personnel.</p>
     </div>
-    <button type="button" name="add_researcher" id="add_researcher" class="btn btn-danger pink btn-elevated px-4 py-2">
-        <i class="fas fa-plus-circle mr-2"></i> Add New Researcher
-    </button>
-</div>
-
-<div class="row mb-4">
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card border-left-danger shadow-sm h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Researchers</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi_total_researchers">--</div>
-                    </div>
-                    <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card border-left-primary shadow-sm h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Active Departments</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi_total_departments">--</div>
-                    </div>
-                    <div class="col-auto"><i class="fas fa-building fa-2x text-gray-300"></i></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card border-left-success shadow-sm h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Database Status</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">Synchronized</div>
-                    </div>
-                    <div class="col-auto"><i class="fas fa-check-circle fa-2x text-gray-300"></i></div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <span id="message"></span>
 <div class="card shadow-sm mb-4 border-0">
-    <div class="card-header py-3 bg-white border-bottom-0 pt-4">
+    <div class="card-header py-3 bg-white border-bottom-0 pt-4 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-list-ul mr-2"></i>Personnel Roster</h6>
+        <button class="btn btn-sm btn-outline-secondary font-weight-bold shadow-sm" id="toggleIDColumn">
+            <i class="fas fa-eye-slash mr-1"></i> <span>Hidden ID</span>
+        </button>
     </div>
     <div class="card-body pt-0">
         <div class="table-responsive">
-            <table class="table table-hover w-100" id="researcher_table" cellspacing="0">
+            <table class="table w-100" id="researcher_table" cellspacing="0">
                 <thead>
                     <tr>
                         <th width="15%">ID</th>
@@ -125,10 +99,16 @@ include('../../includes/header.php');
                     </tr>
                 </thead>
                 <tbody>
-                    </tbody>
+                </tbody>
             </table>
         </div>
     </div>
+</div>
+
+<div class="fab-container">
+    <button class="btn btn-danger pink fab-btn text-white" id="fab_add_researcher" title="Add New Researcher">
+        <i class="fas fa-plus"></i>
+    </button>
 </div>
 
 <?php include('modals/add_researchConducted.php'); ?>
@@ -378,10 +358,64 @@ include('../../includes/header.php');
 <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-<script src="<?php echo $object->base_url; ?>js/app.js"></script>
-<script src="<?php echo $object->base_url; ?>js/select2.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    // 1. Connect FAB to the hidden Add button so legacy jQuery scripts run
+    document.getElementById('fab_add_researcher').addEventListener('click', function() {
+        document.getElementById('add_researcher').click();
+    });
+
+    // 2. Delegate Row Click to open Profile/Edit
+    $('#researcher_table tbody').on('click', 'tr', function(e) {
+        if ($(e.target).closest('button').length || $(e.target).closest('a').length) {
+            return; 
+        }
+        let viewBtn = $(this).find('.view_button'); 
+        let editBtn = $(this).find('.edit_button'); 
+        let linkBtn = $(this).find('a.btn'); 
+
+        if (viewBtn.length) {
+            viewBtn[0].click();
+        } else if (editBtn.length) {
+            editBtn[0].click();
+        } else if (linkBtn.length) {
+            linkBtn[0].click();
+        }
+    });
+
+    // 3. DataTable ID Column Toggle Logic
+    // We wait briefly for the external DataTables script to finish initializing
+    setTimeout(function() {
+        if ($.fn.DataTable.isDataTable('#researcher_table')) {
+            var table = $('#researcher_table').DataTable();
+            var idColumn = table.column(0);
+            var toggleBtn = $('#toggleIDColumn');
+            var icon = toggleBtn.find('i');
+            var text = toggleBtn.find('span');
+            
+            // Hide ID column initially
+            idColumn.visible(false);
+
+            // Toggle logic
+            toggleBtn.on('click', function(e) {
+                e.preventDefault();
+                idColumn.visible(!idColumn.visible());
+                
+                if (idColumn.visible()) {
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                    $(this).removeClass('btn-outline-secondary').addClass('btn-secondary text-white');
+                    text.text("Showing ID");
+                } else {
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                    $(this).removeClass('btn-secondary text-white').addClass('btn-outline-secondary');
+                    text.text("Hidden ID");
+                }
+            });
+        }
+    }, 500); // 500ms delay to ensure table is drawn
+});
+</script>
 
 <script src="scripts/profile.js"></script>
 <script src="scripts/research_conducted.js"></script>

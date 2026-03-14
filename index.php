@@ -155,7 +155,7 @@ $(document).ready(function(){
         if($('#login_form').parsley().isValid())
         {       
             $.ajax({
-                url:"actions/login_action.php",
+                url:"login_action.php",
                 method:"POST",
                 data:$(this).serialize(),
                 dataType:'json',

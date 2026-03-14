@@ -98,6 +98,107 @@ body.sidebar-toggled #content-wrapper {
 #accordionSidebar .nav-item .nav-link span {
     transition: opacity 0.3s ease, margin 0.3s ease !important;
 }
+
+/* =========================================================
+   DRIBBBLE-STYLE MODERN MODAL OVERRIDES
+   ========================================================= */
+
+/* The Modal Container */
+.modal-content {
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15) !important;
+    overflow: hidden;
+}
+
+/* Modal Header */
+.modal-header {
+    border-bottom: none !important;
+    padding: 24px 24px 10px 24px !important;
+    background-color: #ffffff;
+}
+
+.modal-title {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Add a sleek close button */
+.modal-header .close {
+    padding: 1rem 1.5rem;
+    margin: -1rem -1.5rem -1rem auto;
+    color: #a0aec0;
+    font-weight: 300;
+    text-shadow: none;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+.modal-header .close:hover {
+    color: #f23e5d;
+    opacity: 1;
+}
+
+/* Modal Body */
+.modal-body {
+    padding: 20px 24px !important;
+    color: #4a5568;
+}
+
+/* Modern Form Inputs inside Modals */
+.modal-body .form-control {
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    height: auto;
+    font-size: 0.9rem;
+    background-color: #f8fafc;
+    transition: all 0.2s ease;
+}
+.modal-body .form-control:focus {
+    background-color: #ffffff;
+    border-color: #f23e5d;
+    box-shadow: 0 0 0 3px rgba(242, 62, 93, 0.15);
+}
+.modal-body label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+/* Modal Footer */
+.modal-footer {
+    border-top: none !important;
+    padding: 15px 24px 24px 24px !important;
+    background-color: #f8fafc;
+    border-radius: 0 0 16px 16px;
+}
+
+/* Sleek Buttons */
+.modal-footer .btn {
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+.modal-footer .btn:active {
+    transform: scale(0.97);
+}
+.modal-footer .btn-secondary, .modal-footer .btn-default {
+    background-color: #e2e8f0;
+    border-color: #e2e8f0;
+    color: #4a5568;
+}
+.modal-footer .btn-secondary:hover, .modal-footer .btn-default:hover {
+    background-color: #cbd5e1;
+    border-color: #cbd5e1;
+}
     </style>
 </head>
 

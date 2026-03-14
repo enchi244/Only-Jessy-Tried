@@ -241,7 +241,7 @@ $totalDepartments = $object->Get_total_departments();
     }
 
     function openDetailsModal(departmentName, type, title) {
-        $.post("fetch_subdep.php", { action: "fetch_modal_details", department: departmentName, type: type }, function(result) {
+        $.post("actions/fetch_subdep.php", { action: "fetch_modal_details", department: departmentName, type: type }, function(result) {
             try {
                 var data = JSON.parse(result);
                 var modalContent = '<table class="table table-bordered table-striped" id="subDepTable" width="100%" cellspacing="0"><thead><tr><th>' + departmentName + '</th></tr></thead><tbody>';
@@ -858,12 +858,6 @@ $totalDepartments = $object->Get_total_departments();
     <?php } // End if is_master_user ?>
 
 </div> <?php include('includes/footer.php'); ?>
-
-<script src="vendor/jquery/jquery.min.js"></script>
-<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-<script src="vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 

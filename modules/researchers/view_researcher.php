@@ -69,9 +69,6 @@ include('../../includes/header.php');
     .timeline-item::before { content: ''; position: absolute; left: -33px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background-color: #f23e5d; border: 3px solid white; box-shadow: 0 0 0 2px #eaecf4; }
     .timeline-date { font-size: 0.85rem; font-weight: bold; color: #4e73df; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
     
-    /* Hover effects for Minimalist Lists */
-    .list-group-item-action:hover { background-color: #f8f9fc; transform: translateX(5px); transition: transform 0.2s ease-in-out; }
-    
     /* Modern Profile Header */
     .profile-header { background: linear-gradient(135deg, #800000 0%, #4a0000 100%); border-radius: 10px; color: white; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .profile-avatar { width: 100px; height: 100px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #800000; font-weight: bold; }
@@ -80,6 +77,48 @@ include('../../includes/header.php');
     .nav-pills .nav-link { color: #5a5c69; font-weight: 600; padding: 12px 20px; border-radius: 8px; margin-bottom: 5px; transition: all 0.2s; cursor: pointer; }
     .nav-pills .nav-link:hover { background-color: #eaecf4; }
     .nav-pills .nav-link.active, .nav-pills .show>.nav-link { background-color: #f23e5d; color: white; box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2); }
+
+    /* --- NEW CSS FOR CLICKABLE CARDS & FAB --- */
+    .clickable-card {
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid transparent;
+    }
+    .clickable-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important;
+        border-color: #eaecf4;
+    }
+    
+    /* Prevents clicking 'Delete' from triggering the card's edit action */
+    .isolate-click {
+        position: relative;
+        z-index: 10;
+    }
+
+    /* Floating Action Button */
+    .fab-container {
+        position: fixed;
+        bottom: 40px;
+        right: 40px;
+        z-index: 1000;
+        display: none; /* Hidden by default until a non-profile tab is selected */
+    }
+    .fab-btn {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 20px rgba(242, 62, 93, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .fab-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 12px 25px rgba(242, 62, 93, 0.5);
+    }
 </style>
 
 <a href="researcher.php" class="btn btn-light btn-sm mb-3 shadow-sm font-weight-bold text-gray-700">
@@ -137,25 +176,58 @@ include('../../includes/header.php');
                 <div class="tab-content" id="v-pills-tabContent">
 
                     <div class="tab-pane custom-tab-pane active" id="personal-info" role="tabpanel" style="display: block;">
-                        <h4 class="font-weight-bold text-gray-800 mb-4 border-bottom pb-2">Academic Background</h4>
-                        <div class="row mb-3">
-                            <div class="col-md-4 text-muted">Bachelor's Degree</div>
-                            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['bachelor_degree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['bachelor_YearGraduated'] ?? ''); ?>)</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-4 text-muted">Master's Degree</div>
-                            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['masterDegree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['masterYearGraduated'] ?? ''); ?>)</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-4 text-muted">Doctorate Degree</div>
-                            <div class="col-md-8 font-weight-bold"><?php echo htmlspecialchars($researcher_data['doctorateDegree'] ?? 'N/A'); ?> (<?php echo htmlspecialchars($researcher_data['doctorateYearGraduate'] ?? ''); ?>)</div>
+                        <h4 class="font-weight-bold text-gray-800 mb-4 border-bottom pb-2"><i class="fas fa-graduation-cap text-primary mr-2"></i>Academic Background</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-sm border-left-primary h-100">
+                                    <div class="card-body">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Bachelor's Degree</div>
+                                        <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['bachelor_degree']) ? htmlspecialchars($researcher_data['bachelor_degree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
+                                        <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['bachelor_institution']) ? htmlspecialchars($researcher_data['bachelor_institution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['bachelor_YearGraduated']) ? htmlspecialchars($researcher_data['bachelor_YearGraduated']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-sm border-left-success h-100">
+                                    <div class="card-body">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Master's Degree</div>
+                                        <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['masterDegree']) ? htmlspecialchars($researcher_data['masterDegree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
+                                        <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['masterInstitution']) ? htmlspecialchars($researcher_data['masterInstitution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['masterYearGraduated']) ? htmlspecialchars($researcher_data['masterYearGraduated']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-sm border-left-info h-100">
+                                    <div class="card-body">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Doctorate Degree</div>
+                                        <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['doctorateDegree']) ? htmlspecialchars($researcher_data['doctorateDegree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
+                                        <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['doctorateInstitution']) ? htmlspecialchars($researcher_data['doctorateInstitution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['doctorateYearGraduate']) ? htmlspecialchars($researcher_data['doctorateYearGraduate']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-sm border-left-warning h-100">
+                                    <div class="card-body">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Post-Doctorate</div>
+                                        <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['postDegree']) ? htmlspecialchars($researcher_data['postDegree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
+                                        <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['postInstitution']) ? htmlspecialchars($researcher_data['postInstitution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['postYearGraduate']) ? htmlspecialchars($researcher_data['postYearGraduate']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="tab-pane custom-tab-pane" id="education" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Research Timeline</h4>
-                            <button type="button" id="add_researcherconducted" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Record</button>
                         </div>
                         
                         <?php if(count($research_conducted) > 0): ?>
@@ -163,10 +235,9 @@ include('../../includes/header.php');
                                 <?php foreach($research_conducted as $rc): ?>
                                     <div class="timeline-item">
                                         <div class="timeline-date"><?php echo htmlspecialchars($rc['started_date']); ?> to <?php echo htmlspecialchars($rc['completed_date']); ?></div>
-                                        <div class="card shadow-sm border-0 bg-light">
+                                        <div class="card shadow-sm border-0 bg-light clickable-card edit_button_researchconducted" data-id="<?php echo $rc['id']; ?>">
                                             <div class="card-body py-3">
-                                                <div class="float-right">
-                                                    <button class="btn btn-sm btn-link text-primary edit_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                <div class="float-right isolate-click">
                                                     <button class="btn btn-sm btn-link text-danger delete_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-trash"></i></button>
                                                 </div>
                                                 <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($rc['title']); ?></h6>
@@ -189,15 +260,13 @@ include('../../includes/header.php');
                     <div class="tab-pane custom-tab-pane" id="degree" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Publications</h4>
-                            <button type="button" id="add_publication" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Publication</button>
                         </div>
 
                         <?php if(count($publications) > 0): ?>
                             <?php foreach($publications as $pub): ?>
-                                <div class="card shadow-sm mb-3 border-left-primary position-relative">
+                                <div class="card shadow-sm mb-3 border-left-primary position-relative clickable-card edit_button_publication" data-id="<?php echo $pub['id']; ?>">
                                     <div class="card-body py-3">
-                                        <div class="position-absolute" style="top: 15px; right: 15px;">
-                                            <button class="btn btn-sm btn-light text-primary shadow-sm mr-1 edit_button_publication" data-id="<?php echo $pub['id']; ?>"><i class="fas fa-edit"></i></button>
+                                        <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
                                             <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_publication" data-id="<?php echo $pub['id']; ?>"><i class="fas fa-trash"></i></button>
                                         </div>
                                         <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($pub['title']); ?></h5>
@@ -220,17 +289,15 @@ include('../../includes/header.php');
                     <div class="tab-pane custom-tab-pane" id="ip" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Intellectual Property</h4>
-                            <button type="button" id="add_intellectualprop" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add IP</button>
                         </div>
 
                         <?php if(count($intellectual_props) > 0): ?>
                             <div class="row">
                                 <?php foreach($intellectual_props as $ip): ?>
                                     <div class="col-md-6 mb-3">
-                                        <div class="card shadow-sm border-left-warning h-100">
+                                        <div class="card shadow-sm border-left-warning h-100 clickable-card edit_button_intellectualprop" data-id="<?php echo $ip['id']; ?>">
                                             <div class="card-body py-3 position-relative">
-                                                <div class="position-absolute" style="top: 10px; right: 10px;">
-                                                    <button class="btn btn-sm btn-light text-primary edit_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                <div class="position-absolute isolate-click" style="top: 10px; right: 10px;">
                                                     <button class="btn btn-sm btn-light text-danger delete_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-trash"></i></button>
                                                 </div>
                                                 <h6 class="font-weight-bold text-gray-800 pr-5"><?php echo htmlspecialchars($ip['title']); ?></h6>
@@ -252,35 +319,37 @@ include('../../includes/header.php');
                     <div class="tab-pane custom-tab-pane" id="pp" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Paper Presentations</h4>
-                            <button type="button" id="add_paper_presentation" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Presentation</button>
                         </div>
 
-                        <div class="card shadow-sm border-0">
                             <?php if(count($presentations) > 0): ?>
-                                <ul class="list-group list-group-flush">
-                                    <?php foreach($presentations as $paper): ?>
-                                        <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                                            <div>
-                                                <h6 class="font-weight-bold text-gray-800 mb-1"><i class="fas fa-microphone-alt text-primary mr-2"></i> <?php echo htmlspecialchars($paper['title']); ?></h6>
-                                                <small class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i> <?php echo htmlspecialchars($paper['conference_title']); ?> (<?php echo htmlspecialchars($paper['conference_venue']); ?>) | <?php echo htmlspecialchars($paper['date_paper']); ?></small>
-                                            </div>
-                                            <div>
-                                                <button class="btn btn-sm btn-circle btn-light text-primary edit_button_paper_presentation" data-id="<?php echo $paper['id']; ?>"><i class="fas fa-edit"></i></button>
-                                                <button class="btn btn-sm btn-circle btn-light text-danger delete_button_paper_presentation" data-id="<?php echo $paper['id']; ?>"><i class="fas fa-trash"></i></button>
-                                            </div>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php else: ?>
-                                <div class="card-body text-center py-4 text-muted">No paper presentations recorded yet.</div>
-                            <?php endif; ?>
-                        </div>
+                            <?php foreach($presentations as $paper): ?>
+                                <div class="card shadow-sm mb-3 border-left-info position-relative clickable-card edit_button_paper_presentation" data-id="<?php echo $paper['id']; ?>">
+                                    <div class="card-body py-3">
+                                        <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
+                                            <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_paper_presentation" data-id="<?php echo $paper['id']; ?>"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                        <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($paper['title']); ?></h5>
+                                        <p class="text-muted mb-2 font-size-sm">
+                                            <i class="fas fa-building mr-1 text-primary"></i> <?php echo !empty($paper['conference_organizer']) ? htmlspecialchars($paper['conference_organizer']) : '<i class="text-muted font-italic">Organizer not specified</i>'; ?> &nbsp;|&nbsp; 
+                                            <i class="fas fa-map-marker-alt mx-1 text-danger"></i> <?php echo htmlspecialchars($paper['conference_venue']); ?> &nbsp;|&nbsp; 
+                                            <i class="far fa-calendar-alt mx-1 text-success"></i> <?php echo htmlspecialchars($paper['date_paper']); ?>
+                                        </p>
+                                        <div class="mt-2">
+                                            <span class="badge badge-info px-2 py-1 mr-2"><i class="fas fa-microphone mr-1"></i><?php echo !empty($paper['type_pp']) ? htmlspecialchars($paper['type_pp']) : 'Presentation'; ?></span>
+                                            <span class="badge badge-secondary px-2 py-1 mr-2"><?php echo htmlspecialchars($paper['conference_title']); ?> Level</span>
+                                            <span class="badge badge-light border px-2 py-1"><i class="fas fa-book-reader mr-1 text-muted"></i><?php echo !empty($paper['discipline']) ? htmlspecialchars($paper['discipline']) : 'Discipline N/A'; ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No paper presentations recorded yet.</div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="tab-pane custom-tab-pane" id="tra" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Trainings & Development</h4>
-                            <button type="button" id="add_training_attended" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Training</button>
                         </div>
                         
                         <?php if(count($trainings) > 0): ?>
@@ -288,15 +357,18 @@ include('../../includes/header.php');
                                 <?php foreach($trainings as $train): ?>
                                     <div class="timeline-item">
                                         <div class="timeline-date"><?php echo htmlspecialchars($train['date_train']); ?> (<?php echo htmlspecialchars($train['totnh']); ?> Hours)</div>
-                                        <div class="card shadow-sm border-0 bg-light">
+                                        <div class="card shadow-sm border-0 bg-light clickable-card edit_button_training" data-id="<?php echo $train['id']; ?>">
                                             <div class="card-body py-3">
-                                                <div class="float-right">
-                                                    <button class="btn btn-sm btn-link text-primary edit_button_training" data-id="<?php echo $train['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                <div class="float-right isolate-click">
                                                     <button class="btn btn-sm btn-link text-danger delete_button_training" data-id="<?php echo $train['id']; ?>"><i class="fas fa-trash"></i></button>
                                                 </div>
                                                 <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($train['title']); ?></h6>
-                                                <p class="text-muted small mb-2"><i class="fas fa-building mr-1"></i> <?php echo htmlspecialchars($train['sponsor_org']); ?> | Venue: <?php echo htmlspecialchars($train['venue']); ?></p>
-                                                <span class="badge badge-info px-2 py-1"><?php echo htmlspecialchars($train['lvl']); ?> Level</span>
+                                                    <p class="text-muted small mb-2"><i class="fas fa-building mr-1 text-primary"></i> <?php echo htmlspecialchars($train['sponsor_org']); ?> &nbsp;|&nbsp; <i class="fas fa-map-marker-alt mx-1 text-danger"></i> <?php echo htmlspecialchars($train['venue']); ?></p>
+                                                <div class="mt-2">
+                                                    <span class="badge badge-info px-2 py-1 mr-1"><?php echo htmlspecialchars($train['lvl']); ?> Level</span>
+                                                    <span class="badge badge-secondary px-2 py-1 mr-1"><?php echo !empty($train['type_training']) ? htmlspecialchars($train['type_training']) : 'Training'; ?></span>
+                                                    <span class="badge badge-light border px-2 py-1"><i class="fas fa-book-reader mr-1 text-muted"></i><?php echo !empty($train['type_learning_dev']) ? htmlspecialchars($train['type_learning_dev']) : 'N/A'; ?></span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -310,7 +382,6 @@ include('../../includes/header.php');
                     <div class="tab-pane custom-tab-pane" id="epc" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Extension Projects Conducted</h4>
-                            <button type="button" id="add_extension_project" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Ext. Project</button>
                         </div>
 
                         <?php if(count($ext_projects) > 0): ?>
@@ -318,19 +389,28 @@ include('../../includes/header.php');
                                 <?php foreach($ext_projects as $ep): ?>
                                     <div class="timeline-item">
                                         <div class="timeline-date"><?php echo htmlspecialchars($ep['start_date']); ?> to <?php echo htmlspecialchars($ep['completed_date']); ?></div>
-                                        <div class="card shadow-sm border-0 bg-light">
+                                        <div class="card shadow-sm border-0 bg-light clickable-card edit_button_extension_project" data-id="<?php echo $ep['id']; ?>">
                                             <div class="card-body py-3">
-                                                <div class="float-right">
-                                                    <button class="btn btn-sm btn-link text-primary edit_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-edit"></i></button>
+                                                <div class="float-right isolate-click">
                                                     <button class="btn btn-sm btn-link text-danger delete_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-trash"></i></button>
                                                 </div>
-                                                <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($ep['title']); ?></h6>
-                                                <p class="text-muted small mb-2">
-                                                    <i class="fas fa-handshake mr-1"></i> Partners: <?php echo htmlspecialchars($ep['partners']); ?> | 
-                                                    <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($ep['funding_source']); ?> (₱<?php echo number_format((float)$ep['approved_budget'], 2); ?>)
-                                                </p>
-                                                <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Beneficiaries: <?php echo htmlspecialchars($ep['target_beneficiaries_communities']); ?></p>
-                                                <span class="badge badge-success px-2 py-1"><?php echo htmlspecialchars($ep['status_exct']); ?></span>
+                                                <h6 class="font-weight-bold text-gray-800 mb-3 pr-4"><?php echo htmlspecialchars($ep['title']); ?></h6>
+                                                
+                                                <div class="row text-muted small mb-2">
+                                                    <div class="col-md-6 mb-2">
+                                                        <div class="mb-1"><i class="fas fa-users mr-2 text-primary"></i> <b>Beneficiaries:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['target_beneficiaries_communities']); ?></span></div>
+                                                        <div class="mt-2"><i class="fas fa-handshake mr-2 text-primary"></i> <b>Partners:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['partners']); ?></span></div>
+                                                    </div>
+                                                    <div class="col-md-6 mb-2 border-left">
+                                                        <div class="mb-1"><i class="fas fa-wallet mr-2 text-success"></i> <b>Funding Source:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['funding_source']); ?></span></div>
+                                                        <div class="mt-2"><i class="fas fa-money-bill-wave mr-2 text-success"></i> <b>Approved Budget:</b> <br><span class="ml-4 font-weight-bold">₱<?php echo number_format((float)$ep['approved_budget'], 2); ?></span></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-2">
+                                                    <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-info-circle mr-1"></i><?php echo htmlspecialchars($ep['status_exct']); ?></span>
+                                                    <span class="badge badge-light border px-2 py-1"><i class="fas fa-file-alt mr-1 text-muted"></i>Report: <?php echo !empty($ep['terminal_report_extc']) ? htmlspecialchars($ep['terminal_report_extc']) : (!empty($ep['terminal_report']) ? htmlspecialchars($ep['terminal_report']) : 'N/A'); ?></span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -344,15 +424,13 @@ include('../../includes/header.php');
                     <div class="tab-pane custom-tab-pane" id="ext" role="tabpanel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="font-weight-bold text-gray-800 m-0">Extension Activities</h4>
-                            <button type="button" id="add_extension" class="btn btn-danger pink btn-sm shadow-sm"><i class="fas fa-plus mr-1"></i> Add Extension</button>
                         </div>
 
                         <?php if(count($extensions) > 0): ?>
                             <?php foreach($extensions as $ext): ?>
-                                <div class="card shadow-sm mb-3 border-left-success position-relative">
+                                <div class="card shadow-sm mb-3 border-left-success position-relative clickable-card edit_button_ext" data-id="<?php echo $ext['id']; ?>">
                                     <div class="card-body py-3">
-                                        <div class="position-absolute" style="top: 15px; right: 15px;">
-                                            <button class="btn btn-sm btn-light text-primary shadow-sm mr-1 edit_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-edit"></i></button>
+                                        <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
                                             <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-trash"></i></button>
                                         </div>
                                         <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($ext['title']); ?></h5>
@@ -383,6 +461,22 @@ include('../../includes/header.php');
     </div>
 </div>
 
+<div style="display: none;">
+    <button type="button" id="add_researcherconducted"></button>
+    <button type="button" id="add_publication"></button>
+    <button type="button" id="add_intellectualprop"></button>
+    <button type="button" id="add_paper_presentation"></button>
+    <button type="button" id="add_training_attended"></button>
+    <button type="button" id="add_extension_project"></button>
+    <button type="button" id="add_extension"></button>
+</div>
+
+<div class="fab-container" id="fab-container">
+    <button class="btn btn-danger pink fab-btn text-white" id="dynamic-fab-btn" title="Add New Record">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+
 <div id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>"></div>
 <div id="researcherModala" data-id="<?php echo htmlspecialchars($researcher_id); ?>"></div>
 
@@ -408,9 +502,22 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 2. ISOLATED VANILLA JS TAB CONTROLLER
+    // 2. ISOLATED VANILLA JS TAB & FAB CONTROLLER
     const tabBtns = document.querySelectorAll('.custom-tab-btn');
     const tabPanes = document.querySelectorAll('.custom-tab-pane');
+    const fabContainer = document.getElementById('fab-container');
+    const dynamicFabBtn = document.getElementById('dynamic-fab-btn');
+
+    // Mapping tab IDs to the "Add" button IDs expected by your jQuery scripts
+    const fabMapping = {
+        'tab-education': 'add_researcherconducted',
+        'tab-degree': 'add_publication',
+        'tab-ip': 'add_intellectualprop',
+        'tab-pp': 'add_paper_presentation',
+        'tab-tra': 'add_training_attended',
+        'tab-epc': 'add_extension_project',
+        'tab-ext': 'add_extension'
+    };
 
     tabBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -434,7 +541,34 @@ document.addEventListener("DOMContentLoaded", function() {
                 targetPane.style.display = 'block';
                 targetPane.classList.add('active');
             }
+
+            // --- Context-Aware FAB Logic ---
+            const tabId = this.getAttribute('id');
+            if (tabId === 'tab-personal-info') {
+                // Hide FAB on Profile Overview
+                fabContainer.style.display = 'none';
+            } else {
+// Show FAB and store the target proxy ID in a data attribute
+                fabContainer.style.display = 'block';
+                dynamicFabBtn.setAttribute('data-target-id', fabMapping[tabId]);
+            }
         });
+    });
+
+    // --- Proxy Click Event for the FAB ---
+    dynamicFabBtn.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target-id');
+        if (targetId) {
+            const hiddenProxyButton = document.getElementById(targetId);
+            if (hiddenProxyButton) {
+                hiddenProxyButton.click(); // This perfectly triggers your old jQuery scripts
+            }
+        }
+    });
+
+    // 3. Prevent Delete Button Clicks from Opening Edit Modals
+    $('.isolate-click').on('click', function(e) {
+        e.stopPropagation(); // Stops the click from bubbling up to the .clickable-card
     });
 });
 </script>
