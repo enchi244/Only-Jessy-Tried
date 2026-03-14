@@ -4,6 +4,42 @@
 
 include('../../../core/rms.php');
 
+if(isset($_POST["action_link"]) && $_POST["action_link"] == 'link_multiple')
+{
+    // 1. Fetch the primary reference data
+    $object->query = "SELECT * FROM tbl_researchconducted WHERE id = '".$_POST["existing_research_id"]."'";
+    $original_data = $object->get_result();
+
+    if(count($original_data) > 0)
+    {
+        $row = $original_data[0];
+        unset($row['id']); // Remove the primary key so we can insert new rows
+
+        // 2. Loop through all selected researchers
+        foreach($_POST['linked_researchers'] as $new_researcher_id)
+        {
+            // Safety Check: Ensure this specific researcher doesn't already have this exact research title
+            $object->query = "SELECT id FROM tbl_researchconducted WHERE title = '".addslashes($row['title'])."' AND researcherID = '".$new_researcher_id."'";
+            $check = $object->get_result();
+
+            if(count($check) == 0)
+            {
+                // Swap out the ID for the new person
+                $row['researcherID'] = $new_researcher_id;
+                
+                // Dynamically build the INSERT query to mirror all data seamlessly
+                $columns = implode(", ", array_keys($row));
+                $values  = implode("', '", array_map('addslashes', array_values($row)));
+
+                $object->query = "INSERT INTO tbl_researchconducted ($columns) VALUES ('$values')";
+                $object->execute();
+            }
+        }
+        echo 'Success';
+    }
+    exit; // Stop execution here so it doesn't run the rest of the file
+}
+
 $object = new rms();
 
 if(isset($_POST["action"]))
@@ -50,7 +86,7 @@ if (isset($_POST["search"]["value"])) {
 
 		if(isset($_POST["order"]))
 		{
-			$order_column = ['researcherID', 'familyName', 'department', 'program', 'created_on']; 
+			$order_column = ['researcherID', 'familyName', 'department', 'program', 'user_created_on'];
 
 			$order_query = 'ORDER BY '.$order_column[$_POST['order']['0']['column']].' '.$_POST['order']['0']['dir'].' ';
 		}
@@ -91,8 +127,8 @@ if (isset($_POST["search"]["value"])) {
 			$sub_array = array();
 			$sub_array[] = $row["researcherID"];
 			$sub_array[] = $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"];
-			$sub_array[] = $row["department"];
-			$sub_array[] = $row["program"];
+			$sub_array[] = !empty($row["department"]) ? $row["department"] : "N/A";
+			$sub_array[] = !empty($row["program"]) ? $row["program"] : "N/A";
 
 			$sub_array[] = $row["user_created_on"];
 			$sub_array[] = '

@@ -41,13 +41,15 @@ include('../../includes/header.php');
     #researcher_table tbody tr:hover {
         background-color: #f1f3f9 !important;
     }
-
-    /* Floating Action Button */
     .fab-container {
         position: fixed;
         bottom: 40px;
         right: 40px;
         z-index: 1000;
+        display: flex;
+        flex-direction: column-reverse;
+        align-items: center;
+        gap: 15px;
     }
     .fab-btn {
         width: 65px;
@@ -59,6 +61,28 @@ include('../../includes/header.php');
         justify-content: center;
         box-shadow: 0 10px 20px rgba(242, 62, 93, 0.4);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        z-index: 2;
+    }
+    .fab-sub-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 1;
+    }
+    .fab-container:hover .fab-sub-btn {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
     }
     .fab-btn:hover {
         transform: scale(1.05);
@@ -128,6 +152,9 @@ include('../../includes/header.php');
     <button class="btn btn-danger pink fab-btn text-white" id="fab_add_researcher" title="Add New Researcher">
         <i class="fas fa-plus"></i>
     </button>
+    <button class="btn btn-secondary fab-sub-btn text-white" id="fab_link_researcher" title="Link Researchers to Project" data-toggle="modal" data-target="#linkResearcherModal">
+        <i class="fas fa-link"></i>
+    </button>
 </div>
 
 <?php include('modals/add_researchConducted.php'); ?>
@@ -138,6 +165,49 @@ include('../../includes/header.php');
 <?php include('modals/add_extensionProject.php'); ?>
 <?php include('modals/add_extension.php'); ?>
 <?php include('modals/add_researcher.php'); ?>
+<div id="linkResearcherModal" class="modal fade" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="fas fa-link mr-2"></i>Link Researchers to Existing Project</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="link_form_message"></div>
+                <form method="post" id="link_researcher_form">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Select Existing Research Project <span class="text-danger">*</span></label>
+                        <select name="existing_research_id" id="existing_research_id" class="form-control select2-single" required style="width: 100%;">
+                            <option value="">Select a Project...</option>
+                            <?php
+                            $object->query = "SELECT id, title FROM tbl_researchconducted GROUP BY title ORDER BY title ASC";
+                            $projects = $object->get_result();
+                            foreach($projects as $p) { echo '<option value="'.$p["id"].'">'.htmlspecialchars($p["title"]).'</option>'; }
+                            ?>
+                        </select>
+                        <small class="text-muted">This serves as the primary data reference.</small>
+                    </div>
+                    <div class="form-group mt-4">
+                        <label class="font-weight-bold">Select Researchers to Link <span class="text-danger">*</span></label>
+                        <select name="linked_researchers[]" id="linked_researchers" class="form-control select2-multi" multiple="multiple" required style="width: 100%;">
+                            <?php
+                            $object->query = "SELECT id, researcherID, firstName, familyName FROM tbl_researchdata WHERE status = 1 ORDER BY familyName ASC";
+                            $researchers = $object->get_result();
+                            foreach($researchers as $r) { echo '<option value="'.$r["id"].'">'.htmlspecialchars($r["familyName"].', '.$r["firstName"].' ('.$r["researcherID"].')').'</option>'; }
+                            ?>
+                        </select>
+                        <small class="text-muted">You can select multiple researchers.</small>
+                    </div>
+                    <div class="modal-footer mt-4 px-0 pb-0 border-top-0">
+                        <input type="hidden" name="action_link" id="action_link" value="link_multiple" />
+                        <button type="submit" id="submit_link_button" class="btn btn-danger pink">Link Data</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="researcherModala" class="modal fade" data-backdrop="static">
     <div class="modal-dialog modal-xl"> 
@@ -379,6 +449,9 @@ include('../../includes/header.php');
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    // Initialize Select2 for the link modal
+    $('.select2-single').select2({ theme: "classic", dropdownParent: $('#linkResearcherModal') });
+    $('.select2-multi').select2({ theme: "classic", placeholder: " Search and select researchers...", dropdownParent: $('#linkResearcherModal') });
     // 1. Connect FAB to the hidden Add button so legacy jQuery scripts run
     document.getElementById('fab_add_researcher').addEventListener('click', function() {
         document.getElementById('add_researcher').click();
@@ -437,3 +510,52 @@ document.addEventListener("DOMContentLoaded", function() {
 <script src="scripts/training.js"></script>
 <script src="scripts/extension_project.js"></script>
 <script src="scripts/extension.js"></script>
+
+<script>
+$(document).ready(function() {
+    // AJAX form submission for Linking Researchers
+    $('#link_researcher_form').on('submit', function(event){
+        event.preventDefault();
+        
+        // UI Feedback during processing
+        $('#submit_link_button').attr('disabled', 'disabled');
+        $('#submit_link_button').html('<i class="fas fa-spinner fa-spin"></i> Linking...');
+
+        $.ajax({
+            url: "actions/researcher_action.php",
+            method: "POST",
+            data: $(this).serialize(),
+            success:function(data)
+            {
+                // Reset UI
+                $('#submit_link_button').attr('disabled', false);
+                $('#submit_link_button').html('Link Data');
+                $('#linkResearcherModal').modal('hide');
+                $('#link_researcher_form')[0].reset();
+                $('.select2-single, .select2-multi').val(null).trigger('change');
+
+                // Show Success Alert
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Linked Successfully',
+                    text: 'The research data has been mirrored to the selected profiles.',
+                    confirmButtonColor: '#f23e5d'
+                });
+
+                // Reload the datatable if it exists on the page
+                if (typeof dataTable !== 'undefined') {
+                    dataTable.ajax.reload();
+                } else {
+                    // Fallback to reload the page if dataTable variable isn't globally exposed
+                    setTimeout(function(){ location.reload(); }, 1500);
+                }
+            },
+            error: function() {
+                Swal.fire('Error', 'A server error occurred.', 'error');
+                $('#submit_link_button').attr('disabled', false);
+                $('#submit_link_button').html('Link Data');
+            }
+        });
+    });
+});
+</script>
