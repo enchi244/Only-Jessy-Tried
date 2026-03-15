@@ -25,6 +25,24 @@ if (!function_exists('parse_legacy_date_php')) {
 
 if(isset($_POST["action_researchedconducted"]))
 {
+	if($_POST["action_researchedconducted"] == 'fetch_collaborators')
+    {
+        header('Content-Type: application/json');
+        
+        $id = intval($_POST['id']);
+        
+        // Use the ID to find the exact title natively in the DB, bypassing all string issues
+        $object->query = "
+            SELECT d.id, d.firstName, d.familyName, d.department 
+            FROM tbl_researchconducted r 
+            JOIN tbl_researchdata d ON r.researcherID = d.id 
+            WHERE r.title = (SELECT title FROM tbl_researchconducted WHERE id = '".$id."')
+        ";
+        $object->execute();
+        $collaborators = $object->get_result();
+        echo json_encode($collaborators);
+        exit;
+    }
     // --- MASTER TABLE LOGIC (NEW) ---
     if($_POST["action_researchedconducted"] == 'fetch_all')
     {
@@ -39,8 +57,18 @@ if(isset($_POST["action_researchedconducted"]))
         $output = array();
 
         $main_query = "
-            SELECT tbl_researchconducted.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix 
+            SELECT tbl_researchconducted.*, 
+                   (SELECT GROUP_CONCAT(d.familyName SEPARATOR ', ') 
+                    FROM tbl_researchconducted rc 
+                    LEFT JOIN tbl_researchdata d ON rc.researcherID = d.id 
+                    WHERE rc.title = tbl_researchconducted.title) AS all_authors,
+                   tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix 
             FROM tbl_researchconducted 
+            INNER JOIN (
+                SELECT MIN(id) as original_id 
+                FROM tbl_researchconducted 
+                GROUP BY title
+            ) as original_research ON tbl_researchconducted.id = original_research.original_id
             LEFT JOIN tbl_researchdata ON tbl_researchconducted.researcherID = tbl_researchdata.id
         ";
         $search_query = " WHERE 1=1 ";
@@ -78,8 +106,9 @@ if(isset($_POST["action_researchedconducted"]))
 
         foreach($result as $row) {
             $sub_array = array();
+
+			$author_name = $row["all_authors"] ? $row["all_authors"] : "Unknown Author";
             
-            $author_name = $row["familyName"] ? $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"] : "Unknown Author";
             
             $sub_array[] = '<span class="font-weight-bold">'.$author_name.'</span>';
             $sub_array[] = $row["title"];
@@ -89,6 +118,7 @@ if(isset($_POST["action_researchedconducted"]))
             
             $sub_array[] = '
             <div align="center">
+                <button type="button" class="btn btn-info btn-sm view_collaborators" data-id="'.$row["id"].'" title="View Collaborators"><i class="fas fa-users"></i></button>
                 <button type="button" class="btn btn-danger btn-sm delete_master_researchconducted" data-id="'.$row["id"].'" title="Delete Record"><i class="far fa-trash-alt"></i></button>
                 <a href="view_researcher.php?id='.$row["author_db_id"].'&tab=education" class="btn d-none"></a>
             </div>

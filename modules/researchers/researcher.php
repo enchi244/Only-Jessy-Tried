@@ -457,6 +457,56 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('add_researcher').click();
     });
 
+    // 1.5. Collaborators Modal Logic
+    $(document).on('click', '.view_collaborators', function(e) {
+        e.stopPropagation(); // Prevent triggering the row click
+        var id = $(this).attr('data-id'); // Safely grab the unique row ID instead of the title string
+        
+        Swal.fire({
+            title: 'Loading...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: "actions/researchconducted_action.php",
+            method: "POST",
+            data: { action_researchedconducted: 'fetch_collaborators', id: id },
+            dataType: "json",
+            success: function(data) {
+                var html = '<div class="row mt-3">';
+                if(data.length > 0) {
+                    data.forEach(function(collab) {
+                        var dept = collab.department ? collab.department : 'N/A';
+                        html += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card shadow-sm border-left-pink h-100" style="cursor:pointer; transition: 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" onclick="window.location.href='view_researcher.php?id=${collab.id}'">
+                                <div class="card-body p-3 text-left">
+                                    <div class="font-weight-bold text-gray-800" style="font-size: 1rem;">${collab.familyName}, ${collab.firstName}</div>
+                                    <div class="text-xs text-muted mt-1"><i class="fas fa-building mr-1"></i> ${dept}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                } else {
+                    html += '<div class="col-12 text-muted">No collaborators found.</div>';
+                }
+                html += '</div>';
+
+                Swal.fire({
+                    title: '<i class="fas fa-users text-primary mr-2"></i> Collaborators',
+                    html: html,
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    width: '600px'
+                });
+            },
+            error: function() {
+                Swal.fire('Error', 'Could not fetch collaborators', 'error');
+            }
+        });
+    });
+
     // 2. Delegate Row Click to open Profile/Edit
     $(document).on('click', '#researcher_table tbody tr', function(e) {
         if ($(e.target).closest('button').length || $(e.target).closest('a').length) {
