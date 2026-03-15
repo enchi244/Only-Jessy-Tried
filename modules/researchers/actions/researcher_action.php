@@ -6,32 +6,19 @@ include('../../../core/rms.php');
 
 if(isset($_POST["action_link"]) && $_POST["action_link"] == 'link_multiple')
 {
-    // 1. Fetch the primary reference data
-    $object->query = "SELECT * FROM tbl_researchconducted WHERE id = '".$_POST["existing_research_id"]."'";
-    $original_data = $object->get_result();
+    $research_id = intval($_POST["existing_research_id"]);
 
-    if(count($original_data) > 0)
-    {
-        $row = $original_data[0];
-        unset($row['id']); // Remove the primary key so we can insert new rows
+    if($research_id > 0) {
+        // Clear old mappings safely using intval() strings instead of PDO bindings
+        $object->query = "DELETE FROM tbl_research_collaborators WHERE research_id = '".$research_id."'";
+        $object->execute();
 
-        // 2. Loop through all selected researchers
-        foreach($_POST['linked_researchers'] as $new_researcher_id)
-        {
-            // Safety Check: Ensure this specific researcher doesn't already have this exact research title
-            $object->query = "SELECT id FROM tbl_researchconducted WHERE title = '".addslashes($row['title'])."' AND researcherID = '".$new_researcher_id."'";
-            $check = $object->get_result();
-
-            if(count($check) == 0)
+        // Insert the currently selected ones
+        if(isset($_POST['linked_researchers'])) {
+            foreach($_POST['linked_researchers'] as $new_researcher_id)
             {
-                // Swap out the ID for the new person
-                $row['researcherID'] = $new_researcher_id;
-                
-                // Dynamically build the INSERT query to mirror all data seamlessly
-                $columns = implode(", ", array_keys($row));
-                $values  = implode("', '", array_map('addslashes', array_values($row)));
-
-                $object->query = "INSERT INTO tbl_researchconducted ($columns) VALUES ('$values')";
+                $r_id = intval($new_researcher_id);
+                $object->query = "INSERT INTO tbl_research_collaborators (research_id, researcher_id) VALUES ('".$research_id."', '".$r_id."')";
                 $object->execute();
             }
         }

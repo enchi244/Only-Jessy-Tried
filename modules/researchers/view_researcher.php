@@ -27,7 +27,7 @@ $researcher_data = $object->statement->fetch(PDO::FETCH_ASSOC);
 // Format the name nicely
 $full_name = trim($researcher_data['firstName'] . ' ' . $researcher_data['middleName'] . ' ' . $researcher_data['familyName'] . ' ' . $researcher_data['Suffix']);
 
-$object->query = "SELECT * FROM tbl_researchconducted WHERE researcherID = '$researcher_id' ORDER BY started_date DESC";
+$object->query = "SELECT rc.* FROM tbl_researchconducted rc JOIN tbl_research_collaborators col ON rc.id = col.research_id WHERE col.researcher_id = '$researcher_id' ORDER BY rc.started_date DESC";
 $object->execute();
 $research_conducted = $object->statement_result();
 

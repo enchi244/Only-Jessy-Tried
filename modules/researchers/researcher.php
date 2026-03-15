@@ -41,6 +41,8 @@ include('../../includes/header.php');
     #researcher_table tbody tr:hover {
         background-color: #f1f3f9 !important;
     }
+
+    /* FAB Container - Handles stacking automatically */
     .fab-container {
         position: fixed;
         bottom: 40px;
@@ -62,7 +64,7 @@ include('../../includes/header.php');
         box-shadow: 0 10px 20px rgba(242, 62, 93, 0.4);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         position: relative;
-        z-index: 2;
+        z-index: 3;
     }
     .fab-sub-btn {
         width: 50px;
@@ -79,6 +81,8 @@ include('../../includes/header.php');
         pointer-events: none;
         z-index: 1;
     }
+    
+    /* Hover Effects for FAB */
     .fab-container:hover .fab-sub-btn {
         opacity: 1;
         transform: translateY(0);
@@ -88,6 +92,11 @@ include('../../includes/header.php');
         transform: scale(1.05);
         box-shadow: 0 12px 25px rgba(242, 62, 93, 0.5);
     }
+    
+    /* Staggered animation for multiple sub-buttons */
+    .fab-container:hover .fab-sub-btn:nth-child(2) { transition-delay: 0.05s; }
+    .fab-container:hover .fab-sub-btn:nth-child(3) { transition-delay: 0.1s; }
+
     /* Master View Toggles */
     .master-toggles .btn {
         font-weight: 600;
@@ -98,6 +107,7 @@ include('../../includes/header.php');
 
 <div style="display: none;">
     <button type="button" name="add_researcher" id="add_researcher"></button>
+    <button type="button" id="add_researcherconducted"></button>
 </div>
 
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -149,11 +159,16 @@ include('../../includes/header.php');
 </div>
 
 <div class="fab-container" id="fab_container">
-    <button class="btn btn-danger pink fab-btn text-white" id="fab_add_researcher" title="Add New Researcher">
+    <button class="btn btn-danger pink fab-btn text-white" id="fab_add_researcher" title="Add New Researcher Profile">
         <i class="fas fa-plus"></i>
     </button>
-    <button class="btn btn-secondary fab-sub-btn text-white" id="fab_link_researcher" title="Link Researchers to Project" data-toggle="modal" data-target="#linkResearcherModal">
+    
+    <button class="btn btn-secondary fab-sub-btn text-white" id="fab_link_researcher" title="Manage Collaborators on Existing Project" data-toggle="modal" data-target="#linkResearcherModal">
         <i class="fas fa-link"></i>
+    </button>
+
+    <button class="btn btn-primary fab-sub-btn text-white" style="background-color: #4e73df; border-color: #4e73df;" id="fab_create_research_project" title="Add New Research Project">
+        <i class="fas fa-flask"></i>
     </button>
 </div>
 
@@ -165,18 +180,27 @@ include('../../includes/header.php');
 <?php include('modals/add_extensionProject.php'); ?>
 <?php include('modals/add_extension.php'); ?>
 <?php include('modals/add_researcher.php'); ?>
+
 <div id="linkResearcherModal" class="modal fade" data-backdrop="static">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title"><i class="fas fa-link mr-2"></i>Link Researchers to Existing Project</h4>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="link_form_message"></div>
-                <form method="post" id="link_researcher_form">
-                    <div class="form-group">
-                        <label class="font-weight-bold">Select Existing Research Project <span class="text-danger">*</span></label>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form method="post" id="link_researcher_form" class="w-100">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title d-flex align-items-center" id="link_modal_title">
+                        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        Manage Collaborators
+                    </h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="link_form_message"></div>
+                    
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold" for="existing_research_id"><i class="fas fa-flask mr-2 text-primary"></i>Select Existing Research Project <span class="text-danger">*</span></label>
                         <select name="existing_research_id" id="existing_research_id" class="form-control select2-single" required style="width: 100%;">
                             <option value="">Select a Project...</option>
                             <?php
@@ -185,10 +209,11 @@ include('../../includes/header.php');
                             foreach($projects as $p) { echo '<option value="'.$p["id"].'">'.htmlspecialchars($p["title"]).'</option>'; }
                             ?>
                         </select>
-                        <small class="text-muted">This serves as the primary data reference.</small>
+                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> Selecting a project will auto-fill its current researchers.</small>
                     </div>
-                    <div class="form-group mt-4">
-                        <label class="font-weight-bold">Select Researchers to Link <span class="text-danger">*</span></label>
+                    
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold" for="linked_researchers"><i class="fas fa-users mr-2 text-primary"></i>Select Researchers to Link <span class="text-danger">*</span></label>
                         <select name="linked_researchers[]" id="linked_researchers" class="form-control select2-multi" multiple="multiple" required style="width: 100%;">
                             <?php
                             $object->query = "SELECT id, researcherID, firstName, familyName FROM tbl_researchdata WHERE status = 1 ORDER BY familyName ASC";
@@ -196,16 +221,16 @@ include('../../includes/header.php');
                             foreach($researchers as $r) { echo '<option value="'.$r["id"].'">'.htmlspecialchars($r["familyName"].', '.$r["firstName"].' ('.$r["researcherID"].')').'</option>'; }
                             ?>
                         </select>
-                        <small class="text-muted">You can select multiple researchers.</small>
+                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> You can add or remove researchers from the project here.</small>
                     </div>
-                    <div class="modal-footer mt-4 px-0 pb-0 border-top-0">
-                        <input type="hidden" name="action_link" id="action_link" value="link_multiple" />
-                        <button type="submit" id="submit_link_button" class="btn btn-danger pink">Link Data</button>
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    </div>
-                </form>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <input type="hidden" name="action_link" id="action_link" value="link_multiple" />
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" id="submit_link_button" class="btn btn-danger pink px-4">Save Data</button>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
@@ -372,7 +397,7 @@ include('../../includes/header.php');
                             </div>
                         </div>
                     </div>
-                </div>                 
+                </div>                
 
                 <div class="tab-pane fade" id="tra" role="tabpanel" aria-labelledby="tra-tab">
                     <h1 class="h3 mb-4 text-gray-800">Trainings Attended Management</h1>
@@ -452,15 +477,24 @@ document.addEventListener("DOMContentLoaded", function() {
     // Initialize Select2 for the link modal
     $('.select2-single').select2({ theme: "classic", dropdownParent: $('#linkResearcherModal') });
     $('.select2-multi').select2({ theme: "classic", placeholder: " Search and select researchers...", dropdownParent: $('#linkResearcherModal') });
-    // 1. Connect FAB to the hidden Add button so legacy jQuery scripts run
+    
+    // 1. Connect Main FAB to Add Researcher
     document.getElementById('fab_add_researcher').addEventListener('click', function() {
         document.getElementById('add_researcher').click();
+    });
+
+    // 2. Connect NEW FAB Sub-Button to Add Research Project Modal
+    document.getElementById('fab_create_research_project').addEventListener('click', function() {
+        // Clear any leftover profile ID so it doesn't auto-assign to the wrong person
+        $('#researcherModala').data('id', ''); 
+        // Trigger the shared script button to open the Add Research Conducted modal
+        document.getElementById('add_researcherconducted').click();
     });
 
     // 1.5. Collaborators Modal Logic
     $(document).on('click', '.view_collaborators', function(e) {
         e.stopPropagation(); // Prevent triggering the row click
-        var id = $(this).attr('data-id'); // Safely grab the unique row ID instead of the title string
+        var id = $(this).attr('data-id'); 
         
         Swal.fire({
             title: 'Loading...',
@@ -563,13 +597,52 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <script>
 $(document).ready(function() {
-    // AJAX form submission for Linking Researchers
+    
+$('#existing_research_id').on('change', function() {
+        var research_id = $(this).val();
+        
+        console.log("1. Selected Project ID:", research_id); // DEBUG LOG
+        
+        if (research_id) {
+            $.ajax({
+                url: "actions/researchconducted_action.php",
+                method: "POST",
+                data: { action_researchedconducted: 'fetch_collaborators', id: research_id },
+                dataType: "json",
+                success: function(data) {
+                    console.log("2. Data from Server:", data); // DEBUG LOG
+                    
+                    if (data && data.length > 0) {
+                        var assigned_ids = data.map(function(collab) { return collab.id.toString(); });
+                        console.log("3. Array given to Dropdown:", assigned_ids); // DEBUG LOG
+                        
+                        $('#linked_researchers').val(assigned_ids).trigger('change');
+                    } else {
+                        console.log("3. Array given to Dropdown: NONE"); // DEBUG LOG
+                        $('#linked_researchers').val(null).trigger('change');
+                    }
+                },
+                error: function(xhr) {
+                    console.error("AJAX Error:", xhr.responseText);
+                }
+            });
+        } else {
+            $('#linked_researchers').val(null).trigger('change');
+        }
+    });
+
+    // Reset fields when the modal opens/closes to clear leftover ghost data
+    $('#linkResearcherModal').on('hidden.bs.modal', function () {
+        $('#link_researcher_form')[0].reset();
+        $('.select2-single, .select2-multi').val(null).trigger('change');
+    });
+
+    // AJAX form submission for Linking/Managing Researchers
     $('#link_researcher_form').on('submit', function(event){
         event.preventDefault();
         
-        // UI Feedback during processing
         $('#submit_link_button').attr('disabled', 'disabled');
-        $('#submit_link_button').html('<i class="fas fa-spinner fa-spin"></i> Linking...');
+        $('#submit_link_button').html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
         $.ajax({
             url: "actions/researcher_action.php",
@@ -579,31 +652,28 @@ $(document).ready(function() {
             {
                 // Reset UI
                 $('#submit_link_button').attr('disabled', false);
-                $('#submit_link_button').html('Link Data');
+                $('#submit_link_button').html('Save Data');
                 $('#linkResearcherModal').modal('hide');
                 $('#link_researcher_form')[0].reset();
                 $('.select2-single, .select2-multi').val(null).trigger('change');
 
-                // Show Success Alert
                 Swal.fire({
                     icon: 'success',
-                    title: 'Linked Successfully',
-                    text: 'The research data has been mirrored to the selected profiles.',
+                    title: 'Collaborators Updated',
+                    text: 'The research project has been successfully synced with the selected profiles.',
                     confirmButtonColor: '#f23e5d'
                 });
 
-                // Reload the datatable if it exists on the page
                 if (typeof dataTable !== 'undefined') {
                     dataTable.ajax.reload();
                 } else {
-                    // Fallback to reload the page if dataTable variable isn't globally exposed
                     setTimeout(function(){ location.reload(); }, 1500);
                 }
             },
             error: function() {
                 Swal.fire('Error', 'A server error occurred.', 'error');
                 $('#submit_link_button').attr('disabled', false);
-                $('#submit_link_button').html('Link Data');
+                $('#submit_link_button').html('Save Data');
             }
         });
     });

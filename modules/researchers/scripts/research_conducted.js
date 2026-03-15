@@ -1,3 +1,15 @@
+$(document).ready(function() {
+    // Initialize Select2 for Collaborators inside the Modal
+    // The dropdownParent is required so the search box is clickable inside a Bootstrap Modal
+    if ($('#collaborators').length) {
+        $('#collaborators').select2({
+            placeholder: "Select Co-Researchers / Collaborators",
+            allowClear: true,
+            dropdownParent: $('#researchconductedModal')
+        });
+    }
+});
+
 // 1. Function to Load Research Conducted Tab Data using the Main Researcher ID
 function loadResearchConductedTab(researcherID) {
     $('#researchconducted_form').parsley();
@@ -72,8 +84,15 @@ $('#researchconducted_form').on('submit', function(event) {
                         });
                     }
 
+                    // For profile page reload logic
                     var researcherID = $('#researcherModala').data('id'); 
-                    loadResearchConductedTab(researcherID); 
+                    if(researcherID) {
+                        // Reload the page using native JS to see the new timeline cards
+                        window.location.href = "view_researcher.php?id=" + researcherID + "&tab=education";
+                    } else {
+                        // If it's a datatable (e.g., Master view), reload it
+                        loadResearchConductedTab(researcherID); 
+                    }
 
                     setTimeout(function(){
                         $('#message').html('');
@@ -96,10 +115,17 @@ $('#researchconductedModal').on('hidden.bs.modal', function() {
 $('#add_researcherconducted').click(function() {
     $('#researchconducted_form')[0].reset();
     $('#researchconducted_form').parsley().reset();
+    
+    // Reset SDGs
     $('#sdgs').val([]);  
-
     $('#sdgs').trigger('change');  
-    $('#sdgs').selectpicker('refresh');  
+    if($.fn.selectpicker) { $('#sdgs').selectpicker('refresh'); }
+    
+    // Reset Collaborators Multi-Select
+    if ($('#collaborators').length) {
+        $('#collaborators').val(null).trigger('change');
+    }
+
     $('#modal_title').text('Add Researcher Conducted');
     $('#action_researchedconducted').val('Add');
     $('#submit_button_researchedconducted').val('Add');
@@ -111,7 +137,8 @@ $('#add_researcherconducted').click(function() {
 });
 
 // 6. Handle Edit Button (Populating the Modal)
-$(document).on('click', '.edit_button_researchconducted', function(){
+$(document).on('click', '.edit_button_researchconducted', function(e){
+    e.preventDefault();
     var rcid = $(this).data('id');
 
     $('#researchconducted_form')[0].reset();
@@ -125,25 +152,29 @@ $(document).on('click', '.edit_button_researchconducted', function(){
         dataType:'JSON',
         success:function(data)
         {
-            // Direct assignment! PHP already formatted it correctly.
             $('#started_date').val(data.started_date);
             $('#completed_date').val(data.completed_date);
-
             $('#title').val(data.title);
             $('#research_agenda_cluster').val(data.research_agenda_cluster);
             
-            var sdgsArray = data.sdgs.split(", ");  
-            $('#sdgs').val(sdgsArray);  
-
-            $('#sdgs').trigger('change');  
-            $('#sdgs').selectpicker('refresh');  
+            // Handle SDGs array
+            if(data.sdgs) {
+                var sdgsArray = data.sdgs.split(", ");  
+                $('#sdgs').val(sdgsArray).trigger('change');  
+                if($.fn.selectpicker) { $('#sdgs').selectpicker('refresh'); }
+            }
+            
+            // Handle Collaborators Array via Select2
+            if(data.collaborators && $('#collaborators').length) {
+                $('#collaborators').val(data.collaborators).trigger('change');
+            }
             
             $('#funding_source').val(data.funding_source);
             $('#approved_budget').val(data.approved_budget);
             $('#stat').val(data.stat);
             $('#terminal_report').val(data.terminal_report);
 
-            $('#modal_title').text('Edit Data');
+            $('#modal_title').text('Edit Project & Collaborators');
             $('#action_researchedconducted').val('Edit');
             $('#submit_button_researchedconducted').val('Edit');
             $('#researchconductedModal').modal('show');
@@ -153,11 +184,12 @@ $(document).on('click', '.edit_button_researchconducted', function(){
 });
 
 // 7. Handle Delete Button
-$(document).on('click', '.delete_buttonrc', function() {
+$(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .delete_master_researchconducted', function(e) {
+    e.preventDefault();
     var xid = $(this).data('id');
     Swal.fire({
         title: 'Are you sure?',
-        text: 'You will not be able to recover this record!',
+        text: 'This will delete the project and remove all associated collaborators!',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, delete it!',
@@ -182,12 +214,16 @@ $(document).on('click', '.delete_buttonrc', function() {
                         showConfirmButton: false, 
                     });
 
+                    // Reload page to reflect timeline card deletion
                     var researcherID = $('#researcherModala').data('id');
-                    loadResearchConductedTab(researcherID); 
-
-                    setTimeout(function() {
-                        $('#message').html('');
-                    }, 5000);
+                    if(researcherID) {
+                        setTimeout(function() {
+                            window.location.href = "view_researcher.php?id=" + researcherID + "&tab=education";
+                        }, 600);
+                    } else {
+                        // Master view reload
+                        location.reload();
+                    }
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({

@@ -28,6 +28,21 @@
                         />
                     </div>
 
+                    <div class="form-group mb-4">
+                        <label for="collaborators"><i class="fas fa-users mr-2 text-primary"></i>Co-Researchers / Collaborators</label>
+                        <select name="collaborators[]" id="collaborators" multiple required class="select form-control" style="width: 100%;">
+                            <?php
+                            // Fetch all researchers for the dropdown
+                            $object->query = "SELECT id, firstName, familyName FROM tbl_researchdata ORDER BY familyName ASC";
+                            $researchers = $object->get_result();
+                            foreach($researchers as $res) {
+                                echo '<option value="'.$res["id"].'">'.htmlspecialchars($res["familyName"] . ', ' . $res["firstName"]).'</option>';
+                            }
+                            ?>
+                        </select>
+                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> If adding from a profile, the profile owner is automatically linked. Select additional authors here.</small>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6 form-group mb-4">
                             <label for="research_agenda_cluster"><i class="fas fa-layer-group mr-2 text-primary"></i>Agenda Cluster</label>
@@ -43,8 +58,8 @@
 
                         <div class="col-md-6 form-group mb-4">
                             <label><i class="fas fa-globe mr-2 text-primary"></i>Select SDG</label>
-                            <select name="sdgs[]" id="sdgs" multiple required class="select form-control">
-                                <option value="" disabled selected>Select SDG</option>
+                            <select name="sdgs[]" id="sdgs" multiple required class="select form-control" style="width: 100%;">
+                                <option value="" disabled>Select SDG</option>
                                 <?php
                                 $object->query = "SELECT goal_name FROM tbl_sdgs ORDER BY goal_name ASC";
                                 $sdg_result = $object->get_result();
