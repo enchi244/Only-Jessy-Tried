@@ -1,13 +1,14 @@
 <?php
 // dashboard.php
-include('core/rms.php');
+include('core/rms.php'); 
 
 // ==============================================================================
-// DYNAMIC DASHBOARD AJAX HANDLER (Perfectly mapped to your actual schema!)
+// DYNAMIC DASHBOARD AJAX HANDLER (For Range Filtering)
 // ==============================================================================
 if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
     header('Content-Type: application/json');
-    $year = $_POST['year'];
+    $from_year = $_POST['from_year'];
+    $to_year = $_POST['to_year'];
     
     $conn = @new mysqli("localhost", "root", "", "rms");
     if ($conn->connect_error) {
@@ -16,10 +17,18 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
     }
     $conn->set_charset("utf8mb4");
 
-    // Smart Engine: Groups by department, filters by EXACT date columns, and counts UNIQUE titles
-    function getFilteredData($conn, $table, $year, $is_researcher = false, $distinct_col = null, $title_col = 'title') {
+    $all_depts = [];
+    $dept_query = "SELECT category_name FROM product_category_table WHERE category_status = 'Enable'";
+    $dept_res = @$conn->query($dept_query);
+    if ($dept_res) {
+        while ($drow = $dept_res->fetch_assoc()) {
+            $all_depts[$drow['category_name']] = 0; 
+        }
+    }
+
+    function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = []) {
         $total_rows = 0; 
-        $dept_counts = [];
+        $dept_counts = $base_depts; 
         $distinct_vals = [];
         $unique_titles = [];
 
@@ -32,19 +41,23 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         $res = @$conn->query($query);
         if ($res) {
             while($row = $res->fetch_assoc()) {
-                $match = ($year === 'all');
+                // If either dropdown is set to "all", we treat it as an All-Time search
+                $match = ($from_year === 'all' || $to_year === 'all');
                 
                 if (!$match) {
-                    // Looking at your EXACT schema date columns
                     $date_cols = ['user_created_on', 'date_paper', 'started_date', 'completed_date', 'start_date', 'publication_date', 'date_applied', 'date_granted', 'date_train'];
                     foreach ($date_cols as $dc) {
                         if (isset($row[$dc]) && !empty(trim((string)$row[$dc]))) {
                             $val_clean = trim((string)$row[$dc]);
                             if (preg_match('/^\d{2}-\d{4}$/', $val_clean)) { $val_clean = "01-" . $val_clean; }
                             $ts = strtotime($val_clean);
-                            if ($ts !== false && date('Y', $ts) == $year) {
-                                $match = true;
-                                break;
+                            if ($ts !== false) {
+                                $record_year = date('Y', $ts);
+                                // NEW LOGIC: Checks if the record year falls within the range
+                                if ($record_year >= $from_year && $record_year <= $to_year) {
+                                    $match = true;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -53,15 +66,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                 if ($match) {
                     $total_rows++;
                     $dept = !empty($row['department']) ? $row['department'] : 'Unknown';
+                    
                     if(!isset($dept_counts[$dept])) $dept_counts[$dept] = 0;
                     $dept_counts[$dept]++;
                     
-                    // Counts unique disciplines perfectly
                     if ($distinct_col && isset($row[$distinct_col]) && !empty(trim($row[$distinct_col]))) {
                         $distinct_vals[trim($row[$distinct_col])] = true;
                     }
                     
-                    // Prevents duplicate counting (e.g. 3 researchers on 1 project = 1 Unique Project)
                     if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
                         $unique_titles[strtolower(trim($row[$title_col]))] = true;
                     }
@@ -82,22 +94,20 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         ];
     }
 
-    // Mapping exactly to the tables in your screenshot
     $response = [
-        'chart1' => getFilteredData($conn, 'tbl_researchdata', $year, true, null, null),
-        'chart2' => getFilteredData($conn, 'tbl_researchconducted', $year, false, null, 'title'),
-        'chart3' => getFilteredData($conn, 'tbl_publication', $year, false, null, 'title'),
-        'chart4' => getFilteredData($conn, 'tbl_itelectualprop', $year, false, null, 'title'),
-        'chart5' => getFilteredData($conn, 'tbl_paperpresentation', $year, false, 'discipline', 'title'),
-        'chart6' => getFilteredData($conn, 'tbl_trainingsattended', $year, false, null, 'title'),
-        'chart7' => getFilteredData($conn, 'tbl_extension_project_conducted', $year, false, null, 'title') 
+        'chart1' => getFilteredData($conn, 'tbl_researchdata', $from_year, $to_year, true, null, null, $all_depts),
+        'chart2' => getFilteredData($conn, 'tbl_researchconducted', $from_year, $to_year, false, null, 'title', $all_depts),
+        'chart3' => getFilteredData($conn, 'tbl_publication', $from_year, $to_year, false, null, 'title', $all_depts),
+        'chart4' => getFilteredData($conn, 'tbl_itelectualprop', $from_year, $to_year, false, null, 'title', $all_depts),
+        'chart5' => getFilteredData($conn, 'tbl_paperpresentation', $from_year, $to_year, false, 'discipline', 'title', $all_depts),
+        'chart6' => getFilteredData($conn, 'tbl_trainingsattended', $from_year, $to_year, false, null, 'title', $all_depts),
+        'chart7' => getFilteredData($conn, 'tbl_extension_project_conducted', $from_year, $to_year, false, null, 'title', $all_depts) 
     ];
     
     echo json_encode($response);
     exit;
 }
 // ==============================================================================
-
 
 $object = new rms();
 
@@ -114,112 +124,30 @@ if(!$object->is_login())
     exit; 
 }
 
-include('includes/header.php');
+include('includes/header.php'); 
 $totalDepartments = $object->Get_total_departments();
 ?>
 
 <style>
-    .border-left-pink {
-        border-left: 0.25rem solid #f23e5d !important;
-    }
-    
-    .chart-type-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    .chart-type-container div {
-        display: inline-block;
-    }
-    .chart-type-container input[type="radio"] {
-        display: none; 
-    }
-    .chart-type-container label {
-        margin: 0;
-        padding: 4px 12px;
-        background-color: #f8f9fc;
-        border: 1px solid #d1d3e2;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #5a5c69;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-    }
-    .chart-type-container label:hover {
-        background-color: #eaecf4;
-    }
-    .chart-type-container input[type="radio"]:checked + label {
-        background-color: #4e73df;
-        color: #fff;
-        border-color: #4e73df;
-        box-shadow: 0 2px 4px rgba(78, 115, 223, 0.2);
-    }
-    
-    .capture-zone {
-        background-color: #ffffff;
-        padding: 15px;
-        border-radius: 0.35rem;
-        position: relative;
-    }
-    
-    .custom-legend-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
-        margin-top: 15px;
-        padding: 15px;
-        font-size: 11px;
-        color: #5a5c69;
-        border-top: 1px solid #eaecf4;
-        background-color: #f8f9fc;
-        border-radius: 0 0 0.35rem 0.35rem;
-    }
-    .legend-item {
-        display: flex;
-        align-items: flex-start;
-        line-height: 1.3;
-    }
-    .legend-color-box {
-        flex-shrink: 0; 
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        margin-right: 8px;
-        border-radius: 2px;
-        margin-top: 1px;
-    }
-    
-    .dashboard-filter-wrap {
-        display: flex;
-        align-items: center;
-        background: #fff;
-        padding: 0.4rem 1rem;
-        border-radius: 30px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #eaecf4;
-    }
-    .dashboard-filter-wrap select {
-        border: none;
-        background: transparent;
-        font-weight: 700;
-        color: #4e73df;
-        cursor: pointer;
-        outline: none;
-    }
+    .border-left-pink { border-left: 0.25rem solid #f23e5d !important; }
+    .chart-type-container { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chart-type-container div { display: inline-block; }
+    .chart-type-container input[type="radio"] { display: none; }
+    .chart-type-container label { margin: 0; padding: 4px 12px; background-color: #f8f9fc; border: 1px solid #d1d3e2; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: #5a5c69; cursor: pointer; transition: all 0.2s ease-in-out; }
+    .chart-type-container label:hover { background-color: #eaecf4; }
+    .chart-type-container input[type="radio"]:checked + label { background-color: #4e73df; color: #fff; border-color: #4e73df; box-shadow: 0 2px 4px rgba(78, 115, 223, 0.2); }
+    .capture-zone { background-color: #ffffff; padding: 15px; border-radius: 0.35rem; position: relative; }
+    .custom-legend-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 15px; padding: 15px; font-size: 11px; color: #5a5c69; border-top: 1px solid #eaecf4; background-color: #f8f9fc; border-radius: 0 0 0.35rem 0.35rem; }
+    .legend-item { display: flex; align-items: flex-start; line-height: 1.3; }
+    .legend-color-box { flex-shrink: 0; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 2px; margin-top: 1px; }
+    .dashboard-filter-wrap { display: flex; align-items: center; background: #fff; padding: 0.4rem 1rem; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eaecf4; }
+    .dashboard-filter-wrap select { border: none; background: transparent; font-weight: 700; color: #4e73df; cursor: pointer; outline: none; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    var chartColors = [
-        "#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b", 
-        "#858796", "#5a5c69", "#f23e5d", "#e83e8c", "#fd7e14", 
-        "#20c997", "#0dcaf0", "#6610f2", "#d63384", "#ffc107", 
-        "#198754", "#dc3545", "#0d6efd", "#6c757d", "#212529", 
-        "#ff9800", "#9c27b0", "#00bcd4", "#8bc34a"
-    ];
-
+    var chartColors = [ "#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b", "#858796", "#5a5c69", "#f23e5d", "#e83e8c", "#fd7e14", "#20c997", "#0dcaf0", "#6610f2", "#d63384", "#ffc107", "#198754", "#dc3545", "#0d6efd", "#6c757d", "#212529", "#ff9800", "#9c27b0", "#00bcd4", "#8bc34a" ];
     var departmentColorMap = {};
     var currentColorIndex = 0;
 
@@ -239,30 +167,6 @@ $totalDepartments = $object->Get_total_departments();
         });
         document.getElementById(containerId).innerHTML = html;
     }
-
-    function openDetailsModal(departmentName, type, title) {
-        $.post("actions/fetch_subdep.php", { action: "fetch_modal_details", department: departmentName, type: type }, function(result) {
-            try {
-                var data = JSON.parse(result);
-                var modalContent = '<table class="table table-bordered table-striped" id="subDepTable" width="100%" cellspacing="0"><thead><tr><th>' + departmentName + '</th></tr></thead><tbody>';
-                if (data.length > 0) {
-                    data.forEach(function(item) {
-                        modalContent += '<tr><td>' + item + '</td></tr>';
-                    });
-                } else {
-                    modalContent += '<tr><td class="text-center text-muted">No records found.</td></tr>';
-                }
-                modalContent += '</tbody></table>';
-                
-                $('#myModalLabel').text(title);
-                $('#modalTableContainer').html(modalContent); 
-                $('#modalSearch').val(''); 
-                $('#myModal').modal('show'); 
-            } catch(e) {
-                console.error("Error parsing JSON response: ", e);
-            }
-        });
-    }
 </script>
 
 <div class="container-fluid">
@@ -272,8 +176,10 @@ $totalDepartments = $object->Get_total_departments();
         
         <div class="dashboard-filter-wrap">
             <i class="fas fa-calendar-alt text-primary mr-2" style="font-size: 1.2rem;"></i>
-            <select id="dashboardYearFilter">
-                <option value="all">All Time (Whole History)</option>
+            
+            <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">From:</span>
+            <select id="filterFromYear" class="mr-3">
+                <option value="all">All Time</option>
                 <?php 
                     $curr_year = date("Y");
                     for($y = $curr_year; $y >= 2010; $y--) {
@@ -281,6 +187,20 @@ $totalDepartments = $object->Get_total_departments();
                     }
                 ?>
             </select>
+            
+            <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">To:</span>
+            <select id="filterToYear" class="mr-2">
+                <option value="all">All Time</option>
+                <?php 
+                    for($y = $curr_year; $y >= 2010; $y--) {
+                        echo "<option value=\"$y\">$y</option>";
+                    }
+                ?>
+            </select>
+
+            <button id="applyYearFilter" class="btn btn-sm btn-primary ml-2 rounded-pill px-3 shadow-sm">
+                <i class="fas fa-filter text-white-50"></i> Apply
+            </button>
         </div>
     </div>
 
@@ -422,7 +342,7 @@ $totalDepartments = $object->Get_total_departments();
         <div class="col-xl-6 col-lg-12 mb-4">
             <div class="card shadow h-100">
                 <a href="#collapsestatus" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapsestatus">
-                    <h6 class="m-0 font-weight-bold text-primary" id="title-chart1">Total Number of Departments: <i class="fas fa-spinner fa-spin"></i></h6>
+                    <h6 class="m-0 font-weight-bold text-primary" id="title-chart1">Total Number of Departments: <?php echo $totalDepartments; ?></h6>
                 </a>
                 <div class="collapse show" id="collapsestatus">
                     <div class="card-body" style="padding-bottom: 0;">
@@ -839,12 +759,11 @@ $totalDepartments = $object->Get_total_departments();
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="myModalLabel">Details</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <input type="text" id="modalSearch" class="form-control mb-3" placeholder="Search records...">
                     <div id="modalTableContainer" style="max-height: 400px; overflow-y: auto;">
                     </div>
                 </div>
@@ -855,34 +774,106 @@ $totalDepartments = $object->Get_total_departments();
         </div>
     </div>
 
+    <div id="itemDetailsModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-search-plus mr-2"></i> Comprehensive Record Details</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="itemDetailsBody" style="font-size: 0.95rem;">
+                    </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close Details</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php } // End if is_master_user ?>
 
 </div> <?php include('includes/footer.php'); ?>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
-
 <script>
-    $(document).ready(function() {
-        $('#showModalBtn').click(function() {
-            $('#myModal').modal('show');
-        });
+    function openDetailsModal(departmentName, type, title) {
+        $.post("actions/fetch_subdep.php", { action: "fetch_modal_details", department: departmentName, type: type }, function(result) {
+            try {
+                var data = JSON.parse(result);
 
-        $("#modalSearch").on("keyup", function() {
-            var value = $(this).val().toLowerCase();
-            $("#subDepTable tbody tr").filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                if ($.fn.DataTable.isDataTable('#subDepTable')) {
+                    $('#subDepTable').DataTable().destroy(true);
+                }
+                $('#modalTableContainer').empty();
+
+                var modalContent = '<table class="table table-bordered table-hover" id="subDepTable" width="100%" cellspacing="0"><thead><tr><th>' + departmentName + ' ('+title+')</th><th width="15%" class="text-center">Action</th></tr></thead><tbody>';
+                
+                if (data.length > 0) {
+                    data.forEach(function(item) {
+                        if(typeof item === 'object') {
+                            modalContent += '<tr><td class="align-middle font-weight-bold">' + item.text + '</td><td class="text-center"><button class="btn btn-sm btn-info view-item-details" data-id="'+item.id+'" data-type="'+type+'"><i class="fas fa-eye"></i> Details</button></td></tr>';
+                        }
+                    });
+                } else {
+                    modalContent += '<tr><td class="text-center text-muted font-italic py-3">No specific records found for this category.</td><td style="display:none;"></td></tr>';
+                }
+                modalContent += '</tbody></table>';
+                
+                $('#myModalLabel').text(title);
+                
+                $('#modalTableContainer').html(modalContent); 
+                
+                $('#subDepTable').DataTable({
+                    pageLength: 10,
+                    info: false,
+                    lengthChange: false,
+                    ordering: false
+                });
+
+                $('#myModal').modal('show'); 
+            } catch(e) {
+                console.error("Error parsing JSON response: ", e);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+
+        $(document).on('click', '.view-item-details', function() {
+            var id = $(this).data('id');
+            var type = $(this).data('type');
+            var btn = $(this);
+            var originalText = btn.html();
+            
+            btn.html('<i class="fas fa-spinner fa-spin"></i>');
+
+            $.post("actions/fetch_subdep.php", { action: "fetch_item_details", id: id, type: type }, function(res) {
+                btn.html(originalText);
+                $('#itemDetailsBody').html(res);
+                $('#itemDetailsModal').modal('show');
             });
         });
         
         // ==============================================================================
-        // DYNAMIC DASHBOARD AJAX FILTER LISTENER 
+        // RANGE FILTER BUTTON CLICK LISTENER
         // ==============================================================================
-        $('#dashboardYearFilter').change(function() {
-            var selectedYear = $(this).val();
+        $('#applyYearFilter').click(function() {
+            var fromYear = $('#filterFromYear').val();
+            var toYear = $('#filterToYear').val();
+
+            if (fromYear !== 'all' && toYear !== 'all' && parseInt(fromYear) > parseInt(toYear)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Date Range',
+                    text: 'The "From" year cannot be after the "To" year.'
+                });
+                return;
+            }
             
             Swal.fire({
-                title: 'Filtering Dashboard...', 
-                text: 'Loading data for ' + (selectedYear === 'all' ? 'All Time' : selectedYear), 
+                title: 'Applying Filter...', 
+                text: 'Loading data range...', 
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
@@ -890,7 +881,7 @@ $totalDepartments = $object->Get_total_departments();
             $.ajax({
                 url: 'dashboard.php',
                 type: 'POST',
-                data: { action: 'filter_dashboard', year: selectedYear },
+                data: { action: 'filter_dashboard', from_year: fromYear, to_year: toYear },
                 dataType: 'json',
                 success: function(res) {
                     Swal.close();
@@ -900,21 +891,15 @@ $totalDepartments = $object->Get_total_departments();
                         return;
                     }
 
-                    // 1. UPDATE ALL TOP CARDS WITH PERFECT SCHEMA MAPPING
                     if ($('#card-researchers').length) $('#card-researchers').text(res.chart1.total.toLocaleString());
                     if ($('#card-trainings').length) $('#card-trainings').text(res.chart6.unique_titles_count.toLocaleString());
                     if ($('#card-ip').length) $('#card-ip').text(res.chart4.unique_titles_count.toLocaleString());
                     if ($('#card-paper').length) $('#card-paper').text(res.chart5.unique_titles_count.toLocaleString());
                     if ($('#card-pub').length) $('#card-pub').text(res.chart3.unique_titles_count.toLocaleString());
                     
-                    // Maps directly to tbl_paperpresentation -> discipline
                     if ($('#card-discipline').length) $('#card-discipline').text(res.chart5.distinct_count.toLocaleString()); 
-                    
-                    // Maps directly to tbl_extension_project_conducted -> unique titles
                     if ($('#card-projects').length) $('#card-projects').text(res.chart7.unique_titles_count.toLocaleString()); 
 
-                    // 2. UPDATE CHART TITLES WITH REAL UNIQUE COUNTS
-                    if ($('#title-chart1').length) $('#title-chart1').text('Total Number of Departments: ' + Object.keys(res.chart1.chart).length);
                     if ($('#title-chart2').length) $('#title-chart2').text('Total Number of Research Conducted: ' + res.chart2.unique_titles_count);
                     if ($('#title-chart3').length) $('#title-chart3').text('Total Number of Publications: ' + res.chart3.unique_titles_count);
                     if ($('#title-chart4').length) $('#title-chart4').text('Total Number of Intellectual Property: ' + res.chart4.unique_titles_count);
@@ -922,7 +907,6 @@ $totalDepartments = $object->Get_total_departments();
                     if ($('#title-chart6').length) $('#title-chart6').text('Total Number of Trainings Attended: ' + res.chart6.unique_titles_count);
                     if ($('#title-chart7').length) $('#title-chart7').text('Total Number of Extension Project Conducted: ' + res.chart7.unique_titles_count);
 
-                    // 3. HELPER FUNCTION TO UPDATE CHARTS & CUSTOM LEGENDS
                     function updateChart(chartObj, legendId, data) {
                         if (typeof chartObj !== 'undefined') {
                             var formattedData = data.map(function(item) {
@@ -935,7 +919,6 @@ $totalDepartments = $object->Get_total_departments();
                         }
                     }
 
-                    // 4. INJECT NEW DATA INTO EXISTING CHARTS
                     updateChart(chart, "departmentChartLegend", res.chart1.chart);
                     updateChart(chart2, "departmentChartLegend2", res.chart2.chart);
                     updateChart(chart3, "departmentChartLegend3", res.chart3.chart);
@@ -951,10 +934,8 @@ $totalDepartments = $object->Get_total_departments();
             });
         });
         
-        // Auto-Trigger the AJAX function immediately on page load!
-        // This erases the old static/hardcoded numbers and pulls the perfect math from your DB
         setTimeout(function() {
-            $('#dashboardYearFilter').trigger('change');
+            $('#applyYearFilter').trigger('click');
         }, 50);
     });
 </script>

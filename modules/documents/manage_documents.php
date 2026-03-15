@@ -25,15 +25,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'upload_document') {
     $record_id = intval($_POST['record_id']);
     $doc_type = $_POST['doc_type']; // 'so' or 'moa'
     
-    // Security: Only allow specific tables
     $allowed_tables = ['tbl_researchdata', 'tbl_publication', 'tbl_researchconducted', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted'];
     if (!in_array($table_name, $allowed_tables)) {
         echo json_encode(['error' => 'Invalid table reference.']);
         exit;
     }
 
-    // Ensure the uploads directory exists
-    $upload_dir = 'uploads/documents/';
+    // FIXED PATH: Points to the root uploads folder!
+    $upload_dir = '../../uploads/documents/';
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0777, true);
     }
@@ -47,7 +46,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'upload_document') {
             exit;
         }
 
-        // Generate a clean, unique file name
         $new_file_name = $doc_type . '_' . time() . '_' . $record_id . '.' . $file_extension;
         $target_path = $upload_dir . $new_file_name;
 
@@ -153,8 +151,9 @@ $conn->set_charset("utf8mb4");
                                 ? '<span class="badge badge-success doc-badge"><i class="fas fa-check-circle mr-1"></i>Attached</span>' 
                                 : '<span class="badge badge-danger doc-badge"><i class="fas fa-times-circle mr-1"></i>Missing</span>';
                             
+                            // FIXED VIEW LINK PATH HERE
                             $action_html = $has_so
-                                ? '<a href="uploads/documents/' . htmlspecialchars($row['so_file']) . '" target="_blank" class="btn btn-sm btn-info shadow-sm mr-1"><i class="fas fa-eye"></i> View</a>' .
+                                ? '<a href="../../uploads/documents/' . htmlspecialchars($row['so_file']) . '" target="_blank" class="btn btn-sm btn-info shadow-sm mr-1"><i class="fas fa-eye"></i> View</a>' .
                                   '<button class="btn btn-sm btn-warning shadow-sm upload-btn" data-type="so" data-table="tbl_researchdata" data-id="'.$row['id'].'" data-name="'.$name.'"><i class="fas fa-upload"></i> Replace</button>'
                                 : '<button class="btn btn-sm btn-primary shadow-sm upload-btn" data-type="so" data-table="tbl_researchdata" data-id="'.$row['id'].'" data-name="'.$name.'"><i class="fas fa-upload"></i> Upload SO</button>';
 
@@ -187,7 +186,6 @@ $conn->set_charset("utf8mb4");
                     </thead>
                     <tbody>
                         <?php
-                        // Massive UNION query to pull all projects into one beautiful master view (NOW INCLUDING DEPARTMENT)
                         $moa_query = "
                             SELECT 'Publication' as module, r.id, r.title, r.moa_file, d.firstName, d.familyName, d.department, 'tbl_publication' as tbl_name FROM tbl_publication r JOIN tbl_researchdata d ON r.researcherID = d.id UNION ALL
                             SELECT 'Research Conducted' as module, r.id, r.title, r.moa_file, d.firstName, d.familyName, d.department, 'tbl_researchconducted' as tbl_name FROM tbl_researchconducted r JOIN tbl_researchdata d ON r.researcherID = d.id UNION ALL
@@ -209,8 +207,9 @@ $conn->set_charset("utf8mb4");
                                 ? '<span class="badge badge-success doc-badge"><i class="fas fa-check-circle mr-1"></i>Attached</span>' 
                                 : '<span class="badge badge-danger doc-badge"><i class="fas fa-times-circle mr-1"></i>Missing</span>';
                             
+                            // FIXED VIEW LINK PATH HERE
                             $action_html = $has_moa
-                                ? '<a href="uploads/documents/' . htmlspecialchars($row['moa_file']) . '" target="_blank" class="btn btn-sm btn-info shadow-sm mr-1"><i class="fas fa-eye"></i></a>' .
+                                ? '<a href="../../uploads/documents/' . htmlspecialchars($row['moa_file']) . '" target="_blank" class="btn btn-sm btn-info shadow-sm mr-1"><i class="fas fa-eye"></i></a>' .
                                   '<button class="btn btn-sm btn-warning shadow-sm upload-btn" data-type="moa" data-table="'.$row['tbl_name'].'" data-id="'.$row['id'].'" data-name="Project: '.$title.'"><i class="fas fa-upload"></i></button>'
                                 : '<button class="btn btn-sm btn-primary shadow-sm upload-btn" data-type="moa" data-table="'.$row['tbl_name'].'" data-id="'.$row['id'].'" data-name="Project: '.$title.'"><i class="fas fa-upload"></i> Upload</button>';
 
@@ -267,35 +266,24 @@ $conn->set_charset("utf8mb4");
 
 <?php include('../../includes/footer.php'); ?>
 
-<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="../../vendor/jquery/jquery.min.js"></script>
+<script src="../../vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="../../vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="../../vendor/datatables/dataTables.bootstrap4.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
-    // Initialize DataTables for clean sorting and searching
     var tableSO = $('#soTable').DataTable({ pageLength: 25 });
     var tableMOA = $('#moaTable').DataTable({ pageLength: 25 });
 
-    // ==========================================
-    // MAGICAL COLLEGE/DEPARTMENT FILTER LOGIC
-    // ==========================================
     $('#globalCollegeFilter').on('change', function() {
         var selectedCollege = $(this).val();
-        
-        // Exact match regex so "College of Science" doesn't accidentally trigger "College of Science and Mathematics"
         var regex = selectedCollege ? '^' + $.fn.dataTable.util.escapeRegex(selectedCollege) + '$' : '';
-        
-        // Apply filter to Column 2 (Department) of SO Table
         tableSO.column(2).search(regex, true, false).draw();
-        
-        // Apply filter to Column 3 (Department) of MOA Table
         tableMOA.column(3).search(regex, true, false).draw();
     });
 
-    // Open Upload Modal
     $(document).on('click', '.upload-btn', function() {
         var docType = $(this).data('type');
         var tableName = $(this).data('table');
@@ -315,7 +303,6 @@ $(document).ready(function() {
         $('#uploadModal').modal('show');
     });
 
-    // Handle AJAX Form Submission safely
     $('#uploadForm').on('submit', function(e) {
         e.preventDefault();
         var formData = new FormData(this);
@@ -338,7 +325,7 @@ $(document).ready(function() {
                 if (response.success) {
                     $('#uploadModal').modal('hide');
                     Swal.fire('Success!', 'Document successfully attached. Reports will automatically update.', 'success').then(() => {
-                        location.reload(); // Reload to refresh table statuses
+                        location.reload(); 
                     });
                 } else {
                     Swal.fire('Error', response.error, 'error');
