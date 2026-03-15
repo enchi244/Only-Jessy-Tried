@@ -1,0 +1,49 @@
+
+RewriteEngine on
+
+
+
+RewriteRule ^index$ index.php [L]
+
+RewriteRule ^dashboard$ dashboard.php [L]
+
+RewriteRule ^register$ register.php [L]
+
+RewriteRule ^table$ table.php [L]
+
+RewriteRule ^category$ category.php [L]
+
+RewriteRule ^disc$ disc.php [L]
+RewriteRule ^transaction$ transaction.php [L]
+RewriteRule ^appData$ appData.php [L]
+RewriteRule ^researcher$ researcher.php [L]
+
+RewriteRule ^product$ product.php [L]
+RewriteRule ^tax$ tax.php [L]
+
+RewriteRule ^user$ user.php [L]
+
+RewriteRule ^order$ order.php [L]
+
+RewriteRule ^billing$ billing.php [L]
+
+RewriteRule ^profile$ profile.php [L]
+
+RewriteRule ^setting$ setting.php [L]	
+
+RewriteRule ^report$ report.php [L]
+RewriteRule ^report2$ report2.php [L]
+RewriteRule ^log$ log.php [L]
+RewriteRule ^log_bill$ log_bill.php [L]
+
+
+Options -Indexes
+
+
+
+<Files .htaccess>
+order allow,deny
+deny from all
+</Files>
+
+
