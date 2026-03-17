@@ -246,8 +246,14 @@ if(isset($_POST["action_researchedconducted"]))
 		$timestamp1 = strtotime($_POST['completed_date']);
 		$to_date = date("m-d-Y", $timestamp1);
 
+        // Identify primary researcher for legacy DB structure
+        $collaborators = isset($_POST['collaborators']) ? $_POST['collaborators'] : [];
+        $profile_owner = isset($_POST['hiddeny']) ? $_POST['hiddeny'] : null;
+        $primary_researcher = !empty($profile_owner) ? $profile_owner : (!empty($collaborators) ? $collaborators[0] : null);
+
         // 1. Insert Core Project
         $data = array(
+                ':researcherID'                => $primary_researcher,
                 ':title'                       => $_POST['title'],
                 ':research_agenda_cluster'     => $_POST['research_agenda_cluster'],
                 ':sdgs'                        => implode(", ", $_POST['sdgs']), 
@@ -261,9 +267,9 @@ if(isset($_POST["action_researchedconducted"]))
 
         $object->query = "
         INSERT INTO tbl_researchconducted 
-        (title, research_agenda_cluster, sdgs, started_date, completed_date, funding_source, approved_budget, stat, terminal_report) 
+        (researcherID, title, research_agenda_cluster, sdgs, started_date, completed_date, funding_source, approved_budget, stat, terminal_report) 
         VALUES 
-        (:title, :research_agenda_cluster, :sdgs, :started_date, :completed_date, :funding_source, :approved_budget, :stat, :terminal_report)
+        (:researcherID, :title, :research_agenda_cluster, :sdgs, :started_date, :completed_date, :funding_source, :approved_budget, :stat, :terminal_report)
         ";
         $object->execute($data);
         $new_research_id = $object->connect->lastInsertId();
@@ -334,7 +340,12 @@ if(isset($_POST["action_researchedconducted"]))
 		$success = '';
         $research_id = $_POST['hidden_id_researchedconducted'];
 
+        $collaborators = isset($_POST['collaborators']) ? $_POST['collaborators'] : [];
+        $profile_owner = isset($_POST['hiddeny']) ? $_POST['hiddeny'] : null;
+        $primary_researcher = !empty($profile_owner) ? $profile_owner : (!empty($collaborators) ? $collaborators[0] : null);
+
         $data = array(
+            ':researcherID' => $primary_researcher,
             ':title' => $_POST['title'],
             ':research_agenda_cluster' => $_POST['research_agenda_cluster'],
             ':sdgs'   => implode(", ", $_POST['sdgs']), 
@@ -349,7 +360,8 @@ if(isset($_POST["action_researchedconducted"]))
 
         $object->query = "
             UPDATE tbl_researchconducted 
-            SET title = :title, 
+            SET researcherID = :researcherID,
+                title = :title, 
                 research_agenda_cluster = :research_agenda_cluster, 
                 sdgs = :sdgs, 
                 started_date = :started_date, 

@@ -411,8 +411,29 @@ include('../../includes/header.php');
 
                                                 <div class="mt-2">
                                                     <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-info-circle mr-1"></i><?php echo htmlspecialchars($ep['status_exct']); ?></span>
-                                                    <span class="badge badge-light border px-2 py-1"><i class="fas fa-file-alt mr-1 text-muted"></i>Report: <?php echo !empty($ep['terminal_report_extc']) ? htmlspecialchars($ep['terminal_report_extc']) : (!empty($ep['terminal_report']) ? htmlspecialchars($ep['terminal_report']) : 'N/A'); ?></span>
+                                                    
+                                                    <?php if(!empty($ep['terminal_report_file'])): ?>
+                                                        <a href="../../uploads/documents/<?php echo htmlspecialchars($ep['terminal_report_file']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-2 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-file-download mr-1"></i> Download Report</a>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-light border px-2 py-1 mr-2"><i class="fas fa-file-alt mr-1 text-muted"></i>Report: <?php echo !empty($ep['terminal_report']) ? htmlspecialchars($ep['terminal_report']) : 'N/A'; ?></span>
+                                                    <?php endif; ?>
                                                 </div>
+
+                                                <?php
+                                                // Fetch linked research projects for this extension
+                                                $object->query = "SELECT r.title FROM tbl_extension_research_links l JOIN tbl_researchconducted r ON l.research_id = r.id WHERE l.extension_id = '".$ep['id']."'";
+                                                $object->execute();
+                                                $linked_res = $object->statement_result();
+                                                if(count($linked_res) > 0):
+                                                ?>
+                                                    <div class="mt-3 pt-2 border-top">
+                                                        <small class="text-muted d-block mb-1"><i class="fas fa-link mr-1 text-primary"></i> <b>Based on Research:</b></small>
+                                                        <?php foreach($linked_res as $lr): ?>
+                                                            <span class="badge badge-light border text-dark mb-1 mr-1"><i class="fas fa-flask mr-1 text-muted"></i> <?php echo htmlspecialchars($lr['title']); ?></span>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
+
                                             </div>
                                         </div>
                                     </div>

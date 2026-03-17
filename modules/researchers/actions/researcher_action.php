@@ -4,30 +4,39 @@
 
 include('../../../core/rms.php');
 
+$object = new rms();
+
 if(isset($_POST["action_link"]) && $_POST["action_link"] == 'link_multiple')
 {
     $research_id = intval($_POST["existing_research_id"]);
 
     if($research_id > 0) {
-        // Clear old mappings safely using intval() strings instead of PDO bindings
         $object->query = "DELETE FROM tbl_research_collaborators WHERE research_id = '".$research_id."'";
         $object->execute();
 
-        // Insert the currently selected ones
-        if(isset($_POST['linked_researchers'])) {
-            foreach($_POST['linked_researchers'] as $new_researcher_id)
+        $primary_researcher = null;
+
+        if(isset($_POST['linked_researchers']) && is_array($_POST['linked_researchers'])) {
+            foreach($_POST['linked_researchers'] as $index => $new_researcher_id)
             {
                 $r_id = intval($new_researcher_id);
+                if ($index === 0) {
+                    $primary_researcher = $r_id;
+                }
                 $object->query = "INSERT INTO tbl_research_collaborators (research_id, researcher_id) VALUES ('".$research_id."', '".$r_id."')";
                 $object->execute();
             }
         }
+
+        if ($primary_researcher !== null) {
+            $object->query = "UPDATE tbl_researchconducted SET researcherID = '".$primary_researcher."' WHERE id = '".$research_id."'";
+            $object->execute();
+        }
+
         echo 'Success';
     }
-    exit; // Stop execution here so it doesn't run the rest of the file
+    exit; 
 }
-
-$object = new rms();
 
 if(isset($_POST["action"]))
 {
@@ -373,13 +382,37 @@ WHERE id = '".$_POST['hidden_id']."'
 
 		
 
-		$object->query = "
-		UPDATE tbl_researchdata SET status = 0 WHERE id = '".$_POST["id"]."'
-		";
+		$res_id = intval($_POST["id"]);
 
+		// 1. Fetch owned research projects to clear their collaborator links first
+		$object->query = "SELECT id FROM tbl_researchconducted WHERE researcherID = '".$res_id."'";
+		$owned_projects = $object->get_result();
+		foreach($owned_projects as $proj) {
+			$object->query = "DELETE FROM tbl_research_collaborators WHERE research_id = '".$proj['id']."'";
+			$object->execute();
+		}
+
+		// 2. Delete all direct child records tied to this researcher
+		$tables_to_clear = [
+			'tbl_publication', 'tbl_itelectualprop', 'tbl_paperpresentation',
+			'tbl_trainingsattended', 'tbl_extension_project_conducted', 'tbl_ext',
+			'tbl_researchconducted'
+		];
+
+		foreach($tables_to_clear as $table) {
+			$object->query = "DELETE FROM $table WHERE researcherID = '".$res_id."'";
+			$object->execute();
+		}
+
+		// 3. Remove researcher from any other projects they were collaborating on
+		$object->query = "DELETE FROM tbl_research_collaborators WHERE researcher_id = '".$res_id."'";
 		$object->execute();
 
-		echo '<div class="alert alert-success">Researcher Deleted</div>';
+		// 4. Soft delete the actual researcher profile (preserves legacy behavior)
+		$object->query = "UPDATE tbl_researchdata SET status = 0 WHERE id = '".$res_id."'";
+		$object->execute();
+
+		echo '<div class="alert alert-success">Researcher and all associated records deleted</div>';
 	}
 }
 

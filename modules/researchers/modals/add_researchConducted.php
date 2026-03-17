@@ -30,7 +30,7 @@
 
                     <div class="form-group mb-4">
                         <label for="collaborators"><i class="fas fa-users mr-2 text-primary"></i>Co-Researchers / Collaborators</label>
-                        <select name="collaborators[]" id="collaborators" multiple required class="select form-control" style="width: 100%;">
+                        <select name="collaborators[]" id="collaborators" multiple class="select form-control" style="width: 100%;">
                             <?php
                             // Fetch all researchers for the dropdown
                             $object->query = "SELECT id, firstName, familyName FROM tbl_researchdata ORDER BY familyName ASC";

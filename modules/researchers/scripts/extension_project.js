@@ -1,3 +1,23 @@
+$(document).ready(function() {
+    $('#extensionProjectModal').on('shown.bs.modal', function () {
+        $('#linked_research_projects').select2({
+            theme: "classic",
+            placeholder: " Search and select research projects...",
+            dropdownParent: $('#extensionProjectModal')
+        });
+    });
+
+    // Toggle File Upload field based on Terminal Report selection
+    $('#terminal_report_extc').on('change', function() {
+        if ($(this).val() === 'With') {
+            $('#terminal_report_file_container').slideDown();
+        } else {
+            $('#terminal_report_file_container').slideUp();
+            $('#terminal_report_file').val(''); // Clear the file input
+        }
+    });
+});
+
 function loadExtensionProjectsTab(researcherID) {
     $('#extension_project_form').parsley();
     if ($.fn.dataTable.isDataTable('#extension_project_table')) {
@@ -23,57 +43,53 @@ function loadExtensionProjectsTab(researcherID) {
     return extensionProjectTable;
 }
 
-// Handle Tab Switching for Dynamic Content (e.g., Extension Projects)
+// Handle Tab Switching for Dynamic Content
 $('#extensionProjectModal').on('shown.bs.tab', function () {
-    var id = $('#hidden_id_extension').val(); // Get the ID from the hidden field in the modal
-    loadExtensionProjectsTab(id);  // Load the content dynamically when the tab is shown
+    var id = $('#hidden_id_extension').val(); 
+    loadExtensionProjectsTab(id);  
 });
 
-// Handle Form Submission for Extension Project
+// Handle Form Submission for Extension Project (Converted to FormData for files)
 $('#extension_project_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#extension_project_form').parsley().isValid()) {
+        
+        var formData = new FormData(this);
+
         $.ajax({
             url: "actions/extension_project_action.php",
             method: "POST",
-            data: $(this).serialize(),
+            data: formData,
             dataType: 'json',
+            contentType: false,
+            processData: false,
             beforeSend: function () {
-                $('#submit_button_extension').attr('disabled', 'disabled').val('Wait...');
+                $('#submit_button_extension').attr('disabled', 'disabled').html('<i class="fas fa-spinner fa-spin"></i> Saving...');
             },
             success: function (data) {
-                $('#submit_button_extension').attr('disabled', false);
+                $('#submit_button_extension').attr('disabled', false).html('Save Data');
                 if (data.error != '') {
                     $('#form_message').html(data.error);
-                    $('#submit_button_extension').val('Add');
                 } else {
                     $('#extensionProjectModal').modal('hide');
                     $('#message').html(data.success);
 
                     var Svalue = $('#action_extension').val();
-                    if (Svalue == "Add") {
-                        Swal.fire({
-                            title: 'Added!',
-                            text: 'The extension project has been successfully added.',
-                            icon: 'success',
-                            timer: 600,  // Automatically closes after 2 seconds
-                            showConfirmButton: false,  // Hide the confirm button
-                            customClass: { confirmButton: 'btn-success' }
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Updated!',
-                            text: 'The extension project has been successfully updated.',
-                            icon: 'success',
-                            timer: 600,  // Automatically closes after 2 seconds
-                            showConfirmButton: false,  // Hide the confirm button
-                            customClass: { confirmButton: 'btn-success' }
-                        });
-                    }
+                    var titleText = (Svalue == "Add") ? 'Added!' : 'Updated!';
+                    var msgText = (Svalue == "Add") ? 'The extension project has been successfully added.' : 'The extension project has been successfully updated.';
+
+                    Swal.fire({
+                        title: titleText,
+                        text: msgText,
+                        icon: 'success',
+                        timer: 800,
+                        showConfirmButton: false, 
+                        customClass: { confirmButton: 'btn-success' }
+                    });
 
                     // Reload the table data
-                    var researcherID = $('#researcherModala').data('id');  // Get the Researcher ID
-                    loadExtensionProjectsTab(researcherID);  // Reload the table data
+                    var researcherID = $('#researcherModala').data('id');  
+                    loadExtensionProjectsTab(researcherID);  
 
                     setTimeout(function () {
                         $('#message').html('');
@@ -84,34 +100,42 @@ $('#extension_project_form').on('submit', function (event) {
     }
 });
 
-// Handle the Modal Close Behavior for Extension Project
+// Handle the Modal Close Behavior
 $('#extensionProjectModal').on('hidden.bs.modal', function () {
     if ($('.modal.show').length > 0) {
         $('body').addClass('modal-open');
     }
-
+    $('#linked_research_projects').val(null).trigger('change'); 
+    $('#terminal_report_file_container').hide();
+    $('#existing_file_link').html('');
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
 // Add New Extension Project
 $('#add_extension_project').click(function () {
-    $('#extension_project_form')[0].reset();  // Reset form fields
-    $('#extension_project_form').parsley().reset();  // Reset validation
-    $('#modal_title').text('Add Extension Project');  // Set modal title
+    $('#extension_project_form')[0].reset();  
+    $('#extension_project_form').parsley().reset();  
+    $('#linked_research_projects').val(null).trigger('change'); 
+    $('#terminal_report_file_container').hide();
+    $('#existing_file_link').html('');
+    $('#hidden_terminal_report_file').val('');
+
+    $('#modal_title').text('Add Extension Project');  
     $('#action_extension').val('Add');
-    var rid = $('#researcherModala').data('id');  // Get the Researcher ID
-    $('#hidden_researcherID_extension').val(rid);  // Store Researcher ID in hidden field
-    $('#submit_button_extension').val('Add');
-    $('#extensionProjectModal').modal('show');  // Show the modal
+    var rid = $('#researcherModala').data('id');  
+    $('#hidden_researcherID_extension').val(rid);  
+    $('#submit_button_extension').html('Save Data');
+    $('#extensionProjectModal').modal('show');  
     $('#form_message').html('');
 });
 
 // Edit Existing Extension Project
 $(document).on('click', '.edit_button_extension_project', function () {
-    var extensionID = $(this).data('id');  // Get the selected Extension Project ID
+    var extensionID = $(this).data('id');  
 
     $('#extension_project_form')[0].reset();
     $('#extension_project_form').parsley().reset();
+    $('#linked_research_projects').val(null).trigger('change');
     $('#form_message').html('');
 
     $.ajax({
@@ -130,13 +154,6 @@ $(document).on('click', '.edit_button_extension_project', function () {
             const [monthGranted, dayGranted, yearGranted] = inputDateGranted.split('-');
             const formattedDateGranted = `${yearGranted}-${monthGranted}-${dayGranted}`;
            
-           
-           
-           
-           
-           
-           
-           
             $('#title_extp').val(data.title);
             $('#start_date_extc').val(formattedDateApplied);
             $('#completion_date_extc').val(formattedDateGranted);
@@ -147,25 +164,39 @@ $(document).on('click', '.edit_button_extension_project', function () {
             $('#status_exct').val(data.status_exct);
             $('#terminal_report_extc').val(data.terminal_report);
 
+            // Handle the file upload UI
+            if (data.terminal_report === 'With') {
+                $('#terminal_report_file_container').show();
+                if(data.terminal_report_file && data.terminal_report_file !== '') {
+                    $('#existing_file_link').html('<a href="../../uploads/documents/' + data.terminal_report_file + '" target="_blank" class="text-primary"><i class="fas fa-external-link-alt mr-1"></i> View Currently Attached Report</a>');
+                    $('#hidden_terminal_report_file').val(data.terminal_report_file);
+                } else {
+                    $('#existing_file_link').html('<span class="text-warning"><i class="fas fa-exclamation-triangle mr-1"></i> Marked as "With", but no file is currently uploaded.</span>');
+                    $('#hidden_terminal_report_file').val('');
+                }
+            } else {
+                $('#terminal_report_file_container').hide();
+                $('#existing_file_link').html('');
+                $('#hidden_terminal_report_file').val('');
+            }
+
+            // Populate the Select2 linked projects array
+            if(data.linked_projects && data.linked_projects.length > 0) {
+                $('#linked_research_projects').val(data.linked_projects).trigger('change');
+            }
+
             $('#modal_title').text('Edit Extension Project');
             $('#action_extension').val('Edit');
-            $('#submit_button_extension').val('Edit');
+            $('#submit_button_extension').html('Save Changes');
             $('#extensionProjectModal').modal('show');
             $('#hidden_extensionID').val(extensionID);
-
-
-
-
-
-
-            
         }
     });
 });
 
 // Handle Delete Button for Extension Project
 $(document).on('click', '.delete_button_extension_project', function () {
-    var extensionID = $(this).data('id');  // Get the Extension Project ID to delete
+    var extensionID = $(this).data('id');  
     Swal.fire({
         title: 'Are you sure?',
         text: 'You will not be able to recover this record!',
@@ -193,9 +224,8 @@ $(document).on('click', '.delete_button_extension_project', function () {
                         showConfirmButton: false,
                     });
 
-                    // Reload the DataTable to reflect the deletion
                     var researcherID = $('#researcherModala').data('id');
-                    loadExtensionProjectsTab(researcherID);  // Reload the table data after delete
+                    loadExtensionProjectsTab(researcherID);  
                     setTimeout(function () {
                         $('#message').html('');
                     }, 5000);
@@ -216,79 +246,46 @@ $(document).on('click', '.delete_button_extension_project', function () {
     });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    $(document).on('click', '.delete_buttona', function() {
-    var id = $(this).data('id'); // Get the ID of the record to delete
-
-    // SweetAlert confirmation dialog
+$(document).on('click', '.delete_buttona', function() {
+    var id = $(this).data('id'); 
     Swal.fire({
         title: 'Are you sure?',
         text: "You won't be able to recover this record!",
         icon: 'warning',
-        showCancelButton: true,  // Show Cancel button
+        showCancelButton: true, 
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'No, keep it',
-        reverseButtons: true, // Reverse buttons (Yes is on the left)
+        reverseButtons: true, 
         customClass: {
-            confirmButton: 'btn-danger', // Custom class for confirm button (red for delete)
-            cancelButton: 'btn-secondary' // Custom class for cancel button (gray for cancel)
+            confirmButton: 'btn-danger', 
+            cancelButton: 'btn-secondary' 
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // If confirmed, proceed with the delete action
             $.ajax({
                 url: "actions/researcher_action.php",
                 method: "POST",
                 data: { id: id, action: 'delete' },
                 success: function(data) {
-                    // Show success message with Swal
                     Swal.fire({
                         title: 'Deleted!',
                         text: 'The record has been successfully deleted.',
                         icon: 'success',
-                        timer: 600, // Automatically closes after 3 seconds
-                        showConfirmButton: false, // No confirm button, it closes automatically
-                        customClass: { confirmButton: 'btn-success' } // Custom class for confirm button (if visible)
+                        timer: 600, 
+                        showConfirmButton: false, 
+                        customClass: { confirmButton: 'btn-success' } 
                     });
-
-                    // Reload the DataTable
                     dataTable.ajax.reload();
-
-                    // Optionally clear any message displayed
                     setTimeout(function() {
                         $('#message').html('');
                     }, 5000);
                 },
                 error: function(xhr, status, error) {
-                    // In case of an error during deletion, show an error message
                     Swal.fire({
                         title: 'Error!',
                         text: 'Something went wrong. Please try again.',
                         icon: 'error',
-                        timer: 3000, // Auto close after 3 seconds
+                        timer: 3000, 
                         showConfirmButton: false
                     });
                 }

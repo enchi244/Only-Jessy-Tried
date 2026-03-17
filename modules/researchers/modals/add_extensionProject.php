@@ -1,6 +1,6 @@
 <div id="extensionProjectModal" class="modal fade" data-backdrop="static" tabindex="-1" aria-labelledby="extensionProjectModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <form method="post" id="extension_project_form" class="w-100">
+        <form method="post" id="extension_project_form" class="w-100" enctype="multipart/form-data">
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title" id="modal_title">
@@ -26,6 +26,20 @@
                             placeholder="Enter project title" 
                             required 
                         />
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label for="linked_research_projects"><i class="fas fa-flask mr-2 text-primary"></i>Based on Research Projects (Optional)</label>
+                        <select name="linked_research_projects[]" id="linked_research_projects" class="form-control select2-multi" multiple="multiple" style="width: 100%;">
+                            <?php
+                            $object->query = "SELECT id, title FROM tbl_researchconducted ORDER BY title ASC";
+                            $research_projects = $object->get_result();
+                            foreach($research_projects as $rp) { 
+                                echo '<option value="'.$rp["id"].'">'.htmlspecialchars($rp["title"]).'</option>'; 
+                            }
+                            ?>
+                        </select>
+                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> Select any research projects that this extension is based upon.</small>
                     </div>
 
                     <div class="row">
@@ -140,16 +154,26 @@
                         </div>
                     </div>
 
+                    <div class="row" id="terminal_report_file_container" style="display: none;">
+                        <div class="col-md-12 form-group mb-3 p-3 bg-light rounded border">
+                            <label for="terminal_report_file"><i class="fas fa-cloud-upload-alt mr-2 text-danger"></i>Upload Terminal Report Document</label>
+                            <input type="file" name="terminal_report_file" id="terminal_report_file" class="form-control-file" accept=".png, .doc, .docx, .xls, .xlsx, .pdf" />
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i>Accepted formats: PNG, PDF, DOC, DOCX, XLS, XLSX</small>
+                            <div id="existing_file_link" class="mt-2 font-weight-bold"></div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer border-top-0 pt-0">
                     <input type="hidden" name="hidden_researcherID_extension" id="hidden_researcherID_extension" />
                     <input type="hidden" name="hidden_extensionID" id="hidden_extensionID" />
+                    <input type="hidden" name="hidden_terminal_report_file" id="hidden_terminal_report_file" />
                     
                     <input type="hidden" name="action_extension" id="action_extension" value="Add" />
                     
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <input type="submit" name="submit_button_extension" id="submit_button_extension" class="btn btn-danger pink px-4" value="Save Data" />
+                    <button type="submit" id="submit_button_extension" class="btn btn-danger pink px-4">Save Data</button>
                 </div>
             </div>
         </form>

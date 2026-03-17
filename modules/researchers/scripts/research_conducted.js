@@ -130,8 +130,8 @@ $('#add_researcherconducted').click(function() {
     $('#action_researchedconducted').val('Add');
     $('#submit_button_researchedconducted').val('Add');
     
-    var rid = $('#researcherModala').data('id');  
-    $('#hiddeny').val(rid);  
+    var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');  
+    $('#hiddeny').val(rid);
     $('#researchconductedModal').modal('show');
     $('#form_message').html('');
 });
