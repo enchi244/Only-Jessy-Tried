@@ -6,16 +6,6 @@ $(document).ready(function() {
             dropdownParent: $('#extensionProjectModal')
         });
     });
-
-    // Toggle File Upload field based on Terminal Report selection
-    $('#terminal_report_extc').on('change', function() {
-        if ($(this).val() === 'With') {
-            $('#terminal_report_file_container').slideDown();
-        } else {
-            $('#terminal_report_file_container').slideUp();
-            $('#terminal_report_file').val(''); // Clear the file input
-        }
-    });
 });
 
 function loadExtensionProjectsTab(researcherID) {
@@ -33,23 +23,17 @@ function loadExtensionProjectsTab(researcherID) {
             type: "POST",
             data: { rid: researcherID, action_extension: 'fetch' }
         },
-        "columnDefs": [
-            {
-                "targets": [0],
-                "orderable": false,
-            },
-        ],
+        "columnDefs": [{ "targets": [0], "orderable": false }],
     });
     return extensionProjectTable;
 }
 
-// Handle Tab Switching for Dynamic Content
 $('#extensionProjectModal').on('shown.bs.tab', function () {
     var id = $('#hidden_id_extension').val(); 
     loadExtensionProjectsTab(id);  
 });
 
-// Handle Form Submission for Extension Project (Converted to FormData for files)
+// Handle Form Submission using FormData
 $('#extension_project_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#extension_project_form').parsley().isValid()) {
@@ -87,7 +71,6 @@ $('#extension_project_form').on('submit', function (event) {
                         customClass: { confirmButton: 'btn-success' }
                     });
 
-                    // Reload the table data
                     var researcherID = $('#researcherModala').data('id');  
                     loadExtensionProjectsTab(researcherID);  
 
@@ -106,19 +89,18 @@ $('#extensionProjectModal').on('hidden.bs.modal', function () {
         $('body').addClass('modal-open');
     }
     $('#linked_research_projects').val(null).trigger('change'); 
-    $('#terminal_report_file_container').hide();
-    $('#existing_file_link').html('');
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
 // Add New Extension Project
 $('#add_extension_project').click(function () {
-    $('#extension_project_form')[0].reset();  
-    $('#extension_project_form').parsley().reset();  
+    var form = $('#extension_project_form');
+    if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
+    
     $('#linked_research_projects').val(null).trigger('change'); 
-    $('#terminal_report_file_container').hide();
-    $('#existing_file_link').html('');
-    $('#hidden_terminal_report_file').val('');
+    $('#has_files_extp').val('None').trigger('change');
+    $('#new_files_container_extp').html('');
+    $('#existing_files_container_extp').html('');
 
     $('#modal_title').text('Add Extension Project');  
     $('#action_extension').val('Add');
@@ -133,10 +115,13 @@ $('#add_extension_project').click(function () {
 $(document).on('click', '.edit_button_extension_project', function () {
     var extensionID = $(this).data('id');  
 
-    $('#extension_project_form')[0].reset();
-    $('#extension_project_form').parsley().reset();
+    var form = $('#extension_project_form');
+    if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
+    
     $('#linked_research_projects').val(null).trigger('change');
     $('#form_message').html('');
+    $('#new_files_container_extp').html('');
+    $('#existing_files_container_extp').html('');
 
     $.ajax({
         url: "actions/extension_project_action.php",
@@ -144,45 +129,52 @@ $(document).on('click', '.edit_button_extension_project', function () {
         data: { extensionID: extensionID, action_extension: 'fetch_single' },
         dataType: 'JSON',
         success: function (data) {
-           
-            const inputDateApplied = data.start_date;
-            const inputDateGranted = data.completed_date;
-
-            const [monthApplied, dayApplied, yearApplied] = inputDateApplied.split('-');
-            const formattedDateApplied = `${yearApplied}-${monthApplied}-${dayApplied}`;
-
-            const [monthGranted, dayGranted, yearGranted] = inputDateGranted.split('-');
-            const formattedDateGranted = `${yearGranted}-${monthGranted}-${dayGranted}`;
+            function parseLegacyDate(val) {
+                if (!val || val === 'null' || val === '0000-00-00') return '';
+                let str = String(val).trim().replace(/\//g, '-');
+                let parts = str.split('-');
+                if (parts.length === 1 && parts[0].length === 4) return `${parts[0]}-01-01`;
+                if (parts.length === 2) {
+                    if (parts[1].length === 4) return `${parts[1]}-${parts[0].padStart(2, '0')}-01`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-01`;
+                }
+                if (parts.length === 3) {
+                    if (parts[2].length === 4) return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+                return ''; 
+            }
            
             $('#title_extp').val(data.title);
-            $('#start_date_extc').val(formattedDateApplied);
-            $('#completion_date_extc').val(formattedDateGranted);
+            $('#start_date_extc').val(parseLegacyDate(data.start_date));
+            $('#completion_date_extc').val(parseLegacyDate(data.completed_date));
             $('#funding_source_exct').val(data.funding_source);
             $('#approved_budget_exct').val(data.approved_budget);
             $('#target_beneficiaries_communities').val(data.target_beneficiaries_communities);
             $('#partners').val(data.partners);
             $('#status_exct').val(data.status_exct);
-            $('#terminal_report_extc').val(data.terminal_report);
 
-            // Handle the file upload UI
-            if (data.terminal_report === 'With') {
-                $('#terminal_report_file_container').show();
-                if(data.terminal_report_file && data.terminal_report_file !== '') {
-                    $('#existing_file_link').html('<a href="../../uploads/documents/' + data.terminal_report_file + '" target="_blank" class="text-primary"><i class="fas fa-external-link-alt mr-1"></i> View Currently Attached Report</a>');
-                    $('#hidden_terminal_report_file').val(data.terminal_report_file);
-                } else {
-                    $('#existing_file_link').html('<span class="text-warning"><i class="fas fa-exclamation-triangle mr-1"></i> Marked as "With", but no file is currently uploaded.</span>');
-                    $('#hidden_terminal_report_file').val('');
-                }
-            } else {
-                $('#terminal_report_file_container').hide();
-                $('#existing_file_link').html('');
-                $('#hidden_terminal_report_file').val('');
-            }
-
-            // Populate the Select2 linked projects array
             if(data.linked_projects && data.linked_projects.length > 0) {
                 $('#linked_research_projects').val(data.linked_projects).trigger('change');
+            }
+
+            // Handle Files
+            $('#has_files_extp').val(data.has_files).trigger('change');
+            
+            if(data.existing_files && data.existing_files.length > 0) {
+                var filesHtml = '';
+                data.existing_files.forEach(function(f) {
+                    filesHtml += `
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="extp_file_row_${f.id}">
+                            <div>
+                                <span class="badge badge-info mr-2">${f.category}</span>
+                                <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-extp-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                });
+                $('#existing_files_container_extp').html(filesHtml);
             }
 
             $('#modal_title').text('Edit Extension Project');
@@ -195,20 +187,18 @@ $(document).on('click', '.edit_button_extension_project', function () {
 });
 
 // Handle Delete Button for Extension Project
-$(document).on('click', '.delete_button_extension_project', function () {
+$(document).on('click', '.delete_button_extension_project, .delete_master_extension_project', function (e) {
+    e.preventDefault();
     var extensionID = $(this).data('id');  
     Swal.fire({
         title: 'Are you sure?',
-        text: 'You will not be able to recover this record!',
+        text: 'This will delete the record and all attached files!',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'No, keep it',
         reverseButtons: true,
-        customClass: {
-            confirmButton: 'btn-danger',
-            cancelButton: 'btn-secondary'
-        }
+        customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -220,74 +210,85 @@ $(document).on('click', '.delete_button_extension_project', function () {
                         title: 'Deleted!',
                         text: 'The extension project has been successfully deleted.',
                         icon: 'success',
-                        timer: 600,
+                        timer: 800,
                         showConfirmButton: false,
                     });
 
                     var researcherID = $('#researcherModala').data('id');
-                    loadExtensionProjectsTab(researcherID);  
-                    setTimeout(function () {
-                        $('#message').html('');
-                    }, 5000);
-                },
-                error: function (xhr, status, error) {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Something went wrong: ' + error,
-                        icon: 'error',
-                        confirmButtonText: 'Try Again',
-                        customClass: {
-                            confirmButton: 'btn-danger'
-                        }
-                    });
+                    if(researcherID) { loadExtensionProjectsTab(researcherID); } else { location.reload(); }
                 }
             });
         }
     });
 });
 
-$(document).on('click', '.delete_buttona', function() {
-    var id = $(this).data('id'); 
+// --- DYNAMIC FILE UPLOAD LOGIC ---
+$(document).on('change', '#has_files_extp', function() {
+    if($(this).val() === 'With') {
+        $('#dynamic_files_section_extp').slideDown(200);
+    } else {
+        $('#dynamic_files_section_extp').slideUp(200);
+        $('#new_files_container_extp').empty();
+    }
+});
+
+$(document).on('click', '#add_file_btn_extp', function() {
+    var fileRow = `
+        <div class="row align-items-center mb-2 new-file-row">
+            <div class="col-md-4">
+                <select name="extp_file_categories[]" class="form-control form-control-sm" required>
+                    <option value="">Select Category</option>
+                    <option value="Terminal Report">Terminal Report</option>
+                    <option value="MOA">MOA</option>
+                    <option value="SO">SO</option>
+                    <option value="Financial Report">Financial Report</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <input type="file" name="extp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
+            </div>
+            <div class="col-md-2 text-right">
+                <button type="button" class="btn btn-sm btn-danger remove-new-extp-file"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+    `;
+    $('#new_files_container_extp').append(fileRow);
+});
+
+$(document).on('click', '.remove-new-extp-file', function() {
+    $(this).closest('.new-file-row').remove();
+});
+
+$(document).on('click', '.delete-existing-extp-file', function(e) {
+    e.preventDefault();
+    var btn = $(this);
+    var fileId = btn.attr('data-file-id');
+    var row = $('#extp_file_row_' + fileId);
+    
     Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to recover this record!",
-        icon: 'warning',
-        showCancelButton: true, 
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'No, keep it',
-        reverseButtons: true, 
-        customClass: {
-            confirmButton: 'btn-danger', 
-            cancelButton: 'btn-secondary' 
-        }
+        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
+            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
             $.ajax({
-                url: "actions/researcher_action.php",
+                url: "actions/extension_project_action.php",
                 method: "POST",
-                data: { id: id, action: 'delete' },
+                data: { action_extension: 'delete_file', file_id: fileId },
+                dataType: "json",
                 success: function(data) {
-                    Swal.fire({
-                        title: 'Deleted!',
-                        text: 'The record has been successfully deleted.',
-                        icon: 'success',
-                        timer: 600, 
-                        showConfirmButton: false, 
-                        customClass: { confirmButton: 'btn-success' } 
-                    });
-                    dataTable.ajax.reload();
-                    setTimeout(function() {
-                        $('#message').html('');
-                    }, 5000);
+                    if(data.status === 'success') {
+                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                        row.fadeOut(300, function() { $(this).remove(); });
+                    } else {
+                        btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                        Swal.fire('Error', data.message, 'error');
+                    }
                 },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Something went wrong. Please try again.',
-                        icon: 'error',
-                        timer: 3000, 
-                        showConfirmButton: false
-                    });
+                error: function(xhr) {
+                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                    console.error("Delete Error:", xhr.responseText);
+                    Swal.fire('Server Error', 'Failed to delete.', 'error');
                 }
             });
         }

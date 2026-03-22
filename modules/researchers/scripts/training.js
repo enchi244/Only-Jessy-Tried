@@ -23,14 +23,18 @@ $('#tra-tab').on('shown.bs.tab', function () {
     loadTrainingsAttendedTab(id);  
 });
 
+// Submit using FormData
 $('#trainings_attended_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#trainings_attended_form').parsley().isValid()) {
+        var formData = new FormData(this);
         $.ajax({
             url: "actions/trainings_attended_action.php",
             method: "POST",
-            data: $(this).serialize(),
+            data: formData,
             dataType: 'json',
+            contentType: false,
+            processData: false,
             beforeSend: function () {
                 $('#submit_button_training').attr('disabled', 'disabled').val('Wait...');
             },
@@ -38,18 +42,14 @@ $('#trainings_attended_form').on('submit', function (event) {
                 $('#submit_button_training').attr('disabled', false);
                 if (data.error != '') {
                     $('#form_message').html(data.error);
-                    $('#submit_button_training').val('Add');
+                    $('#submit_button_training').val($('#action_training').val());
                 } else {
                     $('#trainingsAttendedModal').modal('hide');
                     var Svalue = $('#action_training').val();
-                    if (Svalue == "Add") {
-                        Swal.fire({ title: 'Added!', text: 'The training has been successfully added.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
-                    } else {
-                        Swal.fire({ title: 'Updated!', text: 'The training has been successfully updated.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
-                    }
+                    Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The training has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
+                    
                     var researcherID = $('#researcherModala').data('id');  
                     loadTrainingsAttendedTab(researcherID);
-                    setTimeout(function () { $('#message').html(''); }, 5000);
                 }
             }
         });
@@ -61,29 +61,14 @@ $('#trainingsAttendedModal').on('hidden.bs.modal', function () {
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
-// Add New Training Attended
+// Add New Training
 $('#add_training_attended').click(function () {
-    $('#trainings_attended_form')[0].reset();  
-    $('#trainings_attended_form').parsley().reset();  
-    $('#modal_title').text('Add Training Attended');  
-    $('#action_training').val('Add');
-    var rid = $('#researcherModala').data('id');  
-    $('#hidden_researcherID_training').val(rid);  
-    $('#submit_button_training').val('Add');
-    $('#trainingsAttendedModal').modal('show');  
-    $('#form_message').html('');
-});
-
-// Edit Existing Training Attended
-// Add New Training Attended
-$('#add_training_attended').click(function () {
-    // CRASH-PROOF RESET
     var form = $('#trainings_attended_form');
-    if (form.length > 0) {
-        form[0].reset();  
-        var p = form.parsley();
-        if (p) { p.reset(); }
-    }
+    if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
+    
+    $('#has_files_training').val('None').trigger('change');
+    $('#new_files_container_training').html('');
+    $('#existing_files_container_training').html('');
 
     $('#modal_title').text('Add Training Attended');  
     $('#action_training').val('Add');
@@ -94,18 +79,14 @@ $('#add_training_attended').click(function () {
     $('#form_message').html('');
 });
 
-// Edit Existing Training Attended
+// Edit Existing Training
 $(document).on('click', '.edit_button_training', function () {
     var trainingID = $(this).data('id');  
-    
-    // CRASH-PROOF RESET
     var form = $('#trainings_attended_form');
-    if (form.length > 0) {
-        form[0].reset();
-        var p = form.parsley();
-        if (p) { p.reset(); }
-    }
+    if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
     $('#form_message').html('');
+    $('#new_files_container_training').html('');
+    $('#existing_files_container_training').html('');
 
     $.ajax({
         url: "actions/trainings_attended_action.php",
@@ -113,18 +94,49 @@ $(document).on('click', '.edit_button_training', function () {
         data: { trainingID: trainingID, action_training: 'fetch_single' },
         dataType: 'JSON',
         success: function (data) {
-            const inputDatestarted_training = data.date_train; 
-            const [monthStarted, dayStarted, yearStarted] = inputDatestarted_training.split('-');
-            const formattedDateStarted_training = `${yearStarted}-${monthStarted}-${dayStarted}`;
+            function parseLegacyDate(val) {
+                if (!val || val === 'null' || val === '0000-00-00') return '';
+                let str = String(val).trim().replace(/\//g, '-');
+                let parts = str.split('-');
+                if (parts.length === 1 && parts[0].length === 4) return `${parts[0]}-01-01`;
+                if (parts.length === 2) {
+                    if (parts[1].length === 4) return `${parts[1]}-${parts[0].padStart(2, '0')}-01`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-01`;
+                }
+                if (parts.length === 3) {
+                    if (parts[2].length === 4) return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+                return ''; 
+            }
             
             $('#title_training').val(data.title);
             $('#type_training').val(data.type);
             $('#venue_training').val(data.venue);
-            $('#date_training').val(formattedDateStarted_training);
+            $('#date_training').val(parseLegacyDate(data.date_train));
             $('#level_training').val(data.lvl);
             $('#type_learning_dev').val(data.type_learning_dev);
             $('#sponsor_org').val(data.sponsor_org);
             $('#total_hours_training').val(data.totnh);
+            
+            // Handle Files
+            $('#has_files_training').val(data.has_files).trigger('change');
+            if(data.existing_files && data.existing_files.length > 0) {
+                var filesHtml = '';
+                data.existing_files.forEach(function(f) {
+                    filesHtml += `
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="training_file_row_${f.id}">
+                            <div>
+                                <span class="badge badge-info mr-2">${f.category}</span>
+                                <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-training-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                });
+                $('#existing_files_container_training').html(filesHtml);
+            }
+
             $('#modal_title').text('Edit Training Attended');
             $('#action_training').val('Edit');
             $('#submit_button_training').val('Edit');
@@ -134,11 +146,12 @@ $(document).on('click', '.edit_button_training', function () {
     });
 });
 
-// Delete Training Attended
-$(document).on('click', '.delete_button_training', function () {
+// Delete Training
+$(document).on('click', '.delete_button_training, .delete_master_training', function (e) {
+    e.preventDefault();
     var trainingID = $(this).data('id');  
     Swal.fire({
-        title: 'Are you sure?', text: 'You will not be able to recover this record!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!', cancelButtonText: 'No, keep it', reverseButtons: true, customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
+        title: 'Are you sure?', text: 'This will delete the record and all attached files!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!', cancelButtonText: 'No, keep it', reverseButtons: true, customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -146,9 +159,81 @@ $(document).on('click', '.delete_button_training', function () {
                 method: "POST",
                 data: { trainingID: trainingID, action_training: 'delete' },
                 success: function (data) {
-                    Swal.fire({ title: 'Deleted!', text: 'The training has been successfully deleted.', icon: 'success', timer: 600, showConfirmButton: false });
+                    Swal.fire({ title: 'Deleted!', text: 'The training has been successfully deleted.', icon: 'success', timer: 800, showConfirmButton: false });
                     var researcherID = $('#researcherModala').data('id');
-                    loadTrainingsAttendedTab(researcherID);  
+                    if(researcherID) { loadTrainingsAttendedTab(researcherID); } else { location.reload(); }
+                }
+            });
+        }
+    });
+});
+
+// --- DYNAMIC FILE UPLOAD LOGIC ---
+$(document).on('change', '#has_files_training', function() {
+    if($(this).val() === 'With') {
+        $('#dynamic_files_section_training').slideDown(200);
+    } else {
+        $('#dynamic_files_section_training').slideUp(200);
+        $('#new_files_container_training').empty();
+    }
+});
+
+$(document).on('click', '#add_file_btn_training', function() {
+    var fileRow = `
+        <div class="row align-items-center mb-2 new-file-row">
+            <div class="col-md-4">
+                <select name="training_file_categories[]" class="form-control form-control-sm" required>
+                    <option value="">Select Category</option>
+                    <option value="Certificate">Certificate</option>
+                    <option value="Program">Program</option>
+                    <option value="MOA">MOA</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <input type="file" name="training_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
+            </div>
+            <div class="col-md-2 text-right">
+                <button type="button" class="btn btn-sm btn-danger remove-new-training-file"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+    `;
+    $('#new_files_container_training').append(fileRow);
+});
+
+$(document).on('click', '.remove-new-training-file', function() {
+    $(this).closest('.new-file-row').remove();
+});
+
+$(document).on('click', '.delete-existing-training-file', function(e) {
+    e.preventDefault();
+    var btn = $(this);
+    var fileId = btn.attr('data-file-id');
+    var row = $('#training_file_row_' + fileId);
+    
+    Swal.fire({
+        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+            $.ajax({
+                url: "actions/trainings_attended_action.php",
+                method: "POST",
+                data: { action_training: 'delete_file', file_id: fileId },
+                dataType: "json",
+                success: function(data) {
+                    if(data.status === 'success') {
+                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                        row.fadeOut(300, function() { $(this).remove(); });
+                    } else {
+                        btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                    console.error("Delete Error:", xhr.responseText);
+                    Swal.fire('Server Error', 'Failed to delete.', 'error');
                 }
             });
         }

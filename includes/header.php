@@ -259,12 +259,6 @@ body.sidebar-toggled #content-wrapper {
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="<?php echo $object->base_url; ?>modules/documents/manage_documents.php">
-                    <i class="fas fa-fw fa-file-signature"></i>
-                    <span>Manage SO & MOA</span>
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" href="<?php echo $object->base_url; ?>modules/trackers/track_agenda_sdg.php">
                     <i class="fas fa-fw fa-globe"></i>
                     <span>Agenda & SDG Tracker</span>

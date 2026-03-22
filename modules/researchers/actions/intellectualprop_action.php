@@ -1,27 +1,86 @@
 <?php
 // intellectualprop_action.php
-
-include('../../../core/rms.php');  // Assuming this is your database handler class
-
+include('../../../core/rms.php');
 $object = new rms();
+
+// Global Server-Side Legacy Date Parser
+if (!function_exists('parse_legacy_date_php')) {
+    function parse_legacy_date_php($date_str) {
+        if (empty($date_str) || $date_str === 'null' || $date_str === '0000-00-00') return '';
+        $date_str = trim(str_replace('/', '-', $date_str));
+        $parts = explode('-', $date_str);
+        if (count($parts) === 1 && strlen($parts[0]) === 4) { return $parts[0] . '-01-01'; }
+        if (count($parts) === 2) {
+            if (strlen($parts[1]) === 4) return $parts[1] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-01';
+            if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-01';
+        }
+        if (count($parts) === 3) {
+            if (strlen($parts[2]) === 4) return $parts[2] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+            if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[2], 2, '0', STR_PAD_LEFT);
+        }
+        $time = strtotime($date_str);
+        return ($time !== false) ? date('Y-m-d', $time) : '';
+    }
+}
+
+// Reusable function to handle multiple file uploads
+if (!function_exists('handle_ip_files')) {
+    function handle_ip_files($object, $ip_id, $categories, $files) {
+        if(isset($files['name']) && is_array($files['name'])) {
+            $upload_dir = '../../../uploads/research_files/';
+            if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
+            
+            for($i = 0; $i < count($files['name']); $i++) {
+                if($files['error'][$i] == 0) {
+                    $category = isset($categories[$i]) ? $categories[$i] : 'Other';
+                    $original_name = basename($files['name'][$i]);
+                    $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+                    $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo($original_name, PATHINFO_FILENAME));
+                    $new_name = 'IP_' . $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                    
+                    $target_file = $upload_dir . $new_name;
+                    $db_path = 'uploads/research_files/' . $new_name; 
+                    
+                    if(move_uploaded_file($files['tmp_name'][$i], $target_file)) {
+                        $object->query = "INSERT INTO tbl_ip_files (ip_id, file_category, file_name, file_path) VALUES (:ipid, :cat, :fname, :fpath)";
+                        $object->execute([
+                            ':ipid' => $ip_id,
+                            ':cat' => $category,
+                            ':fname' => $original_name,
+                            ':fpath' => $db_path
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+}
 
 if (isset($_POST["action_intellectualprop"])) {
 
-    // Fetch Intellectual Property data for the Researcher
+    // --- MASTER TABLE FETCH ---
     if ($_POST["action_intellectualprop"] == 'fetch_all') {
-        $order_column = array('tbl_researchdata.familyName', 'tbl_itelectualprop.title', 'tbl_itelectualprop.coauth', 'tbl_itelectualprop.type', 'tbl_itelectualprop.date_granted');
-        $main_query = "SELECT tbl_itelectualprop.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix FROM tbl_itelectualprop LEFT JOIN tbl_researchdata ON tbl_itelectualprop.researcherID = tbl_researchdata.id";
+        $order_column = array('primary_familyName', 'ip.title', 'ip.type', 'ip.date_granted');
+        $main_query = "
+            SELECT ip.*, 
+                   (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') 
+                    FROM tbl_ip_collaborators col 
+                    JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                    WHERE col.ip_id = ip.id) AS all_authors,
+                   ip.lead_researcher_id AS author_db_id,
+                   pd.familyName AS primary_familyName
+            FROM tbl_itelectualprop ip
+            LEFT JOIN tbl_researchdata pd ON ip.lead_researcher_id = pd.id
+        ";
         $search_query = " WHERE 1=1 ";
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
-            $search_query .= "AND (tbl_itelectualprop.title LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR tbl_researchdata.familyName LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR tbl_researchdata.firstName LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR tbl_researchdata.middleName LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR CONCAT(tbl_researchdata.firstName, ' ', tbl_researchdata.familyName) LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR CONCAT(tbl_researchdata.familyName, ', ', tbl_researchdata.firstName) LIKE '%" . $search_value . "%') ";
+            $search_query .= "AND (ip.title LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR pd.familyName LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR pd.firstName LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR CONCAT(pd.firstName, ' ', pd.familyName) LIKE '%" . $search_value . "%') ";
         }
-        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY tbl_itelectualprop.id DESC ";
+        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY ip.id DESC ";
         $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
 
         $object->query = $main_query . $search_query . $order_query;
@@ -36,273 +95,284 @@ if (isset($_POST["action_intellectualprop"])) {
         $data = array();
         foreach ($result as $row) {
             $sub_array = array();
-            $author_name = $row["familyName"] ? $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"] : "Unknown Author";
+            $author_name = $row["all_authors"] ? $row["all_authors"] : "<span class='text-danger'>No Authors</span>";
             $sub_array[] = '<span class="font-weight-bold">'.$author_name.'</span>';
             $sub_array[] = $row["title"];
-            $sub_array[] = $row["coauth"];
             $sub_array[] = $row["type"];
-            $sub_array[] = $row["date_granted"];
-            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_intellectualprop" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=ip" class="btn d-none"></a></div>';
+            $sub_array[] = parse_legacy_date_php($row["date_granted"]);
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_intellectualprop" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id="'.$row["author_db_id"].'"&tab=ip" class="btn d-none"></a></div>';
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
-        exit; // Stop executing the rest of the file
+        exit;
     }
+
+    // --- FETCH FOR SPECIFIC RESEARCHER ---
     if ($_POST["action_intellectualprop"] == 'fetch') {
-        $order_column = array(
-            'title',  // Title of IP
-            'coauth',  // Co-authors
-            'type',  // Type of IP (e.g., patent, trademark)
-            'date_applied',  // Application Date
-            'date_granted',  // Grant Date
-        );
+        $order_column = array('ip.title', 'ip.type', 'ip.date_applied', 'ip.date_granted', 'ip.has_files');
+        
+        $main_query = "
+            SELECT ip.* FROM tbl_itelectualprop ip
+            JOIN tbl_ip_collaborators col ON ip.id = col.ip_id
+        ";
+        $search_query = " WHERE col.researcher_id = '" . $_POST["rid"] . "' ";
 
-        $output = array();
-
-        $main_query = "SELECT * FROM tbl_itelectualprop";
-        $search_query = " WHERE researcherID = '" . $_POST["rid"] . "' ";
-
-        // Search functionality
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
-            $search_query .= "AND (title LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR coauth LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR type LIKE '%" . $search_value . "%') ";
+            $search_query .= "AND (ip.title LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR ip.type LIKE '%" . $search_value . "%') ";
         }
 
-        // Sorting based on user input
         if (isset($_POST["order"])) {
             $order_query = "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " ";
         } else {
-            $order_query = "ORDER BY id ASC ";  // Default order
+            $order_query = "ORDER BY ip.id ASC "; 
         }
 
-        // Pagination logic
-        $limit_query = "";
-        if ($_POST["length"] != -1) {
-            $limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
-        }
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
 
         $object->query = $main_query . $search_query . $order_query;
-
         $object->execute();
-
         $filtered_rows = $object->row_count();
-
         $object->query .= $limit_query;
-
         $result = $object->get_result();
-
-        $object->query = $main_query;
-
+        $object->query = $main_query . $search_query;
         $object->execute();
-
         $total_rows = $object->row_count();
 
         $data = array();
-
         foreach ($result as $row) {
+            $file_badge = ($row["has_files"] == 'With') ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
+
             $sub_array = array();
             $sub_array[] = $row["title"];
-            $sub_array[] = $row["coauth"];
             $sub_array[] = $row["type"];
-            $sub_array[] = $row["date_applied"];
-            $sub_array[] = $row["date_granted"];
+            $sub_array[] = parse_legacy_date_php($row["date_applied"]);
+            $sub_array[] = parse_legacy_date_php($row["date_granted"]);
+            $sub_array[] = '<div align="center">' . $file_badge . '</div>';
             $sub_array[] = '
             <div align="center">
-                <button type="button" name="edit_button_intellectualprop" title="Edit Intellectual Property" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-primary btn-sm edit_button_intellectualprop" name="edit_button_intellectualprop" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button>
-            
-                <button type="button" name="delete_button_intellectualprop" title="Delete Intellectual Property" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_button_intellectualprop" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button>
+                <button type="button" title="Edit Intellectual Property" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" class="btn btn-primary btn-sm edit_button_intellectualprop" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button>
+                <button type="button" title="Delete Intellectual Property" style="margin-left: 5px;" class="btn btn-danger btn-sm delete_button_intellectualprop" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button>
             </div>
             ';
             $data[] = $sub_array;
         }
 
-        $output = array(
-            "draw" => intval($_POST["draw"]),
-            "recordsTotal" => $total_rows,
-            "recordsFiltered" => $filtered_rows,
-            "data" => $data
-        );
-
-        echo json_encode($output);
+        echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
+        exit;
     }
 
-    // Add new Intellectual Property
+    // --- ADD INTELLECTUAL PROPERTY ---
     if ($_POST["action_intellectualprop"] == 'Add') {
         $error = '';
         $success = '';
 
-        // Check if the title already exists
-        // $data = array(
-        //     ':title' => $_POST["title_ip"]
-        // );
+        $date_applied = date("Y-m-d", strtotime($_POST['date_applied']));
+        $date_granted = date("Y-m-d", strtotime($_POST['date_granted']));
+        $lead_researcher_id = $_POST['lead_researcher_id_ip'];
+        $has_files = $_POST['has_files_ip'];
 
-        // $object->query = "
-        // SELECT * FROM tbl_itelectualprop
-        // WHERE title = :title
-        // ";
-        // $object->execute($data);
-
-
-
-
-        $timestamp = strtotime($_POST['date_applied']);
- 
-// Creating new date format from that timestamp
-$date_applied = date("m-d-Y", $timestamp);
-
-
-
-
-$timestamp1 = strtotime($_POST['date_granted']);
- 
-// Creating new date format from that timestamp
-$date_granted = date("m-d-Y", $timestamp1);
-
-
-
-
-
-
-
-
-
-
-
-
-        // if ($object->row_count() > 0) {
-        //     $error = '<div class="alert alert-danger">Intellectual Property Already Exists</div>';
-        // } else {
-            $data = array(
-                ':researcherID' => $_POST['hidden_researcherID_ip'],
-                ':title' => $_POST['title_ip'],
-                ':coauth' => $_POST['coauth'],
-                ':type' => $_POST['type_ip'],
-                ':date_applied' => $date_applied,
-                ':date_granted' => $date_granted
-            );
-
-            $object->query = "
-            INSERT INTO tbl_itelectualprop
-            (researcherID, title, coauth, type, date_applied, date_granted) 
-            VALUES 
-            (:researcherID, :title, :coauth, :type, :date_applied, :date_granted)
-            ";
-
-            $object->execute($data);
-//console.log($data);
-            $success = '<div class="alert alert-success">Intellectual Property Added</div>';
-        // }
-
-        $output = array(
-            'error' => $error,
-            'success' => $success
+        $data = array(
+            ':researcherID' => $lead_researcher_id, // Legacy Failsafe
+            ':lead_researcher_id' => $lead_researcher_id,
+            ':title' => $_POST['title_ip'],
+            ':coauth' => 'Legacy Replaced', // Legacy DB requires a value
+            ':type' => $_POST['type_ip'],
+            ':date_applied' => $date_applied,
+            ':date_granted' => $date_granted,
+            ':has_files' => $has_files
         );
 
-        echo json_encode($output);
+        $object->query = "
+            INSERT INTO tbl_itelectualprop
+            (researcherID, lead_researcher_id, title, coauth, type, date_applied, date_granted, has_files) 
+            VALUES 
+            (:researcherID, :lead_researcher_id, :title, :coauth, :type, :date_applied, :date_granted, :has_files)
+        ";
+        $object->execute($data);
+        $new_ip_id = $object->connect->lastInsertId();
+
+        // Sync Collaborators
+        $collaborators = isset($_POST['collaborators_ip']) ? $_POST['collaborators_ip'] : [];
+        if (!in_array($lead_researcher_id, $collaborators)) {
+            $collaborators[] = $lead_researcher_id;
+        }
+
+        foreach($collaborators as $res_id) {
+            $object->query = "INSERT INTO tbl_ip_collaborators (ip_id, researcher_id) VALUES (:ipid, :uid)";
+            $object->execute([':ipid' => $new_ip_id, ':uid' => $res_id]);
+        }
+
+        // Upload Files
+        if($has_files == 'With' && isset($_FILES['ip_files'])) {
+            $categories = isset($_POST['ip_file_categories']) ? $_POST['ip_file_categories'] : [];
+            handle_ip_files($object, $new_ip_id, $categories, $_FILES['ip_files']);
+        }
+
+        $success = '<div class="alert alert-success">Intellectual Property Added</div>';
+        echo json_encode(array('error' => $error, 'success' => $success));
+        exit;
     }
 
-    // Fetch single Intellectual Property data for editing
+    // --- FETCH SINGLE FOR EDIT ---
     if ($_POST["action_intellectualprop"] == 'fetch_single') {
-        $object->query = "
-        SELECT * FROM tbl_itelectualprop
-        WHERE id = '" . $_POST["intellectualPropID"] . "'
-        ";
-
+        $object->query = "SELECT * FROM tbl_itelectualprop WHERE id = '" . $_POST["intellectualPropID"] . "'";
         $result = $object->get_result();
         $data = array();
 
         foreach ($result as $row) {
             $data['title'] = $row["title"];
-            $data['coauth'] = $row["coauth"];
             $data['type'] = $row["type"];
-            $data['date_applied'] = $row["date_applied"];
-            $data['date_granted'] = $row["date_granted"];
+            $data['date_applied'] = parse_legacy_date_php($row["date_applied"]);
+            $data['date_granted'] = parse_legacy_date_php($row["date_granted"]);
+            $data['lead_researcher_id'] = $row["lead_researcher_id"];
+            $data['has_files'] = $row["has_files"];
         }
 
+        $object->query = "SELECT researcher_id FROM tbl_ip_collaborators WHERE ip_id = '".$_POST["intellectualPropID"]."'";
+        $collab_result = $object->get_result();
+        $collab_array = [];
+        foreach($collab_result as $c) { $collab_array[] = $c['researcher_id']; }
+        $data['collaborators'] = $collab_array;
+
+        $object->query = "SELECT id, file_category, file_name, file_path FROM tbl_ip_files WHERE ip_id = '".$_POST["intellectualPropID"]."'";
+        $file_result = $object->get_result();
+        $files_array = [];
+        foreach($file_result as $f) {
+            $files_array[] = array(
+                'id' => $f['id'],
+                'category' => $f['file_category'],
+                'name' => $f['file_name'],
+                'path' => '../../' . $f['file_path'] 
+            );
+        }
+        $data['existing_files'] = $files_array;
+
         echo json_encode($data);
+        exit;
     }
 
-    // Edit Intellectual Property
+    // --- EDIT INTELLECTUAL PROPERTY ---
     if ($_POST["action_intellectualprop"] == 'Edit') {
         $error = '';
         $success = '';
 
-        // Check if the title already exists in the database (excluding the current id)
-        // $data = array(
-        //     ':title' => $_POST['title_ip'],
-        //     ':hidden_intellectualPropID' => $_POST['hidden_intellectualPropID']
-        // );
+        $date_appliedu = date("Y-m-d", strtotime($_POST['date_applied']));
+        $date_grantedu = date("Y-m-d", strtotime($_POST['date_granted']));
+        $ip_id = $_POST['hidden_intellectualPropID'];
+        $lead_researcher_id = $_POST['lead_researcher_id_ip'];
+        $has_files = $_POST['has_files_ip'];
 
-        // $object->query = "
-        // SELECT * FROM tbl_itelectualprop
-        // WHERE title = :title 
-        // AND id != :hidden_intellectualPropID
-        // ";
-
-
-        $timestampu = strtotime($_POST['date_applied']);
- 
-// Creating new date format from that timestamp
-$date_appliedu = date("m-d-Y", $timestampu);
-
-
-
-
-$timestamp1u = strtotime($_POST['date_granted']);
- 
-// Creating new date format from that timestamp
-$date_grantedu = date("m-d-Y", $timestamp1u);
-
-
-        // $object->execute($data);
-
-        // if ($object->row_count() > 0) {
-        //     $error = '<div class="alert alert-danger">Intellectual Property Already Exists</div>';
-        // } else {
-            $data = array(
-                ':title' => $_POST['title_ip'],
-                ':coauth' => $_POST['coauth'],
-                ':type' => $_POST['type_ip'],
-                ':date_applied' => $date_appliedu,
-                ':date_granted' => $date_grantedu,
-                ':hidden_intellectualPropID' => $_POST['hidden_intellectualPropID']
-            );
-
-            $object->query = "
-            UPDATE tbl_itelectualprop
-            SET title = :title, 
-                coauth = :coauth, 
-                type = :type, 
-                date_applied = :date_applied, 
-                date_granted = :date_granted
-            WHERE id = :hidden_intellectualPropID
-            ";
-
-            $object->execute($data);
-
-            $success = '<div class="alert alert-success">Intellectual Property Updated</div>';
-        // }
-
-        $output = array(
-            'error' => $error,
-            'success' => $success
+        $data = array(
+            ':lead_researcher_id' => $lead_researcher_id,
+            ':title' => $_POST['title_ip'],
+            ':type' => $_POST['type_ip'],
+            ':date_applied' => $date_appliedu,
+            ':date_granted' => $date_grantedu,
+            ':has_files' => $has_files,
+            ':hidden_intellectualPropID' => $ip_id
         );
 
-        echo json_encode($output);
+        $object->query = "
+            UPDATE tbl_itelectualprop
+            SET lead_researcher_id = :lead_researcher_id,
+                title = :title, 
+                type = :type, 
+                date_applied = :date_applied, 
+                date_granted = :date_granted,
+                has_files = :has_files
+            WHERE id = :hidden_intellectualPropID
+        ";
+        $object->execute($data);
+
+        // Sync Collaborators
+        $object->query = "DELETE FROM tbl_ip_collaborators WHERE ip_id = :ipid";
+        $object->execute([':ipid' => $ip_id]);
+
+        $collaborators = isset($_POST['collaborators_ip']) ? $_POST['collaborators_ip'] : [];
+        if (!in_array($lead_researcher_id, $collaborators)) {
+            $collaborators[] = $lead_researcher_id;
+        }
+
+        foreach($collaborators as $res_id) {
+            $object->query = "INSERT INTO tbl_ip_collaborators (ip_id, researcher_id) VALUES (:ipid, :uid)";
+            $object->execute([':ipid' => $ip_id, ':uid' => $res_id]);
+        }
+
+        // Upload New Files
+        if($has_files == 'With' && isset($_FILES['ip_files'])) {
+            $categories = isset($_POST['ip_file_categories']) ? $_POST['ip_file_categories'] : [];
+            handle_ip_files($object, $ip_id, $categories, $_FILES['ip_files']);
+        }
+
+        // Failsafe: Cleanup when set to "None"
+        if($has_files == 'None') {
+            $clean_id = intval($ip_id);
+            $object->query = "SELECT file_path FROM tbl_ip_files WHERE ip_id = '".$clean_id."'";
+            $files_to_delete = $object->get_result();
+            foreach($files_to_delete as $file) {
+                $physical_path = '../../../' . $file['file_path'];
+                if(file_exists($physical_path)) { unlink($physical_path); }
+            }
+            $object->query = "DELETE FROM tbl_ip_files WHERE ip_id = '".$clean_id."'";
+            $object->execute();
+        }
+
+        $success = '<div class="alert alert-success">Intellectual Property Updated</div>';
+        echo json_encode(array('error' => $error, 'success' => $success));
+        exit;
     }
 
-    // Delete Intellectual Property
+    // --- INDIVIDUAL FILE DELETION AJAX ---
+    if($_POST["action_intellectualprop"] == 'delete_file')
+    {
+        $file_id = intval($_POST['file_id']);
+        
+        $object->query = "SELECT file_path FROM tbl_ip_files WHERE id = '".$file_id."'";
+        $file_data = $object->get_result();
+        
+        $file_deleted = false;
+        foreach($file_data as $row) {
+            $file_deleted = true;
+            $physical_path = '../../../' . $row['file_path'];
+            if(file_exists($physical_path)) {
+                unlink($physical_path);
+            }
+        }
+        
+        if($file_deleted) {
+            $object->query = "DELETE FROM tbl_ip_files WHERE id = '".$file_id."'";
+            $object->execute();
+            echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'File not found in database.']);
+        }
+        exit;
+    }
+
+    // --- DELETE FULL INTELLECTUAL PROPERTY ---
     if ($_POST["action_intellectualprop"] == 'delete') {
-        $object->query = "
-        DELETE FROM tbl_itelectualprop
-        WHERE id = '" . $_POST["intellectualPropID"] . "'
-        ";
+        $ip_id = intval($_POST["intellectualPropID"]);
+
+        $object->query = "SELECT file_path FROM tbl_ip_files WHERE ip_id = '".$ip_id."'";
+        $files_to_delete = $object->get_result();
+        foreach($files_to_delete as $file) {
+            $physical_path = '../../../' . $file['file_path'];
+            if(file_exists($physical_path)) { unlink($physical_path); }
+        }
+
+        $object->query = "DELETE FROM tbl_ip_files WHERE ip_id = '".$ip_id."'";
+        $object->execute();
+
+        $object->query = "DELETE FROM tbl_ip_collaborators WHERE ip_id = '".$ip_id."'";
+        $object->execute();
+
+        $object->query = "DELETE FROM tbl_itelectualprop WHERE id = '".$ip_id."'";
         $object->execute();
 
         echo '<div class="alert alert-success">Intellectual Property Deleted</div>';
+        exit;
     }
 }
-
 ?>

@@ -24,21 +24,25 @@ function loadPaperPresentationTab(researcherID) {
     return paperPresentationTable;
 }
 
-// Handle Tab Switching for Dynamic Content (e.g., Paper Presentation)
+// Handle Tab Switching for Dynamic Content
 $('#paperPresentationModal').on('shown.bs.tab', function () {
-    var id = $('#hidden_id_pp').val(); // Get the ID from the hidden field in the modal
-    loadPaperPresentationTab(id);  // Load the content dynamically when the tab is shown
+    var id = $('#hidden_id_pp').val(); 
+    loadPaperPresentationTab(id);  
 });
 
-// Handle Form Submission for Paper Presentation
+// Handle Form Submission using FormData for Files
 $('#paper_presentation_form').on('submit', function (event) {
     event.preventDefault();
     if ($('#paper_presentation_form').parsley().isValid()) {
+        var formData = new FormData(this);
+        
         $.ajax({
             url: "actions/paper_presentation_action.php",
             method: "POST",
-            data: $(this).serialize(),
+            data: formData,
             dataType: 'json',
+            contentType: false,
+            processData: false,
             beforeSend: function () {
                 $('#submit_button_paper_presentation').attr('disabled', 'disabled').val('Wait...');
             },
@@ -46,35 +50,23 @@ $('#paper_presentation_form').on('submit', function (event) {
                 $('#submit_button_paper_presentation').attr('disabled', false);
                 if (data.error != '') {
                     $('#form_message').html(data.error);
-                    $('#submit_button_paper_presentation').val('Add');
+                    $('#submit_button_paper_presentation').val($('#action_paper_presentation').val());
                 } else {
                     $('#paperPresentationModal').modal('hide');
                     $('#message').html(data.success);
 
                     var Svalue = $('#action_paper_presentation').val();
-                    if (Svalue == "Add") {
-                        Swal.fire({
-                            title: 'Added!',
-                            text: 'The paper presentation has been successfully added.',
-                            icon: 'success',
-                            timer: 600,  // Automatically closes after 2 seconds
-                            showConfirmButton: false,  // Hide the confirm button
-                            customClass: { confirmButton: 'btn-success' }
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Updated!',
-                            text: 'The paper presentation has been successfully updated.',
-                            icon: 'success',
-                            timer: 600,  // Automatically closes after 2 seconds
-                            showConfirmButton: false,  // Hide the confirm button
-                            customClass: { confirmButton: 'btn-success' }
-                        });
-                    }
+                    Swal.fire({
+                        title: Svalue == "Add" ? 'Added!' : 'Updated!',
+                        text: 'The paper presentation has been successfully saved.',
+                        icon: 'success',
+                        timer: 800,  
+                        showConfirmButton: false,  
+                        customClass: { confirmButton: 'btn-success' }
+                    });
 
-                    // Reload the table data
-                    var researcherID = $('#researcherModala').data('id');  // Get the Researcher ID
-                    loadPaperPresentationTab(researcherID);  // Reload the table data
+                    var researcherID = $('#researcherModala').data('id');  
+                    loadPaperPresentationTab(researcherID);  
 
                     setTimeout(function () {
                         $('#message').html('');
@@ -90,30 +82,36 @@ $('#paperPresentationModal').on('hidden.bs.modal', function () {
     if ($('.modal.show').length > 0) {
         $('body').addClass('modal-open');
     }
-
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
 // Add New Paper Presentation
 $('#add_paper_presentation').click(function () {
-    $('#paper_presentation_form')[0].reset();  // Reset form fields
-    $('#paper_presentation_form').parsley().reset();  // Reset validation
-    $('#modal_title').text('Add Paper Presentation');  // Set modal title
+    $('#paper_presentation_form')[0].reset();  
+    $('#paper_presentation_form').parsley().reset();  
+    
+    $('#has_files_pp').val('None').trigger('change');
+    $('#new_files_container_pp').html('');
+    $('#existing_files_container_pp').html('');
+
+    $('#modal_title').text('Add Paper Presentation');  
     $('#action_paper_presentation').val('Add');
-    var rid = $('#researcherModala').data('id');  // Get the Researcher ID
-    $('#hidden_researcherID_pp').val(rid);  // Store Researcher ID in hidden field
+    var rid = $('#researcherModala').data('id');  
+    $('#hidden_researcherID_pp').val(rid);  
     $('#submit_button_paper_presentation').val('Add');
-    $('#paperPresentationModal').modal('show');  // Show the modal
+    $('#paperPresentationModal').modal('show');  
     $('#form_message').html('');
 });
 
 // Edit Existing Paper Presentation
 $(document).on('click', '.edit_button_paper_presentation', function () {
-    var paperPresentationID = $(this).data('id');  // Get the selected Paper Presentation ID
+    var paperPresentationID = $(this).data('id');  
 
     $('#paper_presentation_form')[0].reset();
     $('#paper_presentation_form').parsley().reset();
     $('#form_message').html('');
+    $('#new_files_container_pp').html('');
+    $('#existing_files_container_pp').html('');
 
     $.ajax({
         url: "actions/paper_presentation_action.php",
@@ -121,19 +119,49 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
         data: { paperPresentationID: paperPresentationID, action_paper_presentation: 'fetch_single' },
         dataType: 'JSON',
         success: function (data) {
-            const inputDatestarted_pp =data.date_paper; // MM-DD-YYYY format for started date
-   
-    // Convert started date
-    const [monthStarted, dayStarted, yearStarted] = inputDatestarted_pp.split('-');
-    const formattedDateStarted_pp = `${yearStarted}-${monthStarted}-${dayStarted}`;
+            
+            function parseLegacyDate(val) {
+                if (!val || val === 'null' || val === '0000-00-00') return '';
+                let str = String(val).trim().replace(/\//g, '-');
+                let parts = str.split('-');
+                if (parts.length === 1 && parts[0].length === 4) return `${parts[0]}-01-01`;
+                if (parts.length === 2) {
+                    if (parts[1].length === 4) return `${parts[1]}-${parts[0].padStart(2, '0')}-01`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-01`;
+                }
+                if (parts.length === 3) {
+                    if (parts[2].length === 4) return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+                return ''; 
+            }
 
             $('#title_pp').val(data.title);
             $('#conference_title').val(data.conference_title);
             $('#conference_venue').val(data.conference_venue);
             $('#conference_organizer').val(data.conference_organizer);
-            $('#date_paper').val(formattedDateStarted_pp);
+            $('#date_paper').val(parseLegacyDate(data.date_paper));
             $('#type_pp').val(data.type);
             $('#discipline').val(data.discipline);
+
+            // Handle Files
+            $('#has_files_pp').val(data.has_files).trigger('change');
+            
+            if(data.existing_files && data.existing_files.length > 0) {
+                var filesHtml = '';
+                data.existing_files.forEach(function(f) {
+                    filesHtml += `
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="pp_file_row_${f.id}">
+                            <div>
+                                <span class="badge badge-info mr-2">${f.category}</span>
+                                <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-pp-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                });
+                $('#existing_files_container_pp').html(filesHtml);
+            }
 
             $('#modal_title').text('Edit Paper Presentation');
             $('#action_paper_presentation').val('Edit');
@@ -144,21 +172,19 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
     });
 });
 
-// Handle Delete Button for Paper Presentation
-$(document).on('click', '.delete_button_paper_presentation', function () {
-    var paperPresentationID = $(this).data('id');  // Get the Paper Presentation ID to delete
+// Handle Delete Full Paper Presentation
+$(document).on('click', '.delete_button_paper_presentation, .delete_master_paper_presentation', function (e) {
+    e.preventDefault();
+    var paperPresentationID = $(this).data('id');  
     Swal.fire({
         title: 'Are you sure?',
-        text: 'You will not be able to recover this record!',
+        text: 'This will delete the record and all attached files!',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'No, keep it',
         reverseButtons: true,
-        customClass: {
-            confirmButton: 'btn-danger',
-            cancelButton: 'btn-secondary'
-        }
+        customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -170,27 +196,90 @@ $(document).on('click', '.delete_button_paper_presentation', function () {
                         title: 'Deleted!',
                         text: 'The paper presentation has been successfully deleted.',
                         icon: 'success',
-                        timer: 600,
+                        timer: 800,
                         showConfirmButton: false,
                     });
 
-                    // Reload the DataTable to reflect the deletion
                     var researcherID = $('#researcherModala').data('id');
-                    loadPaperPresentationTab(researcherID);  // Reload the table data after delete
-                    setTimeout(function () {
-                        $('#message').html('');
-                    }, 5000);
+                    if(researcherID) {
+                        loadPaperPresentationTab(researcherID); 
+                    } else {
+                        location.reload(); 
+                    }
+                }
+            });
+        }
+    });
+});
+
+// --- DYNAMIC FILE UPLOAD LOGIC ---
+$(document).on('change', '#has_files_pp', function() {
+    if($(this).val() === 'With') {
+        $('#dynamic_files_section_pp').slideDown(200);
+    } else {
+        $('#dynamic_files_section_pp').slideUp(200);
+        $('#new_files_container_pp').empty();
+    }
+});
+
+$(document).on('click', '#add_file_btn_pp', function() {
+    var fileRow = `
+        <div class="row align-items-center mb-2 new-file-row">
+            <div class="col-md-4">
+                <select name="pp_file_categories[]" class="form-control form-control-sm" required>
+                    <option value="">Select Category</option>
+                    <option value="Certificate">Certificate</option>
+                    <option value="Program">Program</option>
+                    <option value="Presentation Document">Presentation Document</option>
+                    <option value="MOA">MOA</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <input type="file" name="pp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
+            </div>
+            <div class="col-md-2 text-right">
+                <button type="button" class="btn btn-sm btn-danger remove-new-pp-file"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+    `;
+    $('#new_files_container_pp').append(fileRow);
+});
+
+$(document).on('click', '.remove-new-pp-file', function() {
+    $(this).closest('.new-file-row').remove();
+});
+
+// Delete Existing Server File via AJAX
+$(document).on('click', '.delete-existing-pp-file', function(e) {
+    e.preventDefault();
+    var btn = $(this);
+    var fileId = btn.attr('data-file-id');
+    var row = $('#pp_file_row_' + fileId);
+    
+    Swal.fire({
+        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+            $.ajax({
+                url: "actions/paper_presentation_action.php",
+                method: "POST",
+                data: { action_paper_presentation: 'delete_file', file_id: fileId },
+                dataType: "json",
+                success: function(data) {
+                    if(data.status === 'success') {
+                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                        row.fadeOut(300, function() { $(this).remove(); });
+                    } else {
+                        btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                        Swal.fire('Error', data.message, 'error');
+                    }
                 },
-                error: function (xhr, status, error) {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Something went wrong: ' + error,
-                        icon: 'error',
-                        confirmButtonText: 'Try Again',
-                        customClass: {
-                            confirmButton: 'btn-danger'
-                        }
-                    });
+                error: function(xhr) {
+                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                    console.error("Delete Error:", xhr.responseText);
+                    Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
                 }
             });
         }

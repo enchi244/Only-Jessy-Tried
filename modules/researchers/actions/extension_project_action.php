@@ -1,13 +1,61 @@
 <?php
 // extension_project_action.php
-
-include('../../../core/rms.php');  // Assuming this is your database handler class
-
+include('../../../core/rms.php');
 $object = new rms();
+
+if (!function_exists('parse_legacy_date_php')) {
+    function parse_legacy_date_php($date_str) {
+        if (empty($date_str) || $date_str === 'null' || $date_str === '0000-00-00') return '';
+        $date_str = trim(str_replace('/', '-', $date_str));
+        $parts = explode('-', $date_str);
+        if (count($parts) === 1 && strlen($parts[0]) === 4) { return $parts[0] . '-01-01'; }
+        if (count($parts) === 2) {
+            if (strlen($parts[1]) === 4) return $parts[1] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-01';
+            if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-01';
+        }
+        if (count($parts) === 3) {
+            if (strlen($parts[2]) === 4) return $parts[2] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+            if (strlen($parts[0]) === 4) return $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[2], 2, '0', STR_PAD_LEFT);
+        }
+        $time = strtotime($date_str);
+        return ($time !== false) ? date('Y-m-d', $time) : '';
+    }
+}
+
+if (!function_exists('handle_extension_files')) {
+    function handle_extension_files($object, $extension_id, $categories, $files) {
+        if(isset($files['name']) && is_array($files['name'])) {
+            $upload_dir = '../../../uploads/research_files/';
+            if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
+            
+            for($i = 0; $i < count($files['name']); $i++) {
+                if($files['error'][$i] == 0) {
+                    $category = isset($categories[$i]) ? $categories[$i] : 'Other';
+                    $original_name = basename($files['name'][$i]);
+                    $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+                    $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo($original_name, PATHINFO_FILENAME));
+                    $new_name = 'EXT_' . $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                    
+                    $target_file = $upload_dir . $new_name;
+                    $db_path = 'uploads/research_files/' . $new_name; 
+                    
+                    if(move_uploaded_file($files['tmp_name'][$i], $target_file)) {
+                        $object->query = "INSERT INTO tbl_extension_files (extension_id, file_category, file_name, file_path) VALUES (:eid, :cat, :fname, :fpath)";
+                        $object->execute([
+                            ':eid' => $extension_id,
+                            ':cat' => $category,
+                            ':fname' => $original_name,
+                            ':fpath' => $db_path
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+}
 
 if (isset($_POST["action_extension"])) {
 
-    // Fetch Extension Project data for the Researcher
     if ($_POST["action_extension"] == 'fetch_all') {
         $order_column = array('tbl_researchdata.familyName', 'tbl_extension_project_conducted.title', 'tbl_extension_project_conducted.funding_source', 'tbl_extension_project_conducted.target_beneficiaries_communities', 'tbl_extension_project_conducted.status_exct');
         $main_query = "SELECT tbl_extension_project_conducted.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix FROM tbl_extension_project_conducted LEFT JOIN tbl_researchdata ON tbl_extension_project_conducted.researcherID = tbl_researchdata.id";
@@ -45,42 +93,17 @@ if (isset($_POST["action_extension"])) {
     }
     
     if ($_POST["action_extension"] == 'fetch') {
-        $order_column = array(
-            'title',  
-            'start_date',  
-            'completed_date',  
-            'funding_source',  
-            'approved_budget',  
-            'target_beneficiaries_communities',  
-            'partners',  
-            'status_exct_exct',  
-            'terminal_report'  
-        );
-
-        $output = array();
+        $order_column = array('title', 'start_date', 'completed_date', 'funding_source', 'approved_budget', 'target_beneficiaries_communities', 'partners', 'status_exct', 'has_files');
 
         $main_query = "SELECT * FROM tbl_extension_project_conducted";
         $search_query = " WHERE researcherID = '" . $_POST["rid"] . "' ";
 
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
-            $search_query .= "AND (title LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR funding_source LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR target_beneficiaries_communities LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR partners LIKE '%" . $search_value . "%' ";
-            $search_query .= "OR status_exct LIKE '%" . $search_value . "%') ";
+            $search_query .= "AND (title LIKE '%" . $search_value . "%' OR funding_source LIKE '%" . $search_value . "%' OR target_beneficiaries_communities LIKE '%" . $search_value . "%' OR partners LIKE '%" . $search_value . "%' OR status_exct LIKE '%" . $search_value . "%') ";
         }
-
-        if (isset($_POST["order"])) {
-            $order_query = "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " ";
-        } else {
-            $order_query = "ORDER BY id ASC ";  
-        }
-
-        $limit_query = "";
-        if ($_POST["length"] != -1) {
-            $limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
-        }
+        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY id ASC ";
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
 
         $object->query = $main_query . $search_query . $order_query;
         $object->execute();
@@ -93,113 +116,79 @@ if (isset($_POST["action_extension"])) {
 
         $data = array();
         foreach ($result as $row) {
-            $file_badge = (!empty($row["terminal_report_file"])) ? ' <a href="../../uploads/documents/'.$row["terminal_report_file"].'" target="_blank" class="text-success ml-1" title="View File"><i class="fas fa-file-download"></i></a>' : '';
+            $file_badge = ($row["has_files"] == 'With') ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
             
             $sub_array = array();
             $sub_array[] = $row["title"];
-            $sub_array[] = $row["start_date"];
-            $sub_array[] = $row["completed_date"];
+            $sub_array[] = parse_legacy_date_php($row["start_date"]);
+            $sub_array[] = parse_legacy_date_php($row["completed_date"]);
             $sub_array[] = $row["funding_source"];
             $sub_array[] = $row["approved_budget"];
             $sub_array[] = $row["target_beneficiaries_communities"];
             $sub_array[] = $row["partners"];
             $sub_array[] = $row["status_exct"];
-            $sub_array[] = $row["terminal_report"] . $file_badge;
+            $sub_array[] = '<div align="center">' . $file_badge . '</div>';
             $sub_array[] = '
             <div align="center">
-                <button type="button" name="edit_button_extension" title="Edit Extension Project" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-primary btn-sm edit_button_extension_project" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button>
-                <button type="button" name="delete_button_extension" title="Delete Extension Project" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_button_extension_project" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button>
-            </div>
-            ';
+                <button type="button" name="edit_button_extension" title="Edit Extension Project" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" class="btn btn-primary btn-sm edit_button_extension_project" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button>
+                <button type="button" name="delete_button_extension" title="Delete Extension Project" style="margin-left: 5px;" class="btn btn-danger btn-sm delete_button_extension_project" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button>
+            </div>';
             $data[] = $sub_array;
         }
-
-        $output = array(
-            "draw" => intval($_POST["draw"]),
-            "recordsTotal" => $total_rows,
-            "recordsFiltered" => $filtered_rows,
-            "data" => $data
-        );
-
-        echo json_encode($output);
+        echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
+        exit;
     }
 
-    // Add new Extension Project
     if ($_POST["action_extension"] == 'Add') {
         $error = '';
         $success = '';
 
-        $timestamp = strtotime($_POST['start_date_extc']);
-        $start_date = date("m-d-Y", $timestamp);
-        $timestamp2 = strtotime($_POST['completion_date_extc']);
-        $completed_date = date("m-d-Y", $timestamp2);
+        $start_date = date("m-d-Y", strtotime($_POST['start_date_extc']));
+        $completed_date = date("m-d-Y", strtotime($_POST['completion_date_extc']));
+        $has_files = $_POST['has_files_extp'];
 
-        // Handle File Upload
-        $terminal_report_file = null;
-        if(isset($_FILES['terminal_report_file']['name']) && $_FILES['terminal_report_file']['name'] != '') {
-            $ext = pathinfo($_FILES['terminal_report_file']['name'], PATHINFO_EXTENSION);
-            $allowed = ['png', 'doc', 'docx', 'xls', 'xlsx', 'pdf'];
-            if(in_array(strtolower($ext), $allowed)) {
-                $new_name = 'ext_report_' . time() . '_' . rand(100,999) . '.' . $ext;
-                $path = '../../../uploads/documents/' . $new_name;
-                if(move_uploaded_file($_FILES['terminal_report_file']['tmp_name'], $path)) {
-                    $terminal_report_file = $new_name;
-                }
-            } else {
-                $error = '<div class="alert alert-danger">Invalid file format. Only PNG, DOC, DOCX, XLS, XLSX, and PDF allowed.</div>';
-            }
-        }
-
-        if ($error == '') {
-            $data = array(
-                ':researcherID' => $_POST['hidden_researcherID_extension'],
-                ':title' => $_POST['title_extp'],
-                ':start_date' => $start_date,
-                ':completed_date' => $completed_date,
-                ':funding_source' => $_POST['funding_source_exct'],
-                ':approved_budget' => $_POST['approved_budget_exct'],
-                ':target_beneficiaries_communities' => $_POST['target_beneficiaries_communities'],
-                ':partners' => $_POST['partners'],
-                ':status_exct' => $_POST['status_exct'],
-                ':terminal_report' => $_POST['terminal_report_extc'],
-                ':terminal_report_file' => $terminal_report_file
-            );
-
-            $object->query = "
-            INSERT INTO tbl_extension_project_conducted
-            (researcherID, title, start_date, completed_date, funding_source, approved_budget, target_beneficiaries_communities, partners, status_exct, terminal_report, terminal_report_file) 
-            VALUES 
-            (:researcherID, :title, :start_date, :completed_date, :funding_source, :approved_budget, :target_beneficiaries_communities, :partners, :status_exct, :terminal_report, :terminal_report_file)
-            ";
-            $object->execute($data);
-
-            $new_extension_id = $object->connect->lastInsertId();
-
-            if(isset($_POST['linked_research_projects']) && is_array($_POST['linked_research_projects'])) {
-                foreach($_POST['linked_research_projects'] as $research_id) {
-                    $object->query = "INSERT INTO tbl_extension_research_links (extension_id, research_id) VALUES ('".$new_extension_id."', '".intval($research_id)."')";
-                    $object->execute();
-                }
-            }
-
-            $success = '<div class="alert alert-success">Extension Project Added</div>';
-        }
-
-        $output = array(
-            'error' => $error,
-            'success' => $success
+        $data = array(
+            ':researcherID' => $_POST['hidden_researcherID_extension'],
+            ':title' => $_POST['title_extp'],
+            ':start_date' => $start_date,
+            ':completed_date' => $completed_date,
+            ':funding_source' => $_POST['funding_source_exct'],
+            ':approved_budget' => $_POST['approved_budget_exct'],
+            ':target_beneficiaries_communities' => $_POST['target_beneficiaries_communities'],
+            ':partners' => $_POST['partners'],
+            ':status_exct' => $_POST['status_exct'],
+            ':terminal_report' => 'Legacy Replaced', 
+            ':has_files' => $has_files
         );
 
-        echo json_encode($output);
+        $object->query = "
+        INSERT INTO tbl_extension_project_conducted
+        (researcherID, title, start_date, completed_date, funding_source, approved_budget, target_beneficiaries_communities, partners, status_exct, terminal_report, has_files) 
+        VALUES 
+        (:researcherID, :title, :start_date, :completed_date, :funding_source, :approved_budget, :target_beneficiaries_communities, :partners, :status_exct, :terminal_report, :has_files)
+        ";
+        $object->execute($data);
+        $new_extension_id = $object->connect->lastInsertId();
+
+        if(isset($_POST['linked_research_projects']) && is_array($_POST['linked_research_projects'])) {
+            foreach($_POST['linked_research_projects'] as $research_id) {
+                $object->query = "INSERT INTO tbl_extension_research_links (extension_id, research_id) VALUES ('".$new_extension_id."', '".intval($research_id)."')";
+                $object->execute();
+            }
+        }
+
+        if($has_files == 'With' && isset($_FILES['extp_files'])) {
+            $categories = isset($_POST['extp_file_categories']) ? $_POST['extp_file_categories'] : [];
+            handle_extension_files($object, $new_extension_id, $categories, $_FILES['extp_files']);
+        }
+
+        $success = '<div class="alert alert-success">Extension Project Added</div>';
+        echo json_encode(array('error' => $error, 'success' => $success));
+        exit;
     }
 
-    // Fetch single Extension Project data for editing
     if ($_POST["action_extension"] == 'fetch_single') {
-        $object->query = "
-        SELECT * FROM tbl_extension_project_conducted
-        WHERE id = '" . $_POST["extensionID"] . "'
-        ";
-
+        $object->query = "SELECT * FROM tbl_extension_project_conducted WHERE id = '" . $_POST["extensionID"] . "'";
         $result = $object->get_result();
         $data = array();
 
@@ -212,112 +201,134 @@ if (isset($_POST["action_extension"])) {
             $data['target_beneficiaries_communities'] = $row["target_beneficiaries_communities"];
             $data['partners'] = $row["partners"];
             $data['status_exct'] = $row["status_exct"];
-            $data['terminal_report'] = $row["terminal_report"];
-            $data['terminal_report_file'] = $row["terminal_report_file"];
+            $data['has_files'] = $row["has_files"];
         }
 
-        // Fetch Linked Projects Array
         $data['linked_projects'] = array();
         $object->query = "SELECT research_id FROM tbl_extension_research_links WHERE extension_id = '" . $_POST["extensionID"] . "'";
         $links = $object->get_result();
-        foreach($links as $link) {
-            $data['linked_projects'][] = (string)$link['research_id']; 
+        foreach($links as $link) { $data['linked_projects'][] = (string)$link['research_id']; }
+
+        $object->query = "SELECT id, file_category, file_name, file_path FROM tbl_extension_files WHERE extension_id = '".$_POST["extensionID"]."'";
+        $file_result = $object->get_result();
+        $files_array = [];
+        foreach($file_result as $f) {
+            $files_array[] = array(
+                'id' => $f['id'],
+                'category' => $f['file_category'],
+                'name' => $f['file_name'],
+                'path' => '../../' . $f['file_path'] 
+            );
         }
+        $data['existing_files'] = $files_array;
 
         echo json_encode($data);
+        exit;
     }
 
-    // Edit Extension Project
     if ($_POST["action_extension"] == 'Edit') {
         $error = '';
         $success = '';
 
-        $timestampu = strtotime($_POST['start_date_extc']);
-        $start_dateu = date("m-d-Y", $timestampu);
-        $timestamp2u = strtotime($_POST['completion_date_extc']);
-        $completed_dateu = date("m-d-Y", $timestamp2u);
+        $start_dateu = date("m-d-Y", strtotime($_POST['start_date_extc']));
+        $completed_dateu = date("m-d-Y", strtotime($_POST['completion_date_extc']));
+        $ext_id = $_POST['hidden_extensionID'];
+        $has_files = $_POST['has_files_extp'];
 
-        // Keep old file by default
-        $terminal_report_file = isset($_POST['hidden_terminal_report_file']) ? $_POST['hidden_terminal_report_file'] : null;
-
-        // If 'None' is selected, wipe the file
-        if($_POST['terminal_report_extc'] == 'None') {
-            $terminal_report_file = null;
-        } 
-        // Else process new upload if one exists
-        else if(isset($_FILES['terminal_report_file']['name']) && $_FILES['terminal_report_file']['name'] != '') {
-            $ext = pathinfo($_FILES['terminal_report_file']['name'], PATHINFO_EXTENSION);
-            $allowed = ['png', 'doc', 'docx', 'xls', 'xlsx', 'pdf'];
-            if(in_array(strtolower($ext), $allowed)) {
-                $new_name = 'ext_report_' . time() . '_' . rand(100,999) . '.' . $ext;
-                $path = '../../../uploads/documents/' . $new_name;
-                if(move_uploaded_file($_FILES['terminal_report_file']['tmp_name'], $path)) {
-                    $terminal_report_file = $new_name;
-                }
-            } else {
-                $error = '<div class="alert alert-danger">Invalid file format. Only PNG, DOC, DOCX, XLS, XLSX, and PDF allowed.</div>';
-            }
-        }
-
-        if ($error == '') {
-            $data = array(
-                ':title' => $_POST['title_extp'],
-                ':start_date' => $start_dateu,
-                ':completed_date' => $completed_dateu,
-                ':funding_source' => $_POST['funding_source_exct'],
-                ':approved_budget' => $_POST['approved_budget_exct'],
-                ':target_beneficiaries_communities' => $_POST['target_beneficiaries_communities'],
-                ':partners' => $_POST['partners'],
-                ':status_exct' => $_POST['status_exct'],
-                ':terminal_report' => $_POST['terminal_report_extc'],
-                ':terminal_report_file' => $terminal_report_file,
-                ':hidden_extensionID' => $_POST['hidden_extensionID']
-            );
-
-            $object->query = "
-            UPDATE tbl_extension_project_conducted
-            SET title = :title, 
-                start_date = :start_date, 
-                completed_date = :completed_date, 
-                funding_source = :funding_source, 
-                approved_budget = :approved_budget, 
-                target_beneficiaries_communities = :target_beneficiaries_communities, 
-                partners = :partners, 
-                status_exct = :status_exct, 
-                terminal_report = :terminal_report,
-                terminal_report_file = :terminal_report_file
-            WHERE id = :hidden_extensionID
-            ";
-
-            $object->execute($data);
-
-            // Sync Linked Research Projects
-            $ext_id = intval($_POST['hidden_extensionID']);
-            $object->query = "DELETE FROM tbl_extension_research_links WHERE extension_id = '".$ext_id."'";
-            $object->execute();
-
-            if(isset($_POST['linked_research_projects']) && is_array($_POST['linked_research_projects'])) {
-                foreach($_POST['linked_research_projects'] as $research_id) {
-                    $object->query = "INSERT INTO tbl_extension_research_links (extension_id, research_id) VALUES ('".$ext_id."', '".intval($research_id)."')";
-                    $object->execute();
-                }
-            }
-
-            $success = '<div class="alert alert-success">Extension Project Updated</div>';
-        }
-
-        $output = array(
-            'error' => $error,
-            'success' => $success
+        $data = array(
+            ':title' => $_POST['title_extp'],
+            ':start_date' => $start_dateu,
+            ':completed_date' => $completed_dateu,
+            ':funding_source' => $_POST['funding_source_exct'],
+            ':approved_budget' => $_POST['approved_budget_exct'],
+            ':target_beneficiaries_communities' => $_POST['target_beneficiaries_communities'],
+            ':partners' => $_POST['partners'],
+            ':status_exct' => $_POST['status_exct'],
+            ':has_files' => $has_files,
+            ':hidden_extensionID' => $ext_id
         );
 
-        echo json_encode($output);
+        $object->query = "
+        UPDATE tbl_extension_project_conducted
+        SET title = :title, 
+            start_date = :start_date, 
+            completed_date = :completed_date, 
+            funding_source = :funding_source, 
+            approved_budget = :approved_budget, 
+            target_beneficiaries_communities = :target_beneficiaries_communities, 
+            partners = :partners, 
+            status_exct = :status_exct, 
+            has_files = :has_files
+        WHERE id = :hidden_extensionID
+        ";
+        $object->execute($data);
+
+        $object->query = "DELETE FROM tbl_extension_research_links WHERE extension_id = '".$ext_id."'";
+        $object->execute();
+
+        if(isset($_POST['linked_research_projects']) && is_array($_POST['linked_research_projects'])) {
+            foreach($_POST['linked_research_projects'] as $research_id) {
+                $object->query = "INSERT INTO tbl_extension_research_links (extension_id, research_id) VALUES ('".$ext_id."', '".intval($research_id)."')";
+                $object->execute();
+            }
+        }
+
+        if($has_files == 'With' && isset($_FILES['extp_files'])) {
+            $categories = isset($_POST['extp_file_categories']) ? $_POST['extp_file_categories'] : [];
+            handle_extension_files($object, $ext_id, $categories, $_FILES['extp_files']);
+        }
+
+        if($has_files == 'None') {
+            $clean_id = intval($ext_id);
+            $object->query = "SELECT file_path FROM tbl_extension_files WHERE extension_id = '".$clean_id."'";
+            $files_to_delete = $object->get_result();
+            foreach($files_to_delete as $file) {
+                $physical_path = '../../../' . $file['file_path'];
+                if(file_exists($physical_path)) { unlink($physical_path); }
+            }
+            $object->query = "DELETE FROM tbl_extension_files WHERE extension_id = '".$clean_id."'";
+            $object->execute();
+        }
+
+        $success = '<div class="alert alert-success">Extension Project Updated</div>';
+        echo json_encode(array('error' => $error, 'success' => $success));
+        exit;
     }
 
-    // Delete Extension Project
+    if($_POST["action_extension"] == 'delete_file') {
+        $file_id = intval($_POST['file_id']);
+        $object->query = "SELECT file_path FROM tbl_extension_files WHERE id = '".$file_id."'";
+        $file_data = $object->get_result();
+        
+        $file_deleted = false;
+        foreach($file_data as $row) {
+            $file_deleted = true;
+            $physical_path = '../../../' . $row['file_path'];
+            if(file_exists($physical_path)) { unlink($physical_path); }
+        }
+        
+        if($file_deleted) {
+            $object->query = "DELETE FROM tbl_extension_files WHERE id = '".$file_id."'";
+            $object->execute();
+            echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'File not found.']);
+        }
+        exit;
+    }
+
     if ($_POST["action_extension"] == 'delete') {
         $ext_id = intval($_POST["extensionID"]);
         
+        $object->query = "SELECT file_path FROM tbl_extension_files WHERE extension_id = '".$ext_id."'";
+        $files_to_delete = $object->get_result();
+        foreach($files_to_delete as $file) {
+            $physical_path = '../../../' . $file['file_path'];
+            if(file_exists($physical_path)) { unlink($physical_path); }
+        }
+        $object->query = "DELETE FROM tbl_extension_files WHERE extension_id = '".$ext_id."'";
+        $object->execute();
+
         $object->query = "DELETE FROM tbl_extension_research_links WHERE extension_id = '" . $ext_id . "'";
         $object->execute();
 
@@ -325,6 +336,7 @@ if (isset($_POST["action_extension"])) {
         $object->execute();
 
         echo '<div class="alert alert-success">Extension Project Deleted</div>';
+        exit;
     }
 }
 ?>

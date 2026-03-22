@@ -123,15 +123,10 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 form-group mb-3">
+                    <div class="row border-bottom pb-3 mb-3">
+                        <div class="col-md-6 form-group mb-0">
                             <label for="status_exct"><i class="fas fa-info-circle mr-2 text-primary"></i>Status</label>
-                            <select 
-                                name="status_exct" 
-                                id="status_exct" 
-                                class="form-control" 
-                                required
-                            >
+                            <select name="status_exct" id="status_exct" class="form-control" required>
                                 <option value="">Select Status</option>
                                 <option value="Ongoing">Ongoing</option>
                                 <option value="Completed">Completed</option>
@@ -139,28 +134,23 @@
                             </select>
                         </div>
 
-                        <div class="col-md-6 form-group mb-3">
-                            <label for="terminal_report_extc"><i class="fas fa-file-alt mr-2 text-primary"></i>Terminal Report</label>
-                            <select 
-                                name="terminal_report_extc" 
-                                id="terminal_report_extc" 
-                                class="form-control" 
-                                required
-                            >
-                                <option value="">Select Status</option>
-                                <option value="With">With</option>
+                        <div class="col-md-6 form-group mb-0">
+                            <label for="has_files_extp"><i class="fas fa-paperclip mr-2 text-primary"></i>File Attachments</label>
+                            <select name="has_files_extp" id="has_files_extp" class="form-control" required>
                                 <option value="None">None</option>
+                                <option value="With">With Files</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="row" id="terminal_report_file_container" style="display: none;">
-                        <div class="col-md-12 form-group mb-3 p-3 bg-light rounded border">
-                            <label for="terminal_report_file"><i class="fas fa-cloud-upload-alt mr-2 text-danger"></i>Upload Terminal Report Document</label>
-                            <input type="file" name="terminal_report_file" id="terminal_report_file" class="form-control-file" accept=".png, .doc, .docx, .xls, .xlsx, .pdf" />
-                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i>Accepted formats: PNG, PDF, DOC, DOCX, XLS, XLSX</small>
-                            <div id="existing_file_link" class="mt-2 font-weight-bold"></div>
+                    <div id="dynamic_files_section_extp" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
+                            <button type="button" class="btn btn-sm btn-primary" id="add_file_btn_extp"><i class="fas fa-plus mr-1"></i> Add File</button>
                         </div>
+
+                        <div id="existing_files_container_extp" class="mb-3"></div>
+                        <div id="new_files_container_extp"></div>
                     </div>
 
                 </div>
@@ -168,10 +158,7 @@
                 <div class="modal-footer border-top-0 pt-0">
                     <input type="hidden" name="hidden_researcherID_extension" id="hidden_researcherID_extension" />
                     <input type="hidden" name="hidden_extensionID" id="hidden_extensionID" />
-                    <input type="hidden" name="hidden_terminal_report_file" id="hidden_terminal_report_file" />
-                    
                     <input type="hidden" name="action_extension" id="action_extension" value="Add" />
-                    
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                     <button type="submit" id="submit_button_extension" class="btn btn-danger pink px-4">Save Data</button>
                 </div>
