@@ -407,6 +407,10 @@ if($_POST["action_publication"] == 'fetch_all')
 			$search_value = $_POST["search"]["value"];
 			$search_query .= "AND (tbl_publication.title LIKE '%" . $search_value . "%' ";
 			$search_query .= "OR tbl_researchdata.familyName LIKE '%" . $search_value . "%' ";
+			$search_query .= "OR tbl_researchdata.firstName LIKE '%" . $search_value . "%' ";
+			$search_query .= "OR tbl_researchdata.middleName LIKE '%" . $search_value . "%' ";
+			$search_query .= "OR CONCAT(tbl_researchdata.firstName, ' ', tbl_researchdata.familyName) LIKE '%" . $search_value . "%' ";
+			$search_query .= "OR CONCAT(tbl_researchdata.familyName, ', ', tbl_researchdata.firstName) LIKE '%" . $search_value . "%' ";
 			$search_query .= "OR tbl_publication.journal LIKE '%" . $search_value . "%' ) ";
 		}
 

@@ -14,7 +14,12 @@ if (isset($_POST["action_intellectualprop"])) {
         $search_query = " WHERE 1=1 ";
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
-            $search_query .= "AND (tbl_itelectualprop.title LIKE '%" . $search_value . "%' OR tbl_researchdata.familyName LIKE '%" . $search_value . "%') ";
+            $search_query .= "AND (tbl_itelectualprop.title LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR tbl_researchdata.familyName LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR tbl_researchdata.firstName LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR tbl_researchdata.middleName LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR CONCAT(tbl_researchdata.firstName, ' ', tbl_researchdata.familyName) LIKE '%" . $search_value . "%' ";
+            $search_query .= "OR CONCAT(tbl_researchdata.familyName, ', ', tbl_researchdata.firstName) LIKE '%" . $search_value . "%') ";
         }
         $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY tbl_itelectualprop.id DESC ";
         $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";

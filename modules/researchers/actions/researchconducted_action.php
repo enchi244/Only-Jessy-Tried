@@ -91,6 +91,10 @@ if(isset($_POST["action_researchedconducted"]))
             $search_value = $_POST["search"]["value"];
             $search_query .= " AND (rc.title LIKE '%" . $search_value . "%' ";
             $search_query .= " OR pd.familyName LIKE '%" . $search_value . "%' ";
+            $search_query .= " OR pd.firstName LIKE '%" . $search_value . "%' ";
+            $search_query .= " OR pd.middleName LIKE '%" . $search_value . "%' ";
+            $search_query .= " OR CONCAT(pd.firstName, ' ', pd.familyName) LIKE '%" . $search_value . "%' ";
+            $search_query .= " OR CONCAT(pd.familyName, ', ', pd.firstName) LIKE '%" . $search_value . "%' ";
             $search_query .= " OR rc.research_agenda_cluster LIKE '%" . $search_value . "%') ";
         }
 
