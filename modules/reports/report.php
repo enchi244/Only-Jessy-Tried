@@ -21,7 +21,7 @@ if (!$object->is_master_user()) {
 if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
     header('Content-Type: application/json');
     
-    $allowed_tables = ['tbl_publication', 'tbl_researchconducted', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended'];
+    $allowed_tables = ['tbl_publication', 'tbl_researchconducted', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted'];
     $repp = $_POST['repp'];
     
     if (!in_array($repp, $allowed_tables) && $repp !== 'all_modules') {
@@ -30,6 +30,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
     }
     
     $department = trim($_POST['department']);
+    $filter_status = isset($_POST['status']) ? strtolower($_POST['status']) : 'all';
     
     $is_all_time = empty($_POST['from_date']) && empty($_POST['to_date']);
     $from_date_ts = empty($_POST['from_date']) ? 0 : strtotime($_POST['from_date']);
@@ -44,11 +45,21 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         $final_data_output = [];
 
         foreach ($tables_to_process as $current_table) {
-            // INJECTED SO_FILE and MOA_FILE directly into the extraction query!
+            
+            // THE FIX: Dynamically fetch Co-Authors if the table supports Collaborators!
+            $co_authors_sql = "";
+            if ($current_table === 'tbl_researchconducted') {
+                $co_authors_sql = ", (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
+                                      FROM tbl_research_collaborators col 
+                                      JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
+                                      WHERE col.research_id = r.id AND col.researcher_id != r.researcherID) AS `Co_Authors`";
+            }
+
             $query = "SELECT d.department AS `Department`, 
-                             CONCAT(d.firstName, ' ', d.familyName) AS `Researcher_Name`, 
+                             CONCAT(d.firstName, ' ', d.familyName) AS `Lead_Researcher`, 
                              d.so_file AS `so_file`,
-                             r.moa_file AS `moa_file`,
+                             r.moa_file AS `moa_file`
+                             {$co_authors_sql},
                              r.* FROM {$current_table} r 
                       JOIN tbl_researchdata d ON r.researcherID = d.id";
                       
@@ -68,8 +79,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
             
             while ($row = $result->fetch_assoc()) {
                 
+                // 1. Check Date Match
                 $date_matched = false;
-                
                 if ($is_all_time) {
                     $date_matched = true;
                 } else {
@@ -88,20 +99,53 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         }
                     }
                 }
+
+                // 2. Check Status Match 
+                $status_matched = true;
+                if ($filter_status !== 'all') {
+                    $row_stat_val = '';
+                    
+                    if (isset($row['stat'])) $row_stat_val = strtolower(trim($row['stat']));
+                    elseif (isset($row['status_exct'])) $row_stat_val = strtolower(trim($row['status_exct']));
+                    elseif (isset($row['status'])) $row_stat_val = strtolower(trim($row['status']));
+                    
+                    if ($row_stat_val !== '') {
+                        if ($filter_status === 'completed') {
+                            if (strpos($row_stat_val, 'complet') === false && strpos($row_stat_val, 'finish') === false) {
+                                $status_matched = false;
+                            }
+                        } elseif ($filter_status === 'ongoing') {
+                            if (!preg_match('/ongoing|on-going|on going|progress|active|implement/i', $row_stat_val)) {
+                                $status_matched = false;
+                            }
+                        }
+                    } else {
+                        $status_matched = false;
+                    }
+                }
                 
+                // 3. Format Data Cleanly for Excel/PDF Export
                 $clean_row = array();
                 $title_val = ''; 
                 
-                // Force strict column ordering so Excel looks beautiful
                 $clean_row['Department'] = htmlspecialchars($row['Department'] ?? '', ENT_QUOTES, 'UTF-8');
-                $clean_row['Researcher_Name'] = htmlspecialchars($row['Researcher_Name'] ?? '', ENT_QUOTES, 'UTF-8');
+                $clean_row['Lead_Researcher'] = htmlspecialchars($row['Lead_Researcher'] ?? '', ENT_QUOTES, 'UTF-8');
+                
+                // Safely format Co-Authors for all modules
+                if (isset($row['Co_Authors']) && !empty($row['Co_Authors'])) {
+                    $clean_row['Co_Authors'] = htmlspecialchars($row['Co_Authors'], ENT_QUOTES, 'UTF-8');
+                } elseif (isset($row['coauth']) && !empty($row['coauth'])) {
+                    $clean_row['Co_Authors'] = htmlspecialchars($row['coauth'], ENT_QUOTES, 'UTF-8');
+                } else {
+                    $clean_row['Co_Authors'] = 'None';
+                }
+
                 $clean_row['SO_Attached'] = !empty($row['so_file']) ? 'Yes' : 'None';
                 $clean_row['MOA_Attached'] = !empty($row['moa_file']) ? 'Yes' : 'None';
                 
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
-                    // Skip system keys and manually placed keys
-                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'status' || $kl === 'department' || $kl === 'researcher_name' || $kl === 'so_file' || $kl === 'moa_file') continue;
+                    if (in_array($kl, ['id', 'researcherid', 'status', 'department', 'lead_researcher', 'researcher_name', 'so_file', 'moa_file', 'co_authors', 'coauth'])) continue;
                     
                     $clean_row[$k] = htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
                     if ($kl === 'title') $title_val = $clean_row[$k];
@@ -113,34 +157,30 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                     $row_hash = md5(implode('|', $clean_row)); 
                 }
                 
-                if ($date_matched) {
+                if ($date_matched && $status_matched) {
                     $titles_in_range[$row_hash] = true;
                 }
                 
                 if (!isset($grouped_data[$row_hash])) {
                     $grouped_data[$row_hash] = $clean_row;
                 } else {
-                    // Merge Names
-                    $existing_names = explode(', ', $grouped_data[$row_hash]['Researcher_Name']);
-                    if (!in_array($clean_row['Researcher_Name'], $existing_names)) {
-                        $grouped_data[$row_hash]['Researcher_Name'] .= ', ' . $clean_row['Researcher_Name'];
+                    $existing_names = explode(', ', $grouped_data[$row_hash]['Lead_Researcher']);
+                    if (!in_array($clean_row['Lead_Researcher'], $existing_names)) {
+                        $grouped_data[$row_hash]['Lead_Researcher'] .= ', ' . $clean_row['Lead_Researcher'];
                     }
-                    // Merge Departments
                     $existing_depts = explode(', ', $grouped_data[$row_hash]['Department']);
                     if (!in_array($clean_row['Department'], $existing_depts)) {
                         $grouped_data[$row_hash]['Department'] .= ', ' . $clean_row['Department'];
                     }
-                    // Sync File Indicators (If anyone has an SO/MOA, mark the project as Yes)
                     if ($clean_row['SO_Attached'] === 'Yes') $grouped_data[$row_hash]['SO_Attached'] = 'Yes';
                     if ($clean_row['MOA_Attached'] === 'Yes') $grouped_data[$row_hash]['MOA_Attached'] = 'Yes';
                 }
             }
             
-            // Map the grouped data
             foreach ($grouped_data as $hash => $group) {
                 if (isset($titles_in_range[$hash])) {
                     if ($repp === 'all_modules') {
-                        $module_category = ucwords(str_replace(['tbl_', 'itelectualprop'], ['', 'intellectual_property'], $current_table));
+                        $module_category = ucwords(str_replace(['tbl_', 'itelectualprop', '_project_conducted'], ['', 'intellectual_property', ''], $current_table));
                         $module_category = str_replace('_', ' ', $module_category);
                         
                         $extra_details = [];
@@ -148,7 +188,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         
                         foreach ($group as $k => $v) {
                             $kl = strtolower($k);
-                            if ($v !== '' && !in_array($kl, ['title', 'researcher_name', 'department', 'so_attached', 'moa_attached'])) {
+                            if ($v !== '' && !in_array($kl, ['title', 'lead_researcher', 'co_authors', 'department', 'so_attached', 'moa_attached'])) {
                                 if (strpos($kl, 'date') !== false || strpos($kl, 'start') !== false || strpos($kl, 'end') !== false) {
                                     $relevant_date = $v;
                                 } else {
@@ -161,7 +201,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                             'Module_Category' => $module_category,
                             'Research_Title' => $group['title'] ?? 'N/A',
                             'Department' => $group['Department'] ?? 'N/A',
-                            'Researchers' => $group['Researcher_Name'] ?? 'N/A',
+                            'Lead_Researcher' => $group['Lead_Researcher'] ?? 'N/A',
+                            'Co_Authors' => $group['Co_Authors'] ?? 'None',
                             'SO_Attached' => $group['SO_Attached'],
                             'MOA_Attached' => $group['MOA_Attached'],
                             'Relevant_Date' => $relevant_date,
@@ -212,6 +253,9 @@ include('../../includes/header.php');
     .form-control-custom:focus {
         background-color: #ffffff; border-color: #2c7be5; box-shadow: 0 0 0 3px rgba(44, 123, 229, 0.15); outline: none;
     }
+    .form-control-custom:disabled {
+        background-color: #eaecf4; color: #b7b9cc; cursor: not-allowed; border-color: #eaecf4;
+    }
     
     .btn-enterprise-search {
         background-color: #2c7be5; color: #fff; border: none; border-radius: 8px; height: 42px; width: 100%; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
@@ -224,15 +268,12 @@ include('../../includes/header.php');
     .dt-buttons .btn-success:hover { background-color: #00b368 !important; box-shadow: 0 4px 6px rgba(0, 210, 122, 0.2); }
     .dt-buttons .btn-info { background-color: #39afd1 !important; border-color: #39afd1 !important; color: #fff !important; border-radius: 6px; font-weight: 600; padding: 0.4rem 1rem; margin-left: 8px; }
     .dt-buttons .btn-info:hover { background-color: #2b9cbd !important; box-shadow: 0 4px 6px rgba(57, 175, 209, 0.2); }
-    
     .dt-buttons .btn-danger { background-color: #e74a3b !important; border-color: #e74a3b !important; color: #fff !important; border-radius: 6px; font-weight: 600; padding: 0.4rem 1rem; margin-left: 8px; }
     .dt-buttons .btn-danger:hover { background-color: #be2617 !important; box-shadow: 0 4px 6px rgba(231, 74, 59, 0.2); }
-    
     .dt-buttons .btn-primary { background-color: #2c7be5 !important; border-color: #2c7be5 !important; color: #fff !important; border-radius: 6px; font-weight: 600; padding: 0.4rem 1rem; margin-left: 8px; }
     .dt-buttons .btn-primary:hover { background-color: #1a68d1 !important; box-shadow: 0 4px 6px rgba(44, 123, 229, 0.2); }
     
     .badge-soft-success { background-color: rgba(0, 210, 122, 0.15); color: #00d27a; font-weight: 700; padding: 0.5em 0.8em; border-radius: 6px; }
-
     .table-enterprise { border-collapse: separate; border-spacing: 0; width: 100%; }
     .table-enterprise thead th { background-color: #f9fbfd; color: #6e84a3; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #edf2f9; border-top: none; padding: 1rem; white-space: nowrap; }
     .table-enterprise tbody td { padding: 1rem; color: #12263f; font-size: 0.95rem; vertical-align: middle; border-bottom: 1px solid #edf2f9; }
@@ -259,12 +300,14 @@ include('../../includes/header.php');
         <div class="enterprise-card-body">
             <form id="filterForm">
                 <div class="row align-items-end">
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    
+                    <div class="col-lg-2 col-md-6 mb-3">
                         <label class="form-label-custom">Target Module</label>
                         <select name="repp" id="repp" class="form-control-custom w-100">
-                            <option value="all_modules" style="font-weight: bold;">All Modules (Comprehensive History)</option>
+                            <option value="all_modules" style="font-weight: bold;">All Modules</option>
                             <option value="tbl_publication">Publication</option>
                             <option value="tbl_researchconducted">Research Conducted</option>
+                            <option value="tbl_extension_project_conducted">Extension Projects</option>
                             <option value="tbl_itelectualprop">Intellectual Property</option>
                             <option value="tbl_paperpresentation">Paper Presentation</option>
                             <option value="tbl_trainingsattended">Trainings Attended</option>
@@ -285,17 +328,26 @@ include('../../includes/header.php');
                         </select>
                     </div>
 
+                    <div class="col-lg-2 col-md-4 mb-3" id="statusFilterContainer">
+                        <label class="form-label-custom text-info"><i class="fas fa-tasks mr-1"></i> Project Status</label>
+                        <select name="status" id="status" class="form-control-custom w-100 border-info">
+                            <option value="all">All Statuses</option>
+                            <option value="ongoing">On-going</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+
                     <div class="col-lg-2 col-md-4 mb-3">
-                        <label class="form-label-custom">Start Date (Optional)</label>
+                        <label class="form-label-custom">Start Date</label>
                         <input type="date" name="from_date" id="from_date" class="form-control-custom w-100">
                     </div>
 
                     <div class="col-lg-2 col-md-4 mb-3">
-                        <label class="form-label-custom">End Date (Optional)</label>
+                        <label class="form-label-custom">End Date</label>
                         <input type="date" name="to_date" id="to_date" class="form-control-custom w-100">
                     </div>
 
-                    <div class="col-lg-2 col-md-4 mb-3">
+                    <div class="col-lg-1 col-md-12 mb-3">
                         <button type="button" id="previewBtn" class="btn-enterprise-search" title="Run Query">
                             <i class="fas fa-search"></i>
                         </button>
@@ -334,6 +386,21 @@ include('../../includes/header.php');
 <script>
 $(document).ready(function() {
     
+    $('#repp').on('change', function() {
+        var selectedModule = $(this).val();
+        var statusAllowedModules = ['tbl_researchconducted', 'tbl_extension_project_conducted'];
+        
+        if (!statusAllowedModules.includes(selectedModule)) {
+            $('#status').val('all').prop('disabled', true);
+            $('#statusFilterContainer').css('opacity', '0.5'); 
+        } else {
+            $('#status').prop('disabled', false);
+            $('#statusFilterContainer').css('opacity', '1'); 
+        }
+    });
+    
+    $('#repp').trigger('change');
+
     $('#filterForm').on('submit', function(e) {
         e.preventDefault();
         $('#previewBtn').click();
@@ -344,6 +411,7 @@ $(document).ready(function() {
         var toDate = $('#to_date').val();
         var department = $('#department').val();
         var repp = $('#repp').val();
+        var statusFilter = $('#status').val(); 
 
         if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
             Swal.fire({ icon: 'error', title: 'Invalid Timeline', text: 'The Start Date cannot be chronologically after the End Date.', confirmButtonColor: '#2c7be5' });
@@ -358,7 +426,7 @@ $(document).ready(function() {
         $.ajax({
             url: 'report.php',
             type: 'POST',
-            data: { action: 'preview_report', from_date: fromDate, to_date: toDate, department: department, repp: repp },
+            data: { action: 'preview_report', from_date: fromDate, to_date: toDate, department: department, repp: repp, status: statusFilter },
             dataType: 'json',
             success: function(response) {
                 Swal.close();
@@ -462,6 +530,7 @@ $(document).ready(function() {
                                         var p_toDate = $('#to_date').val();
                                         var p_department = encodeURIComponent($('#department').val());
                                         var p_repp = $('#repp').val();
+                                        var p_status = $('#status').val(); 
                                         var cb = new Date().getTime(); 
 
                                         const swalLoading = Swal.fire({ 
@@ -474,7 +543,7 @@ $(document).ready(function() {
                                         });
 
                                         setTimeout(function() {
-                                            window.open('print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&repp=' + p_repp + '&format=word&_cb=' + cb, '_blank');
+                                            window.open('print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&repp=' + p_repp + '&status=' + p_status + '&format=word&_cb=' + cb, '_blank');
                                             swalLoading.close();
                                         }, 800);
                                     }
@@ -487,6 +556,7 @@ $(document).ready(function() {
                                         var p_toDate = $('#to_date').val();
                                         var p_department = encodeURIComponent($('#department').val());
                                         var p_repp = $('#repp').val();
+                                        var p_status = $('#status').val(); 
                                         var cb = new Date().getTime(); 
 
                                         const swalLoading = Swal.fire({ 
@@ -499,7 +569,7 @@ $(document).ready(function() {
                                         });
 
                                         setTimeout(function() {
-                                            window.open('print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&repp=' + p_repp + '&format=pdf&_cb=' + cb, '_blank');
+                                            window.open('print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&repp=' + p_repp + '&status=' + p_status + '&format=pdf&_cb=' + cb, '_blank');
                                             swalLoading.close();
                                         }, 800);
                                     }

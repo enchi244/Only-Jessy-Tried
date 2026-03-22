@@ -26,16 +26,32 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         }
     }
 
-    function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = []) {
+   function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = []) {
         $total_rows = 0; 
         $dept_counts = $base_depts; 
         $distinct_vals = [];
         $unique_titles = [];
+        
+        // Tracker to prevent double-counting if multiple people from the SAME department are on ONE project
+        $dept_tracked_items = []; 
 
+// UPDATED: Use junction tables for multiple modules to include all co-researchers' departments
         if ($is_researcher) {
-            $query = "SELECT department, user_created_on FROM {$table}";
+            $query = "SELECT id, department, user_created_on FROM {$table}";
+        } else if ($table === 'tbl_researchconducted') {
+            $query = "SELECT d.department, r.* FROM {$table} r 
+                      LEFT JOIN tbl_research_collaborators col ON r.id = col.research_id 
+                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id";
+        } else if ($table === 'tbl_publication') {
+            $query = "SELECT d.department, r.* FROM {$table} r 
+                      LEFT JOIN tbl_publication_collaborators col ON r.id = col.publication_id 
+                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id";
+        } else if ($table === 'tbl_paperpresentation') {
+            $query = "SELECT d.department, r.* FROM {$table} r 
+                      LEFT JOIN tbl_paper_collaborators col ON r.id = col.paper_id 
+                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id";
         } else {
-            $query = "SELECT d.department, r.* FROM {$table} r JOIN tbl_researchdata d ON r.researcherID = d.id";
+            $query = "SELECT d.department, r.* FROM {$table} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id";
         }
 
         $res = @$conn->query($query);
@@ -53,7 +69,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                             $ts = strtotime($val_clean);
                             if ($ts !== false) {
                                 $record_year = date('Y', $ts);
-                                // NEW LOGIC: Checks if the record year falls within the range
+                                // Checks if the record year falls within the range
                                 if ($record_year >= $from_year && $record_year <= $to_year) {
                                     $match = true;
                                     break;
@@ -67,9 +83,27 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                     $total_rows++;
                     $dept = !empty($row['department']) ? $row['department'] : 'Unknown';
                     
-                    if(!isset($dept_counts[$dept])) $dept_counts[$dept] = 0;
-                    $dept_counts[$dept]++;
+                    // FIX: Safe fallback for item_id if 'id' or title doesn't exist in the database row
+                    $item_id = uniqid(); 
+                    if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
+                        $item_id = strtolower(trim($row[$title_col]));
+                    } else if (isset($row['id'])) {
+                        $item_id = $row['id'];
+                    }
+
+                    if (!isset($dept_tracked_items[$dept])) {
+                        $dept_tracked_items[$dept] = [];
+                    }
+
+                    // Only give the department a point if they haven't been credited for this exact project yet
+                    if (!isset($dept_tracked_items[$dept][$item_id])) {
+                        $dept_tracked_items[$dept][$item_id] = true;
+                        
+                        if(!isset($dept_counts[$dept])) $dept_counts[$dept] = 0;
+                        $dept_counts[$dept]++;
+                    }
                     
+                    // Standard unique counters
                     if ($distinct_col && isset($row[$distinct_col]) && !empty(trim($row[$distinct_col]))) {
                         $distinct_vals[trim($row[$distinct_col])] = true;
                     }
