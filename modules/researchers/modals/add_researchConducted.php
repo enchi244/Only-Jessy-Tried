@@ -1,6 +1,6 @@
 <div id="researchconductedModal" class="modal fade" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <form method="post" id="researchconducted_form" class="w-100">
+        <form method="post" id="researchconducted_form" class="w-100" enctype="multipart/form-data">
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title" id="modal_title">
@@ -29,10 +29,10 @@
                     </div>
 
                     <div class="form-group mb-4">
-                        <label for="collaborators"><i class="fas fa-users mr-2 text-primary"></i>Co-Researchers / Collaborators</label>
-                        <select name="collaborators[]" id="collaborators" multiple class="select form-control" style="width: 100%;">
+                        <label for="lead_researcher_id"><i class="fas fa-user-tie mr-2 text-primary"></i>Lead Researcher</label>
+                        <select name="lead_researcher_id" id="lead_researcher_id" class="form-control" required style="width: 100%;">
+                            <option value="">Select Lead Researcher</option>
                             <?php
-                            // Fetch all researchers for the dropdown
                             $object->query = "SELECT id, firstName, familyName FROM tbl_researchdata ORDER BY familyName ASC";
                             $researchers = $object->get_result();
                             foreach($researchers as $res) {
@@ -40,7 +40,21 @@
                             }
                             ?>
                         </select>
-                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> If adding from a profile, the profile owner is automatically linked. Select additional authors here.</small>
+                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> The primary author or project leader.</small>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label for="collaborators"><i class="fas fa-users mr-2 text-primary"></i>Co-Researchers / Collaborators</label>
+                        <select name="collaborators[]" id="collaborators" multiple class="select form-control" style="width: 100%;">
+                            <?php
+                            $object->query = "SELECT id, firstName, familyName FROM tbl_researchdata ORDER BY familyName ASC";
+                            $researchers_collab = $object->get_result();
+                            foreach($researchers_collab as $res) {
+                                echo '<option value="'.$res["id"].'">'.htmlspecialchars($res["familyName"] . ', ' . $res["firstName"]).'</option>';
+                            }
+                            ?>
+                        </select>
+                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> Select additional authors here.</small>
                     </div>
 
                     <div class="row">
@@ -127,34 +141,33 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 form-group mb-3">
+                    <div class="row border-bottom pb-3 mb-3">
+                        <div class="col-md-6 form-group mb-0">
                             <label for="stat"><i class="fas fa-info-circle mr-2 text-primary"></i>Status</label>
-                            <select 
-                                name="stat" 
-                                id="stat" 
-                                class="form-control" 
-                                required
-                            >
+                            <select name="stat" id="stat" class="form-control" required>
                                 <option value="">Select Status</option>
                                 <option value="On Going">On Going</option>
                                 <option value="Completed">Completed</option>
                             </select>
                         </div>
 
-                        <div class="col-md-6 form-group mb-3">
-                            <label for="terminal_report"><i class="fas fa-file-alt mr-2 text-primary"></i>Terminal Report</label>
-                            <select 
-                                name="terminal_report" 
-                                id="terminal_report" 
-                                class="form-control" 
-                                required
-                            >
-                                <option value="">Select Status</option>
-                                <option value="With">With</option>
+                        <div class="col-md-6 form-group mb-0">
+                            <label for="has_files"><i class="fas fa-paperclip mr-2 text-primary"></i>File Attachments</label>
+                            <select name="has_files" id="has_files" class="form-control" required>
                                 <option value="None">None</option>
+                                <option value="With">With Files</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div id="dynamic_files_section" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
+                            <button type="button" class="btn btn-sm btn-primary" id="add_file_btn"><i class="fas fa-plus mr-1"></i> Add File</button>
+                        </div>
+
+                        <div id="existing_files_container" class="mb-3"></div>
+                        <div id="new_files_container"></div>
                     </div>
 
                 </div>
