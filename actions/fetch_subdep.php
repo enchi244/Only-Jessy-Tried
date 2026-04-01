@@ -2,12 +2,24 @@
 include('../core/rms.php');
 $object = new rms();
 
+// Anti-Crash Helper Function
+function getSafeRows($obj) {
+    try {
+        $result = $obj->get_result();
+        if ($result && is_object($result) && method_exists($result, 'fetchAll')) {
+            return $result->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } catch (Exception $e) { }
+    return [];
+}
+
 if(isset($_POST["action"])) {
     
     // ==============================================================
     // ACTION 1: FETCH THE LIST OF ITEMS FOR THE MODAL (WITH IDs)
     // ==============================================================
     if($_POST["action"] == "fetch_modal_details") {
+        header('Content-Type: application/json'); // FORCES VALID JSON FORMAT
         $department = addslashes($_POST["department"]);
         $type = $_POST["type"];
         $data = array();
@@ -17,69 +29,32 @@ if(isset($_POST["action"])) {
 
         if($type == 'researchers') {
             $object->query = "SELECT id, firstName, familyName FROM tbl_researchdata WHERE $dept_query";
-            $result = $object->get_result();
-            if($result) {
-                foreach($result->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $data[] = array("id" => $row["id"], "text" => $row["firstName"]." ".$row["familyName"]);
-                }
-            }
         }
         elseif($type == 'research_conducted') {
             $object->query = "SELECT r.id, r.title FROM tbl_researchconducted r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE $d_dept_query";
-            $result = $object->get_result();
-            if($result) {
-                foreach($result->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $data[] = array("id" => $row["id"], "text" => ($row["title"] ?: 'Untitled Project'));
-                }
-            }
         }
         elseif($type == 'publications') {
             $object->query = "SELECT r.id, r.title FROM tbl_publication r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE $d_dept_query";
-            $result = $object->get_result();
-            if($result) {
-                foreach($result->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $data[] = array("id" => $row["id"], "text" => ($row["title"] ?: 'Untitled Publication'));
-                }
-            }
         }
         elseif($type == 'ip') {
             $object->query = "SELECT r.id, r.title FROM tbl_itelectualprop r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE $d_dept_query";
-            $result = $object->get_result();
-            if($result) {
-                foreach($result->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $data[] = array("id" => $row["id"], "text" => ($row["title"] ?: 'Untitled IP'));
-                }
-            }
         }
         elseif($type == 'paper_presentation') {
             $object->query = "SELECT r.id, r.title FROM tbl_paperpresentation r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE $d_dept_query";
-            $result = $object->get_result();
-            if($result) {
-                foreach($result->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $data[] = array("id" => $row["id"], "text" => ($row["title"] ?: 'Untitled Presentation'));
-                }
-            }
         }
         elseif($type == 'trainings') {
             $object->query = "SELECT r.id, r.title FROM tbl_trainingsattended r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE $d_dept_query";
-            $result = $object->get_result();
-            if($result) {
-                foreach($result->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $data[] = array("id" => $row["id"], "text" => ($row["title"] ?: 'Untitled Training'));
-                }
-            }
         }
         elseif($type == 'extension') {
             $object->query = "SELECT r.id, r.title FROM tbl_extension_project_conducted r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE $d_dept_query";
-            $result = $object->get_result();
-            if($result) {
-                foreach($result->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $data[] = array("id" => $row["id"], "text" => ($row["title"] ?: 'Untitled Project'));
-                }
-            }
         }
 
+        foreach(getSafeRows($object) as $row) {
+            $text = isset($row["title"]) ? $row["title"] : $row["firstName"]." ".$row["familyName"];
+            $data[] = array("id" => $row["id"], "text" => ($text ?: 'Untitled Record'));
+        }
         echo json_encode($data);
+        exit;
     }
 
 
@@ -98,8 +73,7 @@ if(isset($_POST["action"])) {
         // =========================================================================
         if($type == 'researchers') {
             $object->query = "SELECT * FROM tbl_researchdata WHERE id = '$id'";
-            $result = $object->get_result();
-            foreach($result as $row) {
+            foreach(getSafeRows($object) as $row) {
                 
                 $html .= "<tr><th width='30%' class='bg-white'>Full Name</th><td class='font-weight-bold text-primary bg-white' style='font-size: 1.1rem;'>{$row['firstName']} {$row['middleName']} {$row['familyName']} {$row['Suffix']}</td></tr>";
                 $html .= "<tr><th class='bg-white'>Department</th><td class='bg-white'>{$row['department']}</td></tr>";
@@ -107,7 +81,7 @@ if(isset($_POST["action"])) {
                 
                 $html .= "<tr class='bg-light'><th colspan='2' class='text-center text-dark py-3' style='font-size: 1.05rem;'><i class='fas fa-folder-open text-primary mr-2'></i> Research & Project Portfolio</th></tr>";
 
-                // 1. Research Conducted (WITH CO-AUTHORS ADDED)
+                // 1. Research Conducted 
                 $object->query = "
                     SELECT rc.title, rc.stat, rc.started_date, rc.moa_file,
                            (SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') 
@@ -118,7 +92,7 @@ if(isset($_POST["action"])) {
                     WHERE rc.id IN (SELECT research_id FROM tbl_research_collaborators WHERE researcher_id = '$id')
                        OR rc.researcherID = '$id'
                 ";
-                $res1 = $object->get_result()->fetchAll(PDO::FETCH_ASSOC);
+                $res1 = getSafeRows($object);
                 $html .= "<tr><th>Research Conducted</th><td>";
                 if(count($res1) > 0) {
                     $html .= "<ul class='pl-3 mb-0' style='font-size: 0.9rem;'>";
@@ -132,23 +106,34 @@ if(isset($_POST["action"])) {
                 } else { $html .= "<span class='text-muted'><em>No research projects found.</em></span>"; }
                 $html .= "</td></tr>";
 
-                // 2. Publications
-                $object->query = "SELECT title, journal, publication_date, moa_file FROM tbl_publication WHERE researcherID = '$id'";
-                $res2 = $object->get_result()->fetchAll(PDO::FETCH_ASSOC);
+                // 2. Publications (FIXED: Now pulls Co-Authors from tbl_publication_collaborators)
+                $object->query = "
+                    SELECT pub.title, pub.journal, pub.publication_date, pub.moa_file,
+                           (SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') 
+                            FROM tbl_publication_collaborators col 
+                            JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                            WHERE col.publication_id = pub.id AND col.researcher_id != '$id') AS co_authors
+                    FROM tbl_publication pub 
+                    WHERE pub.id IN (SELECT publication_id FROM tbl_publication_collaborators WHERE researcher_id = '$id')
+                       OR pub.researcherID = '$id'
+                ";
+                $res2 = getSafeRows($object);
                 $html .= "<tr><th>Publications</th><td>";
                 if(count($res2) > 0) {
                     $html .= "<ul class='pl-3 mb-0' style='font-size: 0.9rem;'>";
                     foreach($res2 as $r2) { 
                         $moa_btn = !empty($r2['moa_file']) ? "<a href='{$doc_path}{$r2['moa_file']}' target='_blank' class='badge badge-info ml-1 p-1'><i class='fas fa-paperclip'></i> View MOA</a>" : "";
-                        $html .= "<li class='mb-2'><strong>" . ($r2['title'] ?: 'Untitled Publication') . "</strong> {$moa_btn}<br><small class='text-muted'>Journal: {$r2['journal']} | Published: {$r2['publication_date']}</small></li>"; 
+                        $co_authors = !empty($r2['co_authors']) ? "<br><small class='text-primary'><i class='fas fa-users mr-1'></i><strong>Co-Authors:</strong> {$r2['co_authors']}</small>" : "";
+
+                        $html .= "<li class='mb-2'><strong>" . ($r2['title'] ?: 'Untitled Publication') . "</strong> {$moa_btn}{$co_authors}<br><small class='text-muted'>Journal: {$r2['journal']} | Published: {$r2['publication_date']}</small></li>"; 
                     }
                     $html .= "</ul>";
                 } else { $html .= "<span class='text-muted'><em>No publications found.</em></span>"; }
                 $html .= "</td></tr>";
 
-                // 3. Intellectual Property (WITH CO-AUTHORS INTEGRATED)
+                // 3. Intellectual Property 
                 $object->query = "SELECT title, type, date_granted, moa_file, coauth FROM tbl_itelectualprop WHERE researcherID = '$id'";
-                $res3 = $object->get_result()->fetchAll(PDO::FETCH_ASSOC);
+                $res3 = getSafeRows($object);
                 $html .= "<tr><th>Intellectual Property</th><td>";
                 if(count($res3) > 0) {
                     $html .= "<ul class='pl-3 mb-0' style='font-size: 0.9rem;'>";
@@ -162,9 +147,9 @@ if(isset($_POST["action"])) {
                 } else { $html .= "<span class='text-muted'><em>No intellectual property found.</em></span>"; }
                 $html .= "</td></tr>";
 
-                // 4. Paper Presentation
+                // 4. Paper Presentation (Left as Lead Proponent Only as requested)
                 $object->query = "SELECT title, conference_title, date_paper, moa_file FROM tbl_paperpresentation WHERE researcherID = '$id'";
-                $res4 = $object->get_result()->fetchAll(PDO::FETCH_ASSOC);
+                $res4 = getSafeRows($object);
                 $html .= "<tr><th>Paper Presentations</th><td>";
                 if(count($res4) > 0) {
                     $html .= "<ul class='pl-3 mb-0' style='font-size: 0.9rem;'>";
@@ -178,7 +163,7 @@ if(isset($_POST["action"])) {
 
                 // 5. Extension Projects
                 $object->query = "SELECT title, status_exct, start_date, moa_file FROM tbl_extension_project_conducted WHERE researcherID = '$id'";
-                $res5 = $object->get_result()->fetchAll(PDO::FETCH_ASSOC);
+                $res5 = getSafeRows($object);
                 $html .= "<tr><th>Extension Projects</th><td>";
                 if(count($res5) > 0) {
                     $html .= "<ul class='pl-3 mb-0' style='font-size: 0.9rem;'>";
@@ -192,7 +177,7 @@ if(isset($_POST["action"])) {
 
                 // 6. Trainings Attended
                 $object->query = "SELECT title, type, date_train, moa_file FROM tbl_trainingsattended WHERE researcherID = '$id'";
-                $res6 = $object->get_result()->fetchAll(PDO::FETCH_ASSOC);
+                $res6 = getSafeRows($object);
                 $html .= "<tr><th>Trainings Attended</th><td>";
                 if(count($res6) > 0) {
                     $html .= "<ul class='pl-3 mb-0' style='font-size: 0.9rem;'>";
@@ -212,7 +197,6 @@ if(isset($_POST["action"])) {
         // REGULAR MODULE DETAILS
         // =========================================================================
         elseif($type == 'research_conducted') {
-            // WITH CO-AUTHORS ADDED FOR STANDALONE POPUP
             $object->query = "
                 SELECT r.*, d.firstName, d.familyName,
                        (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
@@ -223,8 +207,7 @@ if(isset($_POST["action"])) {
                 JOIN tbl_researchdata d ON r.researcherID = d.id 
                 WHERE r.id = '$id'
             ";
-            $result = $object->get_result();
-            foreach($result as $row) {
+            foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
 
@@ -241,16 +224,30 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['stat']}</span></td></tr>";
                 $html .= "<tr><th>Terminal Report</th><td>{$row['terminal_report']}</td></tr>";
                 
-                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA</a>" : "<span class='text-muted'>None</span>") . "</td></tr>";
+                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA File</a>" : "<span class='text-muted'>None Attached</span>") . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'publications') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName FROM tbl_publication r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
-            $result = $object->get_result();
-            foreach($result as $row) {
+            // FIXED: Added subquery to pull Co-Authors for the Standalone Details view
+            $object->query = "
+                SELECT r.*, d.firstName, d.familyName,
+                       (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
+                        FROM tbl_publication_collaborators col 
+                        JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
+                        WHERE col.publication_id = r.id AND col.researcher_id != r.researcherID) AS co_authors
+                FROM tbl_publication r 
+                JOIN tbl_researchdata d ON r.researcherID = d.id 
+                WHERE r.id = '$id'
+            ";
+            foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
+
+                if (!empty($row['co_authors'])) {
+                    $html .= "<tr><th>Co-Authors</th><td class='text-primary font-weight-bold'><i class='fas fa-users mr-1'></i>{$row['co_authors']}</td></tr>";
+                }
+
                 $html .= "<tr><th>Journal</th><td>{$row['journal']}</td></tr>";
                 $html .= "<tr><th>Vol / Issue No.</th><td>{$row['vol_num_issue_num']}</td></tr>";
                 $html .= "<tr><th>ISSN / ISBN</th><td>{$row['issn_isbn']}</td></tr>";
@@ -259,14 +256,13 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>End Date</th><td>{$row['end']}</td></tr>";
                 $html .= "<tr><th>Publication Date</th><td>{$row['publication_date']}</td></tr>";
                 
-                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA</a>" : "<span class='text-muted'>None</span>") . "</td></tr>";
+                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA File</a>" : "<span class='text-muted'>None Attached</span>") . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'ip') {
             $object->query = "SELECT r.*, d.firstName, d.familyName FROM tbl_itelectualprop r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
-            $result = $object->get_result();
-            foreach($result as $row) {
+            foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
                 $html .= "<tr><th>Co-Authors</th><td>{$row['coauth']}</td></tr>";
@@ -274,14 +270,14 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Date Applied</th><td>{$row['date_applied']}</td></tr>";
                 $html .= "<tr><th>Date Granted</th><td>{$row['date_granted']}</td></tr>";
                 
-                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA</a>" : "<span class='text-muted'>None</span>") . "</td></tr>";
+                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA File</a>" : "<span class='text-muted'>None Attached</span>") . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'paper_presentation') {
+            // LEFT AS IS: Paper Presentation only shows Lead Proponent for now!
             $object->query = "SELECT r.*, d.firstName, d.familyName FROM tbl_paperpresentation r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
-            $result = $object->get_result();
-            foreach($result as $row) {
+            foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
                 $html .= "<tr><th>Conference Title</th><td>{$row['conference_title']}</td></tr>";
@@ -291,14 +287,13 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Type</th><td>{$row['type']}</td></tr>";
                 $html .= "<tr><th>Discipline</th><td>{$row['discipline']}</td></tr>";
                 
-                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA</a>" : "<span class='text-muted'>None</span>") . "</td></tr>";
+                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA File</a>" : "<span class='text-muted'>None Attached</span>") . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'trainings') {
             $object->query = "SELECT r.*, d.firstName, d.familyName FROM tbl_trainingsattended r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
-            $result = $object->get_result();
-            foreach($result as $row) {
+            foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
                 $html .= "<tr><th>Type</th><td>{$row['type']}</td></tr>";
@@ -309,14 +304,13 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Sponsor Org</th><td>{$row['sponsor_org']}</td></tr>";
                 $html .= "<tr><th>Total Hours</th><td>{$row['totnh']}</td></tr>";
                 
-                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA</a>" : "<span class='text-muted'>None</span>") . "</td></tr>";
+                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA File</a>" : "<span class='text-muted'>None Attached</span>") . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'extension') {
             $object->query = "SELECT r.*, d.firstName, d.familyName FROM tbl_extension_project_conducted r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
-            $result = $object->get_result();
-            foreach($result as $row) {
+            foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
                 $html .= "<tr><th>Start Date</th><td>{$row['start_date']}</td></tr>";
@@ -328,13 +322,14 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['status_exct']}</span></td></tr>";
                 $html .= "<tr><th>Terminal Report</th><td>{$row['terminal_report']}</td></tr>";
                 
-                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA</a>" : "<span class='text-muted'>None</span>") . "</td></tr>";
+                $html .= "<tr><th>Attached MOA File</th><td>" . (!empty($row['moa_file']) ? "<a href='{$doc_path}{$row['moa_file']}' class='btn btn-sm btn-info' target='_blank'><i class='fas fa-file-pdf'></i> View MOA File</a>" : "<span class='text-muted'>None Attached</span>") . "</td></tr>";
                 break;
             }
         }
         
         $html .= '</tbody></table>';
         echo $html;
+        exit;
     }
 }
 ?>

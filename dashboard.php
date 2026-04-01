@@ -26,7 +26,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         }
     }
 
-   function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = []) {
+    function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = []) {
         $total_rows = 0; 
         $dept_counts = $base_depts; 
         $distinct_vals = [];
@@ -35,23 +35,26 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         // Tracker to prevent double-counting if multiple people from the SAME department are on ONE project
         $dept_tracked_items = []; 
 
-// UPDATED: Use junction tables for multiple modules to include all co-researchers' departments
         if ($is_researcher) {
-            $query = "SELECT id, department, user_created_on FROM {$table}";
-        } else if ($table === 'tbl_researchconducted') {
-            $query = "SELECT d.department, r.* FROM {$table} r 
+            $query = "SELECT department, user_created_on FROM {$table}";
+        } 
+        // 1. Research Conducted: Uses Collaborator Table
+        else if ($table === 'tbl_researchconducted') {
+            $query = "SELECT COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
                       LEFT JOIN tbl_research_collaborators col ON r.id = col.research_id 
-                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id";
-        } else if ($table === 'tbl_publication') {
-            $query = "SELECT d.department, r.* FROM {$table} r 
+                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
+                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id";
+        } 
+        // 2. Publication: Uses Collaborator Table
+        else if ($table === 'tbl_publication') {
+            $query = "SELECT COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
                       LEFT JOIN tbl_publication_collaborators col ON r.id = col.publication_id 
-                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id";
-        } else if ($table === 'tbl_paperpresentation') {
-            $query = "SELECT d.department, r.* FROM {$table} r 
-                      LEFT JOIN tbl_paper_collaborators col ON r.id = col.paper_id 
-                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id";
-        } else {
-            $query = "SELECT d.department, r.* FROM {$table} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id";
+                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
+                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id";
+        } 
+        // 3. THE FIX: Paper Presentation (and others) safely default back to just the Lead Proponent for now
+        else {
+            $query = "SELECT d.department, r.* FROM {$table} r JOIN tbl_researchdata d ON r.researcherID = d.id";
         }
 
         $res = @$conn->query($query);
@@ -83,7 +86,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                     $total_rows++;
                     $dept = !empty($row['department']) ? $row['department'] : 'Unknown';
                     
-                    // FIX: Safe fallback for item_id if 'id' or title doesn't exist in the database row
+                    // Safe fallback for item_id if 'id' or title doesn't exist in the database row
                     $item_id = uniqid(); 
                     if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
                         $item_id = strtolower(trim($row[$title_col]));
@@ -830,44 +833,70 @@ $totalDepartments = $object->Get_total_departments();
 
 </div> <?php include('includes/footer.php'); ?>
 
+<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/jquery-easing/jquery.easing.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+
 <script>
     function openDetailsModal(departmentName, type, title) {
-        $.post("actions/fetch_subdep.php", { action: "fetch_modal_details", department: departmentName, type: type }, function(result) {
-            try {
-                var data = JSON.parse(result);
+        
+        // ADDED LOADING STATE FOR BETTER UI
+        Swal.fire({
+            title: 'Fetching Data...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
 
-                if ($.fn.DataTable.isDataTable('#subDepTable')) {
-                    $('#subDepTable').DataTable().destroy(true);
-                }
-                $('#modalTableContainer').empty();
+        $.ajax({
+            url: "actions/fetch_subdep.php",
+            type: "POST",
+            data: { action: "fetch_modal_details", department: departmentName, type: type },
+            success: function(result) {
+                Swal.close();
+                try {
+                    // SMART PARSING: Prevents the "Double Parse" crash!
+                    var data = (typeof result === "object") ? result : JSON.parse(result);
 
-                var modalContent = '<table class="table table-bordered table-hover" id="subDepTable" width="100%" cellspacing="0"><thead><tr><th>' + departmentName + ' ('+title+')</th><th width="15%" class="text-center">Action</th></tr></thead><tbody>';
-                
-                if (data.length > 0) {
-                    data.forEach(function(item) {
-                        if(typeof item === 'object') {
-                            modalContent += '<tr><td class="align-middle font-weight-bold">' + item.text + '</td><td class="text-center"><button class="btn btn-sm btn-info view-item-details" data-id="'+item.id+'" data-type="'+type+'"><i class="fas fa-eye"></i> Details</button></td></tr>';
-                        }
+                    if ($.fn.DataTable.isDataTable('#subDepTable')) {
+                        $('#subDepTable').DataTable().destroy(true);
+                    }
+                    $('#modalTableContainer').empty();
+
+                    var modalContent = '<table class="table table-bordered table-hover" id="subDepTable" width="100%" cellspacing="0"><thead><tr><th>' + departmentName + ' ('+title+')</th><th width="15%" class="text-center">Action</th></tr></thead><tbody>';
+                    
+                    if (data && data.length > 0) {
+                        data.forEach(function(item) {
+                            if(typeof item === 'object') {
+                                modalContent += '<tr><td class="align-middle font-weight-bold">' + item.text + '</td><td class="text-center"><button class="btn btn-sm btn-info view-item-details" data-id="'+item.id+'" data-type="'+type+'"><i class="fas fa-eye"></i> Details</button></td></tr>';
+                            }
+                        });
+                    } else {
+                        modalContent += '<tr><td class="text-center text-muted font-italic py-3">No specific records found for this category.</td><td style="display:none;"></td></tr>';
+                    }
+                    modalContent += '</tbody></table>';
+                    
+                    $('#myModalLabel').text(title);
+                    $('#modalTableContainer').html(modalContent); 
+                    
+                    $('#subDepTable').DataTable({
+                        pageLength: 10,
+                        info: false,
+                        lengthChange: false,
+                        ordering: false
                     });
-                } else {
-                    modalContent += '<tr><td class="text-center text-muted font-italic py-3">No specific records found for this category.</td><td style="display:none;"></td></tr>';
-                }
-                modalContent += '</tbody></table>';
-                
-                $('#myModalLabel').text(title);
-                
-                $('#modalTableContainer').html(modalContent); 
-                
-                $('#subDepTable').DataTable({
-                    pageLength: 10,
-                    info: false,
-                    lengthChange: false,
-                    ordering: false
-                });
 
-                $('#myModal').modal('show'); 
-            } catch(e) {
-                console.error("Error parsing JSON response: ", e);
+                    $('#myModal').modal('show'); 
+                } catch(e) {
+                    console.error("Parse Error: ", e, result);
+                    Swal.fire("Data Error", "There was an issue processing the data from the server.", "error");
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                Swal.fire("Connection Error", "Failed to reach the server.", "error");
             }
         });
     }
