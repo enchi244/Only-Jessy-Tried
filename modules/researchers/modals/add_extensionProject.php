@@ -32,14 +32,27 @@
                         <label for="linked_research_projects"><i class="fas fa-flask mr-2 text-primary"></i>Based on Research Projects (Optional)</label>
                         <select name="linked_research_projects[]" id="linked_research_projects" class="form-control select2-multi" multiple="multiple" style="width: 100%;">
                             <?php
-                            $object->query = "SELECT id, title FROM tbl_researchconducted ORDER BY title ASC";
+                            $object->query = "
+                                SELECT rc.id, rc.title, 
+                                       pd.familyName AS lead_familyName, pd.firstName AS lead_firstName,
+                                       (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') 
+                                        FROM tbl_research_collaborators col 
+                                        JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                                        WHERE col.research_id = rc.id) AS co_authors
+                                FROM tbl_researchconducted rc
+                                LEFT JOIN tbl_researchdata pd ON (pd.id = rc.lead_researcher_id OR pd.id = rc.researcherID OR pd.researcherID = rc.researcherID)
+                                ORDER BY rc.title ASC
+                            ";
                             $research_projects = $object->get_result();
                             foreach($research_projects as $rp) { 
-                                echo '<option value="'.$rp["id"].'">'.htmlspecialchars($rp["title"]).'</option>'; 
+                                $lead = $rp['lead_familyName'] ? htmlspecialchars($rp['lead_familyName'] . ', ' . $rp['lead_firstName']) : 'Unknown Lead';
+                                $co = $rp['co_authors'] ? htmlspecialchars($rp['co_authors']) : 'None';
+                                echo '<option value="'.$rp["id"].'" data-lead="'.$lead.'" data-co="'.$co.'">'.htmlspecialchars($rp["title"]).'</option>'; 
                             }
                             ?>
                         </select>
                         <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> Select any research projects that this extension is based upon.</small>
+                        <div id="project_authors_display" class="mt-2"></div>
                     </div>
 
                     <div class="row">

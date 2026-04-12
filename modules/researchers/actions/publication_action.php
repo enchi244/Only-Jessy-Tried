@@ -387,10 +387,10 @@ if(isset($_POST["action_publication"]) && $_POST["action_publication"] == 'fetch
                 FROM tbl_publication_collaborators col 
                 JOIN tbl_researchdata d ON col.researcher_id = d.id 
                 WHERE col.publication_id = pub.id) AS all_authors,
-               pub.lead_author_id AS author_db_id,
+               pd.id AS author_db_id,
                pd.familyName AS primary_familyName
         FROM tbl_publication pub
-        LEFT JOIN tbl_researchdata pd ON pub.lead_author_id = pd.id
+        LEFT JOIN tbl_researchdata pd ON (pd.id = pub.lead_author_id OR pd.id = pub.researcherID OR pd.researcherID = pub.researcherID)
     ";
     $search_query = " WHERE 1=1 ";
 
@@ -429,10 +429,15 @@ if(isset($_POST["action_publication"]) && $_POST["action_publication"] == 'fetch
 
     foreach($result as $row) {
         $sub_array = array();
-        $author_name = $row["all_authors"] ? $row["all_authors"] : "<span class='text-danger'>No Authors Assigned</span>";
-        $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
         
-        $sub_array[] = '<span class="font-weight-bold">'.$author_name.'</span>';
+        $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
+        $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown Lead</span>";
+        $co_authors = $row["all_authors"] ? $row["all_authors"] : "<span class='text-muted'>None</span>";
+        
+        $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span></div>';
+        $author_display .= '<div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
+
+        $sub_array[] = $author_display;
         $sub_array[] = $row["title"];
         $sub_array[] = $row["journal"];
         $sub_array[] = parse_legacy_date_php($row["publication_date"]);
@@ -441,7 +446,7 @@ if(isset($_POST["action_publication"]) && $_POST["action_publication"] == 'fetch
         $sub_array[] = '
         <div align="center">
             <button type="button" class="btn btn-danger btn-sm delete_master_publication" data-id="'.$row["id"].'" title="Delete Publication"><i class="far fa-trash-alt"></i></button>
-            <a href="view_researcher.php?id='.$author_db_id.'&tab=degree" class="btn d-none"></a>
+            <a href="view_researcher.php?id='.$author_db_id.'&tab=degree" class="btn view_button d-none"></a>
         </div>
         ';
         $data[] = $sub_array;

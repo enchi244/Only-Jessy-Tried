@@ -30,6 +30,35 @@
 
                     <div class="form-group mb-4">
                         <label for="description_ext"><i class="fas fa-align-left mr-2 text-primary"></i>Description</label>
+                        <div class="form-group mb-4">
+                        <label for="linked_extension_project"><i class="fas fa-project-diagram mr-2 text-primary"></i>Based on Extension Project (Optional)</label>
+                        <select name="linked_extension_project" id="linked_extension_project" class="form-control select2-single" style="width: 100%;">
+                            <option value="">Select an Extension Project...</option>
+                            <?php
+                            // Fetch Extension Projects and dynamically locate the Lead of the underlying Research Project
+                            $object->query = "
+                                SELECT ep.id, ep.title, 
+                                       COALESCE(
+                                           (SELECT CONCAT(pd_sub.firstName, ' ', pd_sub.familyName) 
+                                            FROM tbl_extension_research_links link 
+                                            JOIN tbl_researchconducted rc ON link.research_id = rc.id 
+                                            JOIN tbl_researchdata pd_sub ON (pd_sub.id = rc.lead_researcher_id OR pd_sub.id = rc.researcherID OR pd_sub.researcherID = rc.researcherID)
+                                            WHERE link.extension_id = ep.id LIMIT 1),
+                                           (SELECT CONCAT(pd_ext.firstName, ' ', pd_ext.familyName)
+                                            FROM tbl_researchdata pd_ext
+                                            WHERE pd_ext.id = ep.researcherID OR pd_ext.researcherID = ep.researcherID LIMIT 1)
+                                       ) AS auto_lead
+                                FROM tbl_extension_project_conducted ep
+                                ORDER BY ep.title ASC
+                            ";
+                            $all_ext_projects = $object->get_result();
+                            foreach($all_ext_projects as $ep) { 
+                                $leadName = $ep['auto_lead'] ? $ep['auto_lead'] : '';
+                                echo '<option value="'.$ep["id"].'" data-lead="'.htmlspecialchars($leadName).'">'.htmlspecialchars($ep["title"]).'</option>'; 
+                            }
+                            ?>
+                        </select>
+                    </div>
                         <textarea 
                             name="description_ext" 
                             id="description_ext" 

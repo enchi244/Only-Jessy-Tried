@@ -97,11 +97,45 @@ include('../../includes/header.php');
     .fab-container:hover .fab-sub-btn:nth-child(2) { transition-delay: 0.05s; }
     .fab-container:hover .fab-sub-btn:nth-child(3) { transition-delay: 0.1s; }
 
-    /* Master View Toggles */
+    /* Master View Toggles - Strict Single Line */
+    .master-toggles {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        width: 100%;
+        overflow: hidden; 
+    }
     .master-toggles .btn {
+        flex: 1 1 0; /* Force buttons to share exact equal width */
+        min-width: 0; /* Allow shrinking */
+        padding-left: 2px;
+        padding-right: 2px;
         font-weight: 600;
         letter-spacing: 0.03em;
         margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis; /* Add ... if text is too long */
+        font-size: clamp(0.55rem, 1vw + 0.2rem, 0.9rem); /* Dynamically scale text */
+    }
+    .master-toggles .btn i {
+        margin-right: 3px !important;
+    }
+/* Scrollable Horizontal Containers for Mobile */
+    .scrollable-tabs-container {
+        display: flex;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        padding-bottom: 2px; /* Prevent clipping of active borders */
+    }
+    .scrollable-tabs-container::-webkit-scrollbar {
+        display: none; /* Safari and Chrome */
+    }
+    .scrollable-tabs-container .nav-item,
+    .scrollable-tabs-container .btn {
+        white-space: nowrap;
+        flex: 0 0 auto;
     }
 </style>
 
@@ -118,7 +152,7 @@ include('../../includes/header.php');
 </div>
 
 <div class="mb-4">
-    <div class="btn-group shadow-sm master-toggles flex-wrap" role="group" aria-label="Master Table Toggles">
+    <div class="btn-group shadow-sm master-toggles" role="group" aria-label="Master Table Toggles">
         <button type="button" class="btn btn-danger pink active" id="btn_view_researchers"><i class="fas fa-users mr-1"></i> Researchers Profile</button>
         <button type="button" class="btn btn-outline-danger" id="btn_view_conducted"><i class="fas fa-flask mr-1"></i> Research Conducted</button>
         <button type="button" class="btn btn-outline-danger" id="btn_view_publications"><i class="fas fa-book mr-1"></i> Publications</button>
@@ -245,7 +279,7 @@ include('../../includes/header.php');
         <div class="modal-body">
             <span id="form_message"></span>
             
-            <ul class="nav nav-tabs" id="researcherTab" role="tablist">
+            <ul class="nav nav-tabs scrollable-tabs-container" id="researcherTab" role="tablist">
                 <li class="nav-item" id="navID"><a class="nav-link active" id="personal-info-tab" data-toggle="tab" href="#personal-info" role="tab" aria-controls="personal-info" aria-selected="true">Researchers' Profile</a></li>
                 <li class="nav-item"><a class="nav-link" id="education-tab" data-toggle="tab" href="#education" role="tab" aria-controls="education" aria-selected="false">Research Conducted</a></li>
                 <li class="nav-item"><a class="nav-link" id="degree-tab" data-toggle="tab" href="#degree" role="tab" aria-controls="degree" aria-selected="false">Publication</a></li>

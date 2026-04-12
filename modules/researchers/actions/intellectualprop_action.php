@@ -67,10 +67,10 @@ if (isset($_POST["action_intellectualprop"])) {
                     FROM tbl_ip_collaborators col 
                     JOIN tbl_researchdata d ON col.researcher_id = d.id 
                     WHERE col.ip_id = ip.id) AS all_authors,
-                   ip.lead_researcher_id AS author_db_id,
+                   pd.id AS author_db_id,
                    pd.familyName AS primary_familyName
             FROM tbl_itelectualprop ip
-            LEFT JOIN tbl_researchdata pd ON ip.lead_researcher_id = pd.id
+            LEFT JOIN tbl_researchdata pd ON (pd.id = ip.lead_researcher_id OR pd.id = ip.researcherID OR pd.researcherID = ip.researcherID)
         ";
         $search_query = " WHERE 1=1 ";
         if (isset($_POST["search"]["value"])) {
@@ -95,12 +95,14 @@ if (isset($_POST["action_intellectualprop"])) {
         $data = array();
         foreach ($result as $row) {
             $sub_array = array();
-            $author_name = $row["all_authors"] ? $row["all_authors"] : "<span class='text-danger'>No Authors</span>";
-            $sub_array[] = '<span class="font-weight-bold">'.$author_name.'</span>';
+            $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown</span>";
+            $co_authors = $row["all_authors"] ? $row["all_authors"] : (!empty($row["coauth"]) ? $row["coauth"] : "<span class='text-muted'>None</span>");
+            $sub_array[] = '<span class="font-weight-bold">'.$primary_author.'</span>';
             $sub_array[] = $row["title"];
+            $sub_array[] = $co_authors;
             $sub_array[] = $row["type"];
             $sub_array[] = parse_legacy_date_php($row["date_granted"]);
-            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_intellectualprop" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id="'.$row["author_db_id"].'"&tab=ip" class="btn d-none"></a></div>';
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_intellectualprop" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=ip" class="btn view_button d-none"></a></div>';
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));

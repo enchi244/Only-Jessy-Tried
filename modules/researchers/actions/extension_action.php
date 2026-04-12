@@ -159,13 +159,13 @@ if (isset($_POST["action_ext"])) {
                 ':researcherID' => $_POST['hidden_researcherID_ext'],
                 ':title' => $_POST['title_ext'],
                 ':description' => $_POST['description_ext'],
-                ':proj_lead' => $_POST['proj_lead_ext'],
-                ':assist_coordinators' => $_POST['assist_coordinators_ext'],
-                ':period_implement' => $_POST['period_implement_ext'],
-                ':budget' => $_POST['budget_ext'],
-                ':fund_source' => $_POST['fund_source_ext'],
-                ':target_beneficiaries' => $_POST['target_beneficiaries_ext'],
-                ':partners' => $_POST['partners_ext'],
+                ':proj_lead' => $_POST['proj_lead'],
+                ':assist_coordinators' => $_POST['assist_coordinators'],
+                ':period_implement' => $_POST['period_implement'],
+                ':budget' => $_POST['budget'],
+                ':fund_source' => $_POST['fund_source'],
+                ':target_beneficiaries' => $_POST['target_beneficiaries'],
+                ':partners' => $_POST['partners'],
                 ':stat' => $_POST['stat_ext']
             );
 
@@ -176,8 +176,18 @@ if (isset($_POST["action_ext"])) {
             (:researcherID, :title, :description, :proj_lead, :assist_coordinators, :period_implement, :budget, :fund_source, :target_beneficiaries, :partners, :stat)
             ";
             $object->execute($data);
+            $new_ext_id = $object->connect->lastInsertId();
 
-            $success = '<div class="alert alert-success">External Project Added</div>';
+            // Auto-create pivot table if it doesn't exist, then link the project
+            $object->query = "CREATE TABLE IF NOT EXISTS tbl_extension_activity_links (id INT AUTO_INCREMENT PRIMARY KEY, extension_activity_id INT NOT NULL, extension_project_id INT NOT NULL)";
+            $object->execute();
+
+            if(!empty($_POST['linked_extension_project'])) {
+                $object->query = "INSERT INTO tbl_extension_activity_links (extension_activity_id, extension_project_id) VALUES ('".$new_ext_id."', '".intval($_POST['linked_extension_project'])."')";
+                $object->execute();
+            }
+
+            $success = '<div class="alert alert-success">Extension Activity Added</div>';
         }
 
         $output = array(
@@ -239,13 +249,13 @@ if (isset($_POST["action_ext"])) {
             $data = array(
                 ':title' => $_POST['title_ext'],
                 ':description' => $_POST['description_ext'],
-                ':proj_lead' => $_POST['proj_lead_ext'],
-                ':assist_coordinators' => $_POST['assist_coordinators_ext'],
-                ':period_implement' => $_POST['period_implement_ext'],
-                ':budget' => $_POST['budget_ext'],
-                ':fund_source' => $_POST['fund_source_ext'],
-                ':target_beneficiaries' => $_POST['target_beneficiaries_ext'],
-                ':partners' => $_POST['partners_ext'],
+                ':proj_lead' => $_POST['proj_lead'],
+                ':assist_coordinators' => $_POST['assist_coordinators'],
+                ':period_implement' => $_POST['period_implement'],
+                ':budget' => $_POST['budget'],
+                ':fund_source' => $_POST['fund_source'],
+                ':target_beneficiaries' => $_POST['target_beneficiaries'],
+                ':partners' => $_POST['partners'],
                 ':stat' => $_POST['stat_ext'],
                 ':hidden_extID' => $_POST['hidden_extID']
             );

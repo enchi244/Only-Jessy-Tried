@@ -109,10 +109,10 @@ if(isset($_POST["action_researchedconducted"]))
                     FROM tbl_research_collaborators col 
                     JOIN tbl_researchdata d ON col.researcher_id = d.id 
                     WHERE col.research_id = rc.id) AS all_authors,
-                   rc.lead_researcher_id AS author_db_id,
+                   pd.id AS author_db_id,
                    pd.familyName AS primary_familyName
             FROM tbl_researchconducted rc
-            LEFT JOIN tbl_researchdata pd ON rc.lead_researcher_id = pd.id
+            LEFT JOIN tbl_researchdata pd ON (pd.id = rc.lead_researcher_id OR pd.id = rc.researcherID OR pd.researcherID = rc.researcherID)
         ";
         $search_query = " WHERE 1=1 ";
 
@@ -151,10 +151,14 @@ if(isset($_POST["action_researchedconducted"]))
 
         foreach($result as $row) {
             $sub_array = array();
-			$author_name = $row["all_authors"] ? $row["all_authors"] : "<span class='text-danger'>No Authors Assigned</span>";
-            $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
+			$author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
+            $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown Lead</span>";
+            $co_authors = $row["all_authors"] ? $row["all_authors"] : "<span class='text-muted'>None</span>";
             
-            $sub_array[] = '<span class="font-weight-bold">'.$author_name.'</span>';
+            $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span></div>';
+            $author_display .= '<div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
+
+            $sub_array[] = $author_display;
             $sub_array[] = $row["title"];
             $sub_array[] = $row["research_agenda_cluster"];
             $sub_array[] = $row["sdgs"];
@@ -164,7 +168,7 @@ if(isset($_POST["action_researchedconducted"]))
             <div align="center">
                 <button type="button" class="btn btn-info btn-sm view_collaborators" data-id="'.$row["id"].'" title="View Collaborators"><i class="fas fa-users"></i></button>
                 <button type="button" class="btn btn-danger btn-sm delete_master_researchconducted" data-id="'.$row["id"].'" title="Delete Record"><i class="far fa-trash-alt"></i></button>
-                <a href="view_researcher.php?id='.$author_db_id.'&tab=education" class="btn d-none"></a>
+                <a href="view_researcher.php?id='.$author_db_id.'&tab=education" class="btn view_button d-none"></a>
             </div>
             ';
             $data[] = $sub_array;

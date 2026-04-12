@@ -6,6 +6,28 @@ $(document).ready(function() {
             dropdownParent: $('#extensionProjectModal')
         });
     });
+
+    // Dynamically display Lead and Co-Researchers when a project is selected
+    $('#linked_research_projects').on('change', function() {
+        var selected = $(this).find('option:selected');
+        var html = '';
+        if (selected.length > 0) {
+            html += '<div class="p-3 mt-2 bg-light border rounded shadow-sm" style="font-size: 0.9rem;">';
+            html += '<strong class="text-gray-800 d-block mb-2 border-bottom pb-1">Project Researchers:</strong>';
+            selected.each(function() {
+                var title = $(this).text();
+                var lead = $(this).attr('data-lead');
+                var co = $(this).attr('data-co');
+                html += '<div class="mb-3">';
+                html += '<div class="font-weight-bold text-dark mb-1" style="line-height: 1.2;"><i class="fas fa-caret-right mr-1 text-danger pink"></i> ' + title + '</div>';
+                html += '<div class="ml-3"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> ' + lead + '</div>';
+                html += '<div class="ml-3 mt-1 text-muted"><i class="fas fa-users mr-1"></i> ' + co + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+        $('#project_authors_display').html(html);
+    });
 });
 
 function loadExtensionProjectsTab(researcherID) {

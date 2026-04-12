@@ -1,5 +1,22 @@
 // Function to Load Extension Data using the Researcher ID
 function loadextprotab(researcherID) {
+    $(document).ready(function() {
+    $('#extModal').on('shown.bs.modal', function () {
+        $('#linked_extension_project').select2({
+            theme: "classic",
+            dropdownParent: $('#extModal')
+        });
+    });
+    // Auto-fill Project Leader when an Extension Project is selected
+    $('#linked_extension_project').on('change', function() {
+        var selectedOption = $(this).find('option:selected');
+        var leadName = selectedOption.attr('data-lead');
+        
+        if (leadName && leadName.trim() !== '') {
+            $('#proj_lead').val(leadName);
+        }
+    });
+});
     $('#ext_project_form').parsley(); // Initialize form validation
     if ($.fn.dataTable.isDataTable('#ext_project_table')) {
         $('#ext_project_table').DataTable().clear().destroy();
@@ -78,6 +95,7 @@ $('#extModal').on('hidden.bs.modal', function () {
 // Add New Extension
 $('#add_extension').click(function () {
     $('#ext_project_form')[0].reset();
+    $('#linked_extension_project').val(null).trigger('change');
     $('#ext_project_form').parsley().reset();
     $('#modal_title').text('Add Extension');
     $('#action_ext').val('Add');

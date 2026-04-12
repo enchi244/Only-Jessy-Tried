@@ -421,15 +421,33 @@ include('../../includes/header.php');
 
                                                 <?php
                                                 // Fetch linked research projects for this extension
-                                                $object->query = "SELECT r.title FROM tbl_extension_research_links l JOIN tbl_researchconducted r ON l.research_id = r.id WHERE l.extension_id = '".$ep['id']."'";
+                                                $object->query = "
+                                                    SELECT r.title, 
+                                                           pd.familyName AS lead_familyName, pd.firstName AS lead_firstName,
+                                                           (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') 
+                                                            FROM tbl_research_collaborators col 
+                                                            JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                                                            WHERE col.research_id = r.id) AS co_authors
+                                                    FROM tbl_extension_research_links l 
+                                                    JOIN tbl_researchconducted r ON l.research_id = r.id 
+                                                    LEFT JOIN tbl_researchdata pd ON (pd.id = r.lead_researcher_id OR pd.id = r.researcherID OR pd.researcherID = r.researcherID)
+                                                    WHERE l.extension_id = '".$ep['id']."'
+                                                ";
                                                 $object->execute();
                                                 $linked_res = $object->statement_result();
                                                 if(count($linked_res) > 0):
                                                 ?>
                                                     <div class="mt-3 pt-2 border-top">
-                                                        <small class="text-muted d-block mb-1"><i class="fas fa-link mr-1 text-primary"></i> <b>Based on Research:</b></small>
-                                                        <?php foreach($linked_res as $lr): ?>
-                                                            <span class="badge badge-light border text-dark mb-1 mr-1"><i class="fas fa-flask mr-1 text-muted"></i> <?php echo htmlspecialchars($lr['title']); ?></span>
+                                                        <small class="text-muted d-block mb-2"><i class="fas fa-link mr-1 text-primary"></i> <b>Based on Research:</b></small>
+                                                        <?php foreach($linked_res as $lr): 
+                                                            $lead = $lr['lead_familyName'] ? htmlspecialchars($lr['lead_familyName'] . ', ' . $lr['lead_firstName']) : 'Unknown Lead';
+                                                            $co = $lr['co_authors'] ? htmlspecialchars($lr['co_authors']) : 'None';
+                                                        ?>
+                                                            <div class="mb-2 p-2 bg-white border rounded shadow-sm">
+                                                                <div class="font-weight-bold text-dark mb-1" style="font-size: 0.9rem;"><i class="fas fa-flask mr-1 text-danger pink"></i> <?php echo htmlspecialchars($lr['title']); ?></div>
+                                                                <div class="ml-3 small"><span class="badge badge-primary px-2 py-0 mr-1">Lead</span> <?php echo $lead; ?></div>
+                                                                <div class="ml-3 mt-1 small text-muted"><i class="fas fa-users mr-1"></i> <?php echo $co; ?></div>
+                                                            </div>
                                                         <?php endforeach; ?>
                                                     </div>
                                                 <?php endif; ?>
