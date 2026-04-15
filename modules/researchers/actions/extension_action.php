@@ -15,7 +15,11 @@ if (isset($_POST["action_ext"])) {
             $search_value = $_POST["search"]["value"];
             $search_query .= "AND (tbl_ext.title LIKE '%" . $search_value . "%' OR tbl_researchdata.familyName LIKE '%" . $search_value . "%') ";
         }
-        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY tbl_ext.id DESC ";
+        if (isset($_POST["order"]) && isset($order_column[$_POST["order"]["0"]["column"]])) {
+            $order_query = "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " ";
+        } else {
+            $order_query = "ORDER BY tbl_ext.id DESC ";
+        }
         $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
 
         $object->query = $main_query . $search_query . $order_query;
@@ -54,7 +58,11 @@ if (isset($_POST["action_ext"])) {
             $search_value = $_POST["search"]["value"];
             $search_query .= "AND (title LIKE '%" . $search_value . "%' OR description LIKE '%" . $search_value . "%' OR proj_lead LIKE '%" . $search_value . "%' OR stat LIKE '%" . $search_value . "%') ";
         }
-        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY id ASC ";
+        if (isset($_POST["order"]) && isset($order_column[$_POST["order"]["0"]["column"]])) {
+            $order_query = "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " ";
+        } else {
+            $order_query = "ORDER BY id ASC ";
+        }
         $limit_query = "";
         if ($_POST["length"] != -1) { $limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length']; }
 
