@@ -77,6 +77,17 @@
                         </div>
                     </div>
 
+                    <div class="row">
+                        <div class="col-md-12 form-group mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="m-0" for="a_link_ip"><i class="fas fa-link mr-2 text-primary"></i>External Links (Optional)</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="add_new_link_btn_ip"><i class="fas fa-plus"></i> Add Link</button>
+                            </div>
+                            <div id="dynamic_links_container_ip">
+                                </div>
+                        </div>
+                    </div>
+
                     <div class="row border-bottom pb-3 mb-3">
                         <div class="col-md-12 form-group mb-0">
                             <label for="has_files_ip"><i class="fas fa-paperclip mr-2 text-primary"></i>File Attachments</label>

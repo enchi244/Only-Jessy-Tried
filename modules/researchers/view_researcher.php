@@ -306,6 +306,9 @@ include('../../includes/header.php');
                                                 <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Co-authors: <?php echo htmlspecialchars($ip['coauth']); ?></p>
                                                 <div class="mt-3">
                                                     <span class="badge badge-warning text-dark px-2 py-1 mb-1"><i class="fas fa-certificate mr-1"></i> <?php echo htmlspecialchars($ip['type']); ?></span><br>
+                                                   <?php if(!empty($ip['a_link'])): ?>
+                                                        <a href="<?php echo htmlspecialchars($ip['a_link']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mb-1 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-external-link-alt mr-1"></i> View External Link</a><br>
+                                                    <?php endif; ?>
                                                     <small class="text-muted"><b>Applied:</b> <?php echo htmlspecialchars($ip['date_applied']); ?> | <b>Granted:</b> <?php echo htmlspecialchars($ip['date_granted']); ?></small>
                                                 </div>
                                             </div>
@@ -338,6 +341,19 @@ include('../../includes/header.php');
                                         </p>
                                         <div class="mt-2">
                                             <span class="badge badge-info px-2 py-1 mr-2"><i class="fas fa-microphone mr-1"></i><?php echo !empty($paper['type_pp']) ? htmlspecialchars($paper['type_pp']) : 'Presentation'; ?></span>
+                                            <?php if(!empty($paper['a_link'])): ?>
+                                                <?php 
+                                                $links = explode("\n", trim($paper['a_link']));
+                                                foreach($links as $index => $link): 
+                                                    $link = trim($link);
+                                                    if(!empty($link)):
+                                                ?>
+                                                    <a href="<?php echo htmlspecialchars($link); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-2 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-external-link-alt mr-1"></i> Link <?php echo $index + 1; ?></a>
+                                                <?php 
+                                                    endif;
+                                                endforeach; 
+                                                ?>
+                                            <?php endif; ?>
                                             <span class="badge badge-secondary px-2 py-1 mr-2"><?php echo htmlspecialchars($paper['conference_title']); ?> Level</span>
                                             <span class="badge badge-light border px-2 py-1"><i class="fas fa-book-reader mr-1 text-muted"></i><?php echo !empty($paper['discipline']) ? htmlspecialchars($paper['discipline']) : 'Discipline N/A'; ?></span>
                                         </div>
@@ -368,6 +384,19 @@ include('../../includes/header.php');
                                                     <p class="text-muted small mb-2"><i class="fas fa-building mr-1 text-primary"></i> <?php echo htmlspecialchars($train['sponsor_org']); ?> &nbsp;|&nbsp; <i class="fas fa-map-marker-alt mx-1 text-danger"></i> <?php echo htmlspecialchars($train['venue']); ?></p>
                                                 <div class="mt-2">
                                                     <span class="badge badge-info px-2 py-1 mr-1"><?php echo htmlspecialchars($train['lvl']); ?> Level</span>
+                                                    <?php if(!empty($train['a_link'])): ?>
+                                                        <?php 
+                                                        $links = explode("\n", trim($train['a_link']));
+                                                        foreach($links as $index => $link): 
+                                                            $link = trim($link);
+                                                            if(!empty($link)):
+                                                        ?>
+                                                            <a href="<?php echo htmlspecialchars($link); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-1 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-external-link-alt mr-1"></i> Link <?php echo $index + 1; ?></a>
+                                                        <?php 
+                                                            endif;
+                                                        endforeach; 
+                                                        ?>
+                                                    <?php endif; ?>
                                                     <span class="badge badge-secondary px-2 py-1 mr-1"><?php echo !empty($train['type_training']) ? htmlspecialchars($train['type_training']) : 'Training'; ?></span>
                                                     <span class="badge badge-light border px-2 py-1"><i class="fas fa-book-reader mr-1 text-muted"></i><?php echo !empty($train['type_learning_dev']) ? htmlspecialchars($train['type_learning_dev']) : 'N/A'; ?></span>
                                                 </div>
@@ -609,7 +638,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // 3. Prevent Delete Button Clicks from Opening Edit Modals
     $('.isolate-click').on('click', function(e) {
-        e.stopPropagation(); // Stops the click from bubbling up to the .clickable-card
+        e.stopPropagation(); // Stops the Edit Modal from opening
+        
+        // Forward the click directly to the background Delete script
+        var btn = $(this).find('button');
+        if (btn.length > 0) {
+            var simulatedEvent = $.Event('click');
+            simulatedEvent.target = btn[0];
+            $(document).trigger(simulatedEvent);
+        }
     });
 });
 </script>

@@ -1,9 +1,6 @@
 <?php
-
 //category_action.php
-
 include('../../../core/rms.php');
-
 $object = new rms();
 
 if(isset($_POST["action_link"]) && $_POST["action_link"] == 'link_multiple')
@@ -40,380 +37,220 @@ if(isset($_POST["action_link"]) && $_POST["action_link"] == 'link_multiple')
 
 if(isset($_POST["action"]))
 {
-	if($_POST["action"] == 'fetch')
-	{
-		$order_column = array(
-			'researcherID', 
-			'familyName', 
-			'firstName', 
-			'middleName', 
-			'Suffix', 
-			'department', 
-			'program', 
-			'bachelor_degree', 
-			'bachelor_institution', 
-			'bachelor_YearGraduated', 
-			'masterDegree', 
-			'masterInstitution', 
-			'masterYearGraduated', 
-			'doctorateDegree', 
-			'doctorateInstitution', 
-			'doctorateYearGraduate', 
-			'postDegree', 
-			'postInstitution', 
-			'postYearGraduate', 
-			'user_created_on'
-		);
+    if($_POST["action"] == 'fetch')
+    {
+        $order_column = array(
+            'researcherID', 'familyName', 'firstName', 'middleName', 'Suffix', 'department', 'program', 
+            'bachelor_degree', 'bachelor_institution', 'bachelor_YearGraduated', 'masterDegree', 
+            'masterInstitution', 'masterYearGraduated', 'doctorateDegree', 'doctorateInstitution', 
+            'doctorateYearGraduate', 'postDegree', 'postInstitution', 'postYearGraduate', 'user_created_on'
+        );
 
-		$output = array();
+        $main_query = "SELECT * FROM tbl_researchdata";
+    
+        // HIDES TRASHED USERS
+        $search_query = ' WHERE status = 1 '; 
 
-		$main_query = "
-	SELECT *
-FROM tbl_researchdata";
+        if (isset($_POST["search"]["value"])) {
+            $search_value = $_POST["search"]["value"];
+            $search_query .= 'AND (researcherID LIKE "%' . $search_value . '%" ';
+            $search_query .= 'OR familyName LIKE "%' . $search_value . '%") ';
+        }
 
-	
-$search_query = ' WHERE status = 1 '; // Initial condition to filter by status
+        if(isset($_POST["order"])) {
+            $order_column = ['researcherID', 'familyName', 'department', 'program', 'user_created_on'];
+            $order_query = 'ORDER BY '.$order_column[$_POST['order']['0']['column']].' '.$_POST['order']['0']['dir'].' ';
+        } else {
+            $order_query = 'ORDER BY id ASC ';
+        }
+        if (strpos($order_query, 'department') === false) {
+            $order_query .= ', department ASC'; 
+        }
+        
+        $limit_query = '';
+        if($_POST["length"] != -1) {
+            $limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
+        }
 
-if (isset($_POST["search"]["value"])) {
-    $search_value = $_POST["search"]["value"];
-    $search_query .= 'AND (researcherID LIKE "%' . $search_value . '%" ';
-    $search_query .= 'OR familyName LIKE "%' . $search_value . '%") ';
+        $object->query = $main_query . $search_query . $order_query;
+        $object->execute();
+        $filtered_rows = $object->row_count();
+
+        $object->query .= $limit_query;
+        $result = $object->get_result();
+
+        $object->query = $main_query;
+        $object->execute();
+        $total_rows = $object->row_count();
+
+        $data = array();
+        foreach($result as $row) {
+            $sub_array = array();
+            $sub_array[] = $row["researcherID"];
+            $sub_array[] = $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"];
+            $sub_array[] = !empty($row["department"]) ? $row["department"] : "N/A";
+            $sub_array[] = !empty($row["program"]) ? $row["program"] : "N/A";
+            $sub_array[] = $row["user_created_on"];
+            $sub_array[] = '
+            <div align="center">
+                <button type="button" name="delete_buttona" title="Move to Recycle Bin" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_buttona" data-id="'.$row["id"].'"><i class="far fa-trash-alt"></i></button>
+                <a href="view_researcher.php?id='.$row["id"].'" class="btn d-none"></a>
+            </div>
+            ';
+            $data[] = $sub_array;
+        }
+
+        $output = array(
+            "draw"              =>  intval($_POST["draw"]),
+            "recordsTotal"      =>  $total_rows,
+            "recordsFiltered"   =>  $filtered_rows,
+            "data"              =>  $data
+        );
+        echo json_encode($output);
+    }
+
+    if($_POST["action"] == 'Add')
+    {
+        $error = '';
+        $success = '';
+
+        $data = array(':researcherID' => $_POST['researcherID']);
+
+        $object->query = "SELECT * FROM tbl_researchdata WHERE researcherID = :researcherID";
+        $object->execute($data);
+
+        if($object->row_count() > 0) {
+            $error = '<div class="alert alert-danger">Researcher Already Exists</div>';
+        } else {
+            $data = array(
+                ':researcherID'          => $_POST['researcherID'],
+                ':familyName'            => $_POST['familyName'],
+                ':firstName'             => $_POST['firstName'],
+                ':middleName'            => $_POST['middleName'],
+                ':Suffix'                => $_POST['Suffix'],
+                ':department'            => $_POST['department'],
+                ':program'               => $_POST['program'],
+                ':bachelor_degree'       => $_POST['bachelor_degree'],
+                ':bachelor_institution'  => $_POST['bachelor_institution'],
+                ':bachelor_YearGraduated'=> $_POST['bachelor_YearGraduated'],
+                ':masterDegree'          => $_POST['masterDegree'],
+                ':masterInstitution'     => $_POST['masterInstitution'],
+                ':masterYearGraduated'   => $_POST['masterYearGraduated'],
+                ':doctorateDegree'       => $_POST['doctorateDegree'],
+                ':doctorateInstitution'  => $_POST['doctorateInstitution'],
+                ':doctorateYearGraduate' => $_POST['doctorateYearGraduate'],
+                ':postDegree'            => $_POST['postDegree'],
+                ':postInstitution'       => $_POST['postInstitution'],
+                ':postYearGraduate'      => $_POST['postYearGraduate'],
+                ':user'         =>  $object->Get_user_name($_SESSION['user_id'])
+            );
+
+            $object->query = "
+            INSERT INTO tbl_researchdata (
+                researcherID, familyName, firstName, middleName, Suffix, department, program, 
+                bachelor_degree, bachelor_institution, bachelor_YearGraduated, masterDegree, 
+                masterInstitution, masterYearGraduated, doctorateDegree, doctorateInstitution, 
+                doctorateYearGraduate, postDegree, postInstitution, postYearGraduate, status, user
+            ) 
+            VALUES (
+                :researcherID, :familyName, :firstName, :middleName, :Suffix, :department, :program, 
+                :bachelor_degree, :bachelor_institution, :bachelor_YearGraduated, :masterDegree, 
+                :masterInstitution, :masterYearGraduated, :doctorateDegree, :doctorateInstitution, 
+                :doctorateYearGraduate, :postDegree, :postInstitution, :postYearGraduate, 1, :user
+            )";
+
+            $object->execute($data);
+            $success = '<div class="alert alert-success">Researcher Added</div>';
+        }
+
+        $output = array('error' => $error, 'success' => $success);
+        echo json_encode($output);
+    }
+
+    if($_POST["action"] == 'fetch_single')
+    {
+        $object->query = "SELECT * FROM tbl_researchdata WHERE id = '".$_POST["id"]."'";
+        $result = $object->get_result();
+        $data = array();
+
+        foreach($result as $row) {
+            $data['researcherID'] = $row['researcherID'];
+            $data['familyName'] = $row['familyName'];
+            $data['firstName'] = $row['firstName'];
+            $data['middleName'] = $row['middleName'];
+            $data['Suffix'] = $row['Suffix'];
+            $data['department'] = $row['department'];
+            $data['program'] = $row['program'];
+            $data['bachelor_degree'] = $row['bachelor_degree'];
+            $data['bachelor_institution'] = $row['bachelor_institution'];
+            $data['bachelor_YearGraduated'] = $row['bachelor_YearGraduated'];
+            $data['masterDegree'] = $row['masterDegree'];
+            $data['masterInstitution'] = $row['masterInstitution'];
+            $data['masterYearGraduated'] = $row['masterYearGraduated'];
+            $data['doctorateDegree'] = $row['doctorateDegree'];
+            $data['doctorateInstitution'] = $row['doctorateInstitution'];
+            $data['doctorateYearGraduate'] = $row['doctorateYearGraduate'];
+            $data['postDegree'] = $row['postDegree'];
+            $data['postInstitution'] = $row['postInstitution'];
+            $data['postYearGraduate'] = $row['postYearGraduate'];
+        }
+        echo json_encode($data);
+    }
+
+    if ($_POST["action"] == 'Edit') {
+        $error = '';
+        $success = '';
+    
+        $data = array(
+            ':researcherID'          => $_POST['researcherIDu'],
+            ':familyName'            => $_POST['familyNameu'],
+            ':firstName'             => $_POST['firstNameu'],
+            ':middleName'            => $_POST['middleNameu'],
+            ':Suffix'                => $_POST['Suffixu'],
+            ':department'            => $_POST['departmentu'],
+            ':program'               => $_POST['programu'],
+            ':bachelor_degree'       => $_POST['bachelor_degreeu'],
+            ':bachelor_institution'  => $_POST['bachelor_institutionu'],
+            ':bachelor_YearGraduated'=> $_POST['bachelor_YearGraduatedu'],
+            ':masterDegree'          => $_POST['masterDegreeu'],
+            ':masterInstitution'     => $_POST['masterInstitutionu'],
+            ':masterYearGraduated'   => $_POST['masterYearGraduatedu'],
+            ':doctorateDegree'       => $_POST['doctorateDegreeu'],
+            ':doctorateInstitution'  => $_POST['doctorateInstitutionu'],
+            ':doctorateYearGraduate' => $_POST['doctorateYearGraduateu'],
+            ':postDegree'            => $_POST['postDegreeu'],
+            ':postInstitution'       => $_POST['postInstitutionu'],
+            ':postYearGraduate'      => $_POST['postYearGraduateu'],
+            ':user'         =>  $object->Get_user_name($_SESSION['user_id'])
+        );
+    
+        $object->query = "
+        UPDATE tbl_researchdata 
+        SET researcherID = :researcherID, familyName = :familyName, firstName = :firstName, middleName = :middleName,
+            Suffix = :Suffix, department = :department, program = :program, bachelor_degree = :bachelor_degree,
+            bachelor_institution = :bachelor_institution, bachelor_YearGraduated = :bachelor_YearGraduated,
+            masterDegree = :masterDegree, masterInstitution = :masterInstitution, masterYearGraduated = :masterYearGraduated,
+            doctorateDegree = :doctorateDegree, doctorateInstitution = :doctorateInstitution, doctorateYearGraduate = :doctorateYearGraduate,
+            postDegree = :postDegree, postInstitution = :postInstitution, postYearGraduate = :postYearGraduate, user = :user
+        WHERE id = '".$_POST['hidden_id']."'";
+    
+        $object->execute($data);
+        $success = '<div class="alert alert-success">Researcher Data Updated</div>';
+    
+        $output = array('error' => $error, 'success' => $success);
+        echo json_encode($output);
+    }
+
+    if($_POST["action"] == 'delete')
+    {
+        $res_id = intval($_POST["id"]);
+
+        // THE FIX: NO MORE DESTROYING THEIR HARD WORK!
+        // We just move them to the recycle bin by setting status to 0.
+        $object->query = "UPDATE tbl_researchdata SET status = 0 WHERE id = '".$res_id."'";
+        $object->execute();
+
+        echo '<div class="alert alert-success">Researcher moved to Recycle Bin! All projects are safely preserved.</div>';
+    }
 }
-
-		if(isset($_POST["order"]))
-		{
-			$order_column = ['researcherID', 'familyName', 'department', 'program', 'user_created_on'];
-
-			$order_query = 'ORDER BY '.$order_column[$_POST['order']['0']['column']].' '.$_POST['order']['0']['dir'].' ';
-		}
-		else
-		{
-			$order_query = 'ORDER BY id ASC ';
-		}
-		if (strpos($order_query, 'department') === false) {
-			$order_query .= ', department ASC';  // Add department sorting in ascending order if not already included
-		}
-		$limit_query = '';
-
-		if($_POST["length"] != -1)
-		{
-			$limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
-		}
-
-		$object->query = $main_query . $search_query . $order_query;
-
-		$object->execute();
-
-		$filtered_rows = $object->row_count();
-
-		$object->query .= $limit_query;
-
-		$result = $object->get_result();
-
-		$object->query = $main_query;
-
-		$object->execute();
-
-		$total_rows = $object->row_count();
-
-		$data = array();
-
-		foreach($result as $row)
-		{
-			$sub_array = array();
-			$sub_array[] = $row["researcherID"];
-			$sub_array[] = $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"];
-			$sub_array[] = !empty($row["department"]) ? $row["department"] : "N/A";
-			$sub_array[] = !empty($row["program"]) ? $row["program"] : "N/A";
-
-			$sub_array[] = $row["user_created_on"];
-			$sub_array[] = '
-			<div align="center">
-				<button type="button" name="delete_buttona" title="Delete Researcher" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_buttona" data-id="'.$row["id"].'"><i class="far fa-trash-alt"></i></button>
-				<a href="view_researcher.php?id='.$row["id"].'" class="btn d-none"></a>
-			</div>
-			';
-			$data[] = $sub_array;
-		}
-
-		$output = array(
-			"draw"    			=> 	intval($_POST["draw"]),
-			"recordsTotal"  	=>  $total_rows,
-			"recordsFiltered" 	=> 	$filtered_rows,
-			"data"    			=> 	$data
-		);
-			
-		echo json_encode($output);
-
-	}
-
-	if($_POST["action"] == 'Add')
-	{
-		$error = '';
-
-		$success = '';
-
-		$data = array(
-		':researcherID'          => $_POST['researcherID']
-
-			
-		);
-
-		$object->query = "
-		SELECT * FROM tbl_researchdata
-		WHERE researcherID = :researcherID
-		";
-
-		$object->execute($data);
-
-		if($object->row_count() > 0)
-		{
-			$error = '<div class="alert alert-danger">Researcher Already Exists</div>';
-		}
-		else
-		{
-			$data = array(
-				':researcherID'          => $_POST['researcherID'],
-				':familyName'            => $_POST['familyName'],
-				':firstName'             => $_POST['firstName'],
-				':middleName'            => $_POST['middleName'],
-				':Suffix'                => $_POST['Suffix'],
-				':department'            => $_POST['department'],
-				':program'               => $_POST['program'],
-				':bachelor_degree'       => $_POST['bachelor_degree'],
-				':bachelor_institution'  => $_POST['bachelor_institution'],
-				':bachelor_YearGraduated'=> $_POST['bachelor_YearGraduated'],
-				':masterDegree'          => $_POST['masterDegree'],
-				':masterInstitution'     => $_POST['masterInstitution'],
-				':masterYearGraduated'   => $_POST['masterYearGraduated'],
-				':doctorateDegree'       => $_POST['doctorateDegree'],
-				':doctorateInstitution'  => $_POST['doctorateInstitution'],
-				':doctorateYearGraduate' => $_POST['doctorateYearGraduate'],
-				':postDegree'            => $_POST['postDegree'],
-				':postInstitution'       => $_POST['postInstitution'],
-				':postYearGraduate'      => $_POST['postYearGraduate'],
-				':user'			=>	$object->Get_user_name($_SESSION['user_id'])
-			);
-
-			$object->query = "
-			INSERT INTO tbl_researchdata (
-    researcherID, 
-    familyName, 
-    firstName, 
-    middleName, 
-    Suffix, 
-    department, 
-    program, 
-    bachelor_degree, 
-    bachelor_institution, 
-    bachelor_YearGraduated, 
-    masterDegree, 
-    masterInstitution, 
-    masterYearGraduated, 
-    doctorateDegree, 
-    doctorateInstitution, 
-    doctorateYearGraduate, 
-    postDegree, 
-    postInstitution, 
-    postYearGraduate,
-	status,
-	user
-) 
-			VALUES (:researcherID, 
-    :familyName, 
-    :firstName, 
-    :middleName, 
-    :Suffix, 
-    :department, 
-    :program, 
-    :bachelor_degree, 
-    :bachelor_institution, 
-    :bachelor_YearGraduated, 
-    :masterDegree, 
-    :masterInstitution, 
-    :masterYearGraduated, 
-    :doctorateDegree, 
-    :doctorateInstitution, 
-    :doctorateYearGraduate, 
-    :postDegree, 
-    :postInstitution, 
-    :postYearGraduate,
-	1,
-	:user)
-			";
-
-			$object->execute($data);
-
-			$success = '<div class="alert alert-success">Researcher Added</div>';
-		}
-
-		$output = array(
-			'error'		=>	$error,
-			'success'	=>	$success
-		);
-
-		echo json_encode($output);
-
-	}
-
-
-	if($_POST["action"] == 'fetch_single')
-	{
-		$object->query = "
-		
-		SELECT * FROM tbl_researchdata WHERE id = '".$_POST["id"]."'
-		";
-
-		$result = $object->get_result();
-
-		$data = array();
-
-		foreach($result as $row)
-		{
-			$data['researcherID'] = $row['researcherID'];
-			$data['familyName'] = $row['familyName'];
-			$data['firstName'] = $row['firstName'];
-			$data['middleName'] = $row['middleName'];
-			$data['Suffix'] = $row['Suffix'];
-			$data['department'] = $row['department'];
-			$data['program'] = $row['program'];
-			$data['bachelor_degree'] = $row['bachelor_degree'];
-			$data['bachelor_institution'] = $row['bachelor_institution'];
-			$data['bachelor_YearGraduated'] = $row['bachelor_YearGraduated'];
-			$data['masterDegree'] = $row['masterDegree'];
-			$data['masterInstitution'] = $row['masterInstitution'];
-			$data['masterYearGraduated'] = $row['masterYearGraduated'];
-			$data['doctorateDegree'] = $row['doctorateDegree'];
-			$data['doctorateInstitution'] = $row['doctorateInstitution'];
-			$data['doctorateYearGraduate'] = $row['doctorateYearGraduate'];
-			$data['postDegree'] = $row['postDegree'];
-			$data['postInstitution'] = $row['postInstitution'];
-			$data['postYearGraduate'] = $row['postYearGraduate'];
-		
-		}
-
-		echo json_encode($data);
-	}
-
-	if ($_POST["action"] == 'Edit') {
-		$error = '';
-		$success = '';
-	
-			$data = array(
-				':researcherID'          => $_POST['researcherIDu'],
-				':familyName'            => $_POST['familyNameu'],
-				':firstName'             => $_POST['firstNameu'],
-				':middleName'            => $_POST['middleNameu'],
-				':Suffix'                => $_POST['Suffixu'],
-				':department'            => $_POST['departmentu'],
-				':program'               => $_POST['programu'],
-				':bachelor_degree'       => $_POST['bachelor_degreeu'],
-				':bachelor_institution'  => $_POST['bachelor_institutionu'],
-				':bachelor_YearGraduated'=> $_POST['bachelor_YearGraduatedu'],
-				':masterDegree'          => $_POST['masterDegreeu'],
-				':masterInstitution'     => $_POST['masterInstitutionu'],
-				':masterYearGraduated'   => $_POST['masterYearGraduatedu'],
-				':doctorateDegree'       => $_POST['doctorateDegreeu'],
-				':doctorateInstitution'  => $_POST['doctorateInstitutionu'],
-				':doctorateYearGraduate' => $_POST['doctorateYearGraduateu'],
-				':postDegree'            => $_POST['postDegreeu'],
-				':postInstitution'       => $_POST['postInstitutionu'],
-				':postYearGraduate'      => $_POST['postYearGraduateu'],
-				':user'			=>	$object->Get_user_name($_SESSION['user_id'])
-			
-			);
-	
-			// Update query
-			$object->query = "
-UPDATE tbl_researchdata 
-SET researcherID = :researcherID,
-    familyName = :familyName,
-    firstName = :firstName,
-    middleName = :middleName,
-    Suffix = :Suffix,
-    department = :department,
-    program = :program,
-    bachelor_degree = :bachelor_degree,
-    bachelor_institution = :bachelor_institution,
-    bachelor_YearGraduated = :bachelor_YearGraduated,
-    masterDegree = :masterDegree,
-    masterInstitution = :masterInstitution,
-    masterYearGraduated = :masterYearGraduated,
-    doctorateDegree = :doctorateDegree,
-    doctorateInstitution = :doctorateInstitution,
-    doctorateYearGraduate = :doctorateYearGraduate,
-    postDegree = :postDegree,
-    postInstitution = :postInstitution,
-    postYearGraduate = :postYearGraduate,
-	user = :user
-WHERE id = '".$_POST['hidden_id']."'
-";
-	
-			$object->execute($data);
-			$success = '<div class="alert alert-success">Researcher Data Updated</div>';
-		
-	
-		$output = array(
-			'error'     => $error,
-			'success'   => $success
-		);
-	
-		echo json_encode($output);
-	
-	}
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	if($_POST["action"] == 'delete')
-	{
-
-		
-
-		$res_id = intval($_POST["id"]);
-
-		// 1. Fetch owned research projects to clear their collaborator links first
-		$object->query = "SELECT id FROM tbl_researchconducted WHERE researcherID = '".$res_id."'";
-		$owned_projects = $object->get_result();
-		foreach($owned_projects as $proj) {
-			$object->query = "DELETE FROM tbl_research_collaborators WHERE research_id = '".$proj['id']."'";
-			$object->execute();
-		}
-
-		// 2. Delete all direct child records tied to this researcher
-		$tables_to_clear = [
-			'tbl_publication', 'tbl_itelectualprop', 'tbl_paperpresentation',
-			'tbl_trainingsattended', 'tbl_extension_project_conducted', 'tbl_ext',
-			'tbl_researchconducted'
-		];
-
-		foreach($tables_to_clear as $table) {
-			$object->query = "DELETE FROM $table WHERE researcherID = '".$res_id."'";
-			$object->execute();
-		}
-
-		// 3. Remove researcher from any other projects they were collaborating on
-		$object->query = "DELETE FROM tbl_research_collaborators WHERE researcher_id = '".$res_id."'";
-		$object->execute();
-
-		// 4. Soft delete the actual researcher profile (preserves legacy behavior)
-		$object->query = "UPDATE tbl_researchdata SET status = 0 WHERE id = '".$res_id."'";
-		$object->execute();
-
-		echo '<div class="alert alert-success">Researcher and all associated records deleted</div>';
-	}
-}
-
 ?>

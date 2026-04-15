@@ -70,8 +70,12 @@ $('#intellectualprop_form').on('submit', function (event) {
                     var Svalue = $('#action_intellectualprop').val();
                     Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The intellectual property has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' }});
 
-                    var researcherID = $('#researcherModala').data('id');  
-                    loadIntellectualPropTab(researcherID);
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ location.reload(); }, 800);
+                    } else {
+                        var researcherID = $('#researcherModala').data('id');  
+                        if(researcherID) { loadIntellectualPropTab(researcherID); }
+                    }
                 }
             }
         });
@@ -91,6 +95,7 @@ $('#add_intellectualprop').click(function () {
     $('#has_files_ip').val('None').trigger('change');
     $('#new_files_container_ip').html('');
     $('#existing_files_container_ip').html('');
+    $('#dynamic_links_container_ip').html('');
 
     $('#modal_title').text('Add Intellectual Property');  
     $('#action_intellectualprop').val('Add');
@@ -110,6 +115,7 @@ $(document).on('click', '.edit_button_intellectualprop', function () {
     $('#form_message').html('');
     $('#new_files_container_ip').html('');
     $('#existing_files_container_ip').html('');
+    $('#dynamic_links_container_ip').html('');
 
     $.ajax({
         url: "actions/intellectualprop_action.php",
@@ -143,6 +149,21 @@ $(document).on('click', '.edit_button_intellectualprop', function () {
             if(data.collaborators && $('#collaborators_ip').length) {
                 var filteredCollabs = data.collaborators.filter(function(id) { return id != data.lead_researcher_id; });
                 $('#collaborators_ip').val(filteredCollabs).trigger('change');
+            }
+
+            if(data.a_link && data.a_link.trim() !== '') {
+                var links = data.a_link.split("\n");
+                links.forEach(function(link) {
+                    if(link.trim() !== '') {
+                        var linkRow = `
+                            <div class="d-flex mb-2 link-row-ip">
+                                <input type="text" name="a_link_ip[]" class="form-control mr-2" value="${link.trim()}" placeholder="Paste link here (e.g. https://...)" />
+                                <button type="button" class="btn btn-danger remove-link-btn-ip"><i class="fas fa-times"></i></button>
+                            </div>
+                        `;
+                        $('#dynamic_links_container_ip').append(linkRow);
+                    }
+                });
             }
 
             $('#has_files_ip').val(data.has_files).trigger('change');
@@ -185,12 +206,32 @@ $(document).on('click', '.delete_button_intellectualprop', function (e) {
                 data: { intellectualPropID: intellectualPropID, action_intellectualprop: 'delete' },
                 success: function (data) {
                     Swal.fire({ title: 'Deleted!', text: 'The intellectual property has been successfully deleted.', icon: 'success', timer: 800, showConfirmButton: false });
-                    var researcherID = $('#researcherModala').data('id');
-                    loadIntellectualPropTab(researcherID);  
+                    
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ location.reload(); }, 800);
+                    } else {
+                        var researcherID = $('#researcherModala').data('id');
+                        if(researcherID) { loadIntellectualPropTab(researcherID); } else { location.reload(); }
+                    }
                 }
             });
         }
     });
+});
+
+// --- DYNAMIC LINKS LOGIC ---
+$(document).on('click', '#add_new_link_btn_ip', function() {
+    var linkRow = `
+        <div class="d-flex mb-2 link-row-ip">
+            <input type="text" name="a_link_ip[]" class="form-control mr-2" placeholder="Paste link here (e.g. https://...)" />
+            <button type="button" class="btn btn-danger remove-link-btn-ip"><i class="fas fa-times"></i></button>
+        </div>
+    `;
+    $('#dynamic_links_container_ip').append(linkRow);
+});
+
+$(document).on('click', '.remove-link-btn-ip', function() {
+    $(this).closest('.link-row-ip').remove();
 });
 
 // --- DYNAMIC FILE UPLOAD LOGIC ---

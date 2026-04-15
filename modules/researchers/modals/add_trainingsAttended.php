@@ -23,13 +23,26 @@
 
                     <div class="row">
                         <div class="col-md-6 form-group mb-4">
-                            <label for="type_training"><i class="fas fa-list-ul mr-2 text-primary"></i>Type</label>
+                            <label for="type_training"><i class="fas fa-chalkboard mr-2 text-primary"></i>Type</label>
                             <select name="type_training" id="type_training" class="form-control" required>
-                                <option value="">Select Type of Training</option>
-                                <option value="Seminar">Seminar</option>
-                                <option value="Conference">Conference</option>
+                                <option value="">Select Type</option>
                                 <option value="Training">Training</option>
+                                <option value="Seminar">Seminar</option>
+                                <option value="Workshop">Workshop</option>
+                                <option value="Conference">Conference</option>
                             </select>
+                        </div>
+
+                        <div class="col-md-6 form-group mb-4">
+                            <label for="venue_training"><i class="fas fa-map-marker-alt mr-2 text-primary"></i>Venue</label>
+                            <input type="text" name="venue_training" id="venue_training" class="form-control" placeholder="Enter the venue" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-4">
+                            <label for="date_training"><i class="far fa-calendar-alt mr-2 text-primary"></i>Date of Training</label>
+                            <input type="date" name="date_training" id="date_training" class="form-control" required />
                         </div>
 
                         <div class="col-md-6 form-group mb-4">
@@ -46,41 +59,42 @@
 
                     <div class="row">
                         <div class="col-md-6 form-group mb-4">
-                            <label for="venue_training"><i class="fas fa-map-marker-alt mr-2 text-primary"></i>Venue</label>
-                            <input type="text" name="venue_training" id="venue_training" class="form-control" placeholder="Enter the training venue" required />
-                        </div>
-
-                        <div class="col-md-6 form-group mb-4">
-                            <label for="date_training"><i class="far fa-calendar-alt mr-2 text-primary"></i>Date</label>
-                            <input type="date" name="date_training" id="date_training" class="form-control" required />
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 form-group mb-3">
-                            <label for="type_learning_dev"><i class="fas fa-book-reader mr-2 text-primary"></i>Type of Learning Dev.</label>
+                            <label for="type_learning_dev"><i class="fas fa-book-open mr-2 text-primary"></i>Type of Learning Dev</label>
                             <select name="type_learning_dev" id="type_learning_dev" class="form-control" required>
-                                <option value="">Select Learning Development</option>
-                                <option value="Clerical">Clerical</option>
+                                <option value="">Select Type of Learning Dev</option>
+                                <option value="Managerial">Managerial</option>
                                 <option value="Supervisory">Supervisory</option>
                                 <option value="Technical">Technical</option>
-                                <option value="Managerial">Managerial</option>
+                                <option value="Foundation">Foundation</option>
                             </select>
                         </div>
 
-                        <div class="col-md-6 form-group mb-3">
-                            <label for="sponsor_org"><i class="fas fa-building mr-2 text-primary"></i>Sponsor/Organizer</label>
-                            <input type="text" name="sponsor_org" id="sponsor_org" class="form-control" placeholder="Enter the sponsor or organizer" required />
+                        <div class="col-md-6 form-group mb-4">
+                            <label for="sponsor_org"><i class="fas fa-building mr-2 text-primary"></i>Sponsor Organization</label>
+                            <input type="text" name="sponsor_org" id="sponsor_org" class="form-control" placeholder="Enter the sponsor organization" required />
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 form-group mb-3">
                             <label for="total_hours_training"><i class="fas fa-clock mr-2 text-primary"></i>Total Number of Hours</label>
-                            <input type="number" name="total_hours_training" id="total_hours_training" class="form-control" placeholder="E.g. 40" required />
+                            <input type="number" name="total_hours_training" id="total_hours_training" class="form-control" placeholder="E.g., 40" required />
                         </div>
-                        
-                        <div class="col-md-6 form-group mb-3">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 form-group mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="m-0" for="a_link_training"><i class="fas fa-link mr-2 text-primary"></i>External Links (Optional)</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="add_new_link_btn_training"><i class="fas fa-plus"></i> Add Link</button>
+                            </div>
+                            <div id="dynamic_links_container_training">
+                                </div>
+                        </div>
+                    </div>
+
+                    <div class="row border-bottom pb-3 mb-3">
+                        <div class="col-md-12 form-group mb-0">
                             <label for="has_files_training"><i class="fas fa-paperclip mr-2 text-primary"></i>File Attachments</label>
                             <select name="has_files_training" id="has_files_training" class="form-control" required>
                                 <option value="None">None</option>

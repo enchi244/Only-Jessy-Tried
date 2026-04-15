@@ -45,11 +45,27 @@ $('#trainings_attended_form').on('submit', function (event) {
                     $('#submit_button_training').val($('#action_training').val());
                 } else {
                     $('#trainingsAttendedModal').modal('hide');
+                    $('#message').html(data.success);
+
                     var Svalue = $('#action_training').val();
-                    Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The training has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
-                    
-                    var researcherID = $('#researcherModala').data('id');  
-                    loadTrainingsAttendedTab(researcherID);
+                    Swal.fire({
+                        title: Svalue == "Add" ? 'Added!' : 'Updated!',
+                        text: 'The training has been successfully saved.',
+                        icon: 'success',
+                        timer: 800,  
+                        showConfirmButton: false,  
+                        customClass: { confirmButton: 'btn-success' }
+                    });
+
+                    // Check if we are on the profile page, if so, force a hard refresh
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ location.reload(); }, 800);
+                    } else {
+                        var researcherID = $('#researcherModala').data('id');  
+                        if(researcherID) { loadTrainingsAttendedTab(researcherID); }
+                    }
+
+                    setTimeout(function () { $('#message').html(''); }, 5000);
                 }
             }
         });
@@ -61,16 +77,16 @@ $('#trainingsAttendedModal').on('hidden.bs.modal', function () {
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
-// Add New Training
 $('#add_training_attended').click(function () {
-    var form = $('#trainings_attended_form');
-    if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
-    
+    $('#trainings_attended_form')[0].reset();  
+    $('#trainings_attended_form').parsley().reset();  
+
     $('#has_files_training').val('None').trigger('change');
     $('#new_files_container_training').html('');
     $('#existing_files_container_training').html('');
+    $('#dynamic_links_container_training').html('');
 
-    $('#modal_title').text('Add Training Attended');  
+    $('#modal_title').text('Add Trainings Attended');  
     $('#action_training').val('Add');
     var rid = $('#researcherModala').data('id');  
     $('#hidden_researcherID_training').val(rid);  
@@ -79,14 +95,14 @@ $('#add_training_attended').click(function () {
     $('#form_message').html('');
 });
 
-// Edit Existing Training
 $(document).on('click', '.edit_button_training', function () {
     var trainingID = $(this).data('id');  
-    var form = $('#trainings_attended_form');
-    if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
+    $('#trainings_attended_form')[0].reset();
+    $('#trainings_attended_form').parsley().reset();
     $('#form_message').html('');
     $('#new_files_container_training').html('');
     $('#existing_files_container_training').html('');
+    $('#dynamic_links_container_training').html('');
 
     $.ajax({
         url: "actions/trainings_attended_action.php",
@@ -94,6 +110,7 @@ $(document).on('click', '.edit_button_training', function () {
         data: { trainingID: trainingID, action_training: 'fetch_single' },
         dataType: 'JSON',
         success: function (data) {
+
             function parseLegacyDate(val) {
                 if (!val || val === 'null' || val === '0000-00-00') return '';
                 let str = String(val).trim().replace(/\//g, '-');
@@ -109,7 +126,7 @@ $(document).on('click', '.edit_button_training', function () {
                 }
                 return ''; 
             }
-            
+
             $('#title_training').val(data.title);
             $('#type_training').val(data.type);
             $('#venue_training').val(data.venue);
@@ -118,9 +135,24 @@ $(document).on('click', '.edit_button_training', function () {
             $('#type_learning_dev').val(data.type_learning_dev);
             $('#sponsor_org').val(data.sponsor_org);
             $('#total_hours_training').val(data.totnh);
-            
-            // Handle Files
+
+            if(data.a_link && data.a_link.trim() !== '') {
+                var links = data.a_link.split("\n");
+                links.forEach(function(link) {
+                    if(link.trim() !== '') {
+                        var linkRow = `
+                            <div class="d-flex mb-2 link-row-training">
+                                <input type="text" name="a_link_training[]" class="form-control mr-2" value="${link.trim()}" placeholder="Paste link here (e.g. https://...)" />
+                                <button type="button" class="btn btn-danger remove-link-btn-training"><i class="fas fa-times"></i></button>
+                            </div>
+                        `;
+                        $('#dynamic_links_container_training').append(linkRow);
+                    }
+                });
+            }
+
             $('#has_files_training').val(data.has_files).trigger('change');
+            
             if(data.existing_files && data.existing_files.length > 0) {
                 var filesHtml = '';
                 data.existing_files.forEach(function(f) {
@@ -137,7 +169,7 @@ $(document).on('click', '.edit_button_training', function () {
                 $('#existing_files_container_training').html(filesHtml);
             }
 
-            $('#modal_title').text('Edit Training Attended');
+            $('#modal_title').text('Edit Trainings Attended');
             $('#action_training').val('Edit');
             $('#submit_button_training').val('Edit');
             $('#trainingsAttendedModal').modal('show');
@@ -146,12 +178,19 @@ $(document).on('click', '.edit_button_training', function () {
     });
 });
 
-// Delete Training
+// Handle Delete Full Training
 $(document).on('click', '.delete_button_training, .delete_master_training', function (e) {
     e.preventDefault();
     var trainingID = $(this).data('id');  
     Swal.fire({
-        title: 'Are you sure?', text: 'This will delete the record and all attached files!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!', cancelButtonText: 'No, keep it', reverseButtons: true, customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
+        title: 'Are you sure?',
+        text: 'This will delete the record and all attached files!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, keep it',
+        reverseButtons: true,
+        customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -159,13 +198,40 @@ $(document).on('click', '.delete_button_training, .delete_master_training', func
                 method: "POST",
                 data: { trainingID: trainingID, action_training: 'delete' },
                 success: function (data) {
-                    Swal.fire({ title: 'Deleted!', text: 'The training has been successfully deleted.', icon: 'success', timer: 800, showConfirmButton: false });
-                    var researcherID = $('#researcherModala').data('id');
-                    if(researcherID) { loadTrainingsAttendedTab(researcherID); } else { location.reload(); }
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'The training has been successfully deleted.',
+                        icon: 'success',
+                        timer: 800,
+                        showConfirmButton: false,
+                    });
+
+                    // Check if we are on the profile page, if so, force a hard refresh
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ location.reload(); }, 800);
+                    } else {
+                        var researcherID = $('#researcherModala').data('id');
+                        if(researcherID) { loadTrainingsAttendedTab(researcherID); } else { location.reload(); }
+                    }
                 }
             });
         }
     });
+});
+
+// --- DYNAMIC LINKS LOGIC ---
+$(document).on('click', '#add_new_link_btn_training', function() {
+    var linkRow = `
+        <div class="d-flex mb-2 link-row-training">
+            <input type="text" name="a_link_training[]" class="form-control mr-2" placeholder="Paste link here (e.g. https://...)" />
+            <button type="button" class="btn btn-danger remove-link-btn-training"><i class="fas fa-times"></i></button>
+        </div>
+    `;
+    $('#dynamic_links_container_training').append(linkRow);
+});
+
+$(document).on('click', '.remove-link-btn-training', function() {
+    $(this).closest('.link-row-training').remove();
 });
 
 // --- DYNAMIC FILE UPLOAD LOGIC ---
@@ -205,6 +271,7 @@ $(document).on('click', '.remove-new-training-file', function() {
     $(this).closest('.new-file-row').remove();
 });
 
+// Delete Existing Server File via AJAX
 $(document).on('click', '.delete-existing-training-file', function(e) {
     e.preventDefault();
     var btn = $(this);

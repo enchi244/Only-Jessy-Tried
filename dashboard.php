@@ -26,41 +26,46 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         }
     }
 
-    function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = []) {
+    function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = [], &$global_active_researchers = null) {
         $total_rows = 0; 
         $dept_counts = $base_depts; 
         $distinct_vals = [];
         $unique_titles = [];
         
-        // Tracker to prevent double-counting if multiple people from the SAME department are on ONE project
         $dept_tracked_items = []; 
 
+        // THE FIX: "WHERE r.status = 1" strictly ignores the Recycle Bin!
         if ($is_researcher) {
-            $query = "SELECT department, user_created_on FROM {$table}";
+            $query = "SELECT id as active_res_id, department, user_created_on FROM {$table} WHERE status = 1";
         } 
-        // 1. Research Conducted: Uses Collaborator Table
         else if ($table === 'tbl_researchconducted') {
-            $query = "SELECT COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
+            $query = "SELECT COALESCE(d.id, d_main.id) as active_res_id, COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
                       LEFT JOIN tbl_research_collaborators col ON r.id = col.research_id 
                       LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
-                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id";
+                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
+                      WHERE r.status = 1";
         } 
-        // 2. Publication: Uses Collaborator Table
         else if ($table === 'tbl_publication') {
-            $query = "SELECT COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
+            $query = "SELECT COALESCE(d.id, d_main.id) as active_res_id, COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
                       LEFT JOIN tbl_publication_collaborators col ON r.id = col.publication_id 
                       LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
-                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id";
+                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
+                      WHERE r.status = 1";
         } 
-        // 3. THE FIX: Paper Presentation (and others) safely default back to just the Lead Proponent for now
+        else if ($table === 'tbl_paperpresentation') {
+            $query = "SELECT COALESCE(d.id, d_main.id) as active_res_id, COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
+                      LEFT JOIN tbl_paper_collaborators col ON r.id = col.paper_id 
+                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
+                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
+                      WHERE r.status = 1";
+        } 
         else {
-            $query = "SELECT d.department, r.* FROM {$table} r JOIN tbl_researchdata d ON r.researcherID = d.id";
+            $query = "SELECT d.id as active_res_id, d.department, r.* FROM {$table} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.status = 1";
         }
 
         $res = @$conn->query($query);
         if ($res) {
             while($row = $res->fetch_assoc()) {
-                // If either dropdown is set to "all", we treat it as an All-Time search
                 $match = ($from_year === 'all' || $to_year === 'all');
                 
                 if (!$match) {
@@ -72,7 +77,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                             $ts = strtotime($val_clean);
                             if ($ts !== false) {
                                 $record_year = date('Y', $ts);
-                                // Checks if the record year falls within the range
                                 if ($record_year >= $from_year && $record_year <= $to_year) {
                                     $match = true;
                                     break;
@@ -83,40 +87,44 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                 }
 
                 if ($match) {
-                    $total_rows++;
                     $dept = !empty($row['department']) ? $row['department'] : 'Unknown';
                     
-                    // Safe fallback for item_id if 'id' or title doesn't exist in the database row
-                    $item_id = uniqid(); 
-                    if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
-                        $item_id = strtolower(trim($row[$title_col]));
-                    } else if (isset($row['id'])) {
-                        $item_id = $row['id'];
+                    if (isset($row['active_res_id']) && !empty($row['active_res_id']) && $global_active_researchers !== null) {
+                        $global_active_researchers[$row['active_res_id']] = $dept;
                     }
 
-                    if (!isset($dept_tracked_items[$dept])) {
-                        $dept_tracked_items[$dept] = [];
-                    }
+                    if (!$is_researcher) {
+                        $total_rows++;
+                        $item_id = uniqid(); 
+                        if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
+                            $item_id = strtolower(trim($row[$title_col]));
+                        } else if (isset($row['id'])) {
+                            $item_id = $row['id'];
+                        }
 
-                    // Only give the department a point if they haven't been credited for this exact project yet
-                    if (!isset($dept_tracked_items[$dept][$item_id])) {
-                        $dept_tracked_items[$dept][$item_id] = true;
+                        if (!isset($dept_tracked_items[$dept])) {
+                            $dept_tracked_items[$dept] = [];
+                        }
+
+                        if (!isset($dept_tracked_items[$dept][$item_id])) {
+                            $dept_tracked_items[$dept][$item_id] = true;
+                            if(!isset($dept_counts[$dept])) $dept_counts[$dept] = 0;
+                            $dept_counts[$dept]++;
+                        }
                         
-                        if(!isset($dept_counts[$dept])) $dept_counts[$dept] = 0;
-                        $dept_counts[$dept]++;
-                    }
-                    
-                    // Standard unique counters
-                    if ($distinct_col && isset($row[$distinct_col]) && !empty(trim($row[$distinct_col]))) {
-                        $distinct_vals[trim($row[$distinct_col])] = true;
-                    }
-                    
-                    if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
-                        $unique_titles[strtolower(trim($row[$title_col]))] = true;
+                        if ($distinct_col && isset($row[$distinct_col]) && !empty(trim($row[$distinct_col]))) {
+                            $distinct_vals[trim($row[$distinct_col])] = true;
+                        }
+                        
+                        if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
+                            $unique_titles[strtolower(trim($row[$title_col]))] = true;
+                        }
                     }
                 }
             }
         }
+
+        if ($is_researcher) { return []; } 
 
         $chart_data = [];
         foreach($dept_counts as $dept => $cnt) {
@@ -131,14 +139,45 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         ];
     }
 
+    $global_active_researchers = [];
+
+    getFilteredData($conn, 'tbl_researchdata', $from_year, $to_year, true, null, null, $all_depts, $global_active_researchers);
+    $chart2 = getFilteredData($conn, 'tbl_researchconducted', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
+    $chart3 = getFilteredData($conn, 'tbl_publication', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
+    $chart4 = getFilteredData($conn, 'tbl_itelectualprop', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
+    $chart5 = getFilteredData($conn, 'tbl_paperpresentation', $from_year, $to_year, false, 'discipline', 'title', $all_depts, $global_active_researchers);
+    $chart6 = getFilteredData($conn, 'tbl_trainingsattended', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
+    $chart7 = getFilteredData($conn, 'tbl_extension_project_conducted', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
+
+    $chart1_dept_counts = $all_depts;
+    foreach ($global_active_researchers as $res_id => $dept) {
+        $dept = !empty($dept) ? $dept : 'Unknown';
+        if (!isset($chart1_dept_counts[$dept])) {
+            $chart1_dept_counts[$dept] = 0;
+        }
+        $chart1_dept_counts[$dept]++;
+    }
+
+    $chart1_data = [];
+    foreach($chart1_dept_counts as $dept => $cnt) {
+        $chart1_data[] = ['label' => $dept, 'y' => $cnt];
+    }
+
+    $total_active = count($global_active_researchers);
+
     $response = [
-        'chart1' => getFilteredData($conn, 'tbl_researchdata', $from_year, $to_year, true, null, null, $all_depts),
-        'chart2' => getFilteredData($conn, 'tbl_researchconducted', $from_year, $to_year, false, null, 'title', $all_depts),
-        'chart3' => getFilteredData($conn, 'tbl_publication', $from_year, $to_year, false, null, 'title', $all_depts),
-        'chart4' => getFilteredData($conn, 'tbl_itelectualprop', $from_year, $to_year, false, null, 'title', $all_depts),
-        'chart5' => getFilteredData($conn, 'tbl_paperpresentation', $from_year, $to_year, false, 'discipline', 'title', $all_depts),
-        'chart6' => getFilteredData($conn, 'tbl_trainingsattended', $from_year, $to_year, false, null, 'title', $all_depts),
-        'chart7' => getFilteredData($conn, 'tbl_extension_project_conducted', $from_year, $to_year, false, null, 'title', $all_depts) 
+        'chart1' => [
+            'total' => $total_active,
+            'chart' => $chart1_data,
+            'distinct_count' => $total_active,
+            'unique_titles_count' => $total_active
+        ],
+        'chart2' => $chart2,
+        'chart3' => $chart3,
+        'chart4' => $chart4,
+        'chart5' => $chart5,
+        'chart6' => $chart6,
+        'chart7' => $chart7 
     ];
     
     echo json_encode($response);
@@ -379,7 +418,7 @@ $totalDepartments = $object->Get_total_departments();
         <div class="col-xl-6 col-lg-12 mb-4">
             <div class="card shadow h-100">
                 <a href="#collapsestatus" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapsestatus">
-                    <h6 class="m-0 font-weight-bold text-primary" id="title-chart1">Total Number of Departments: <?php echo $totalDepartments; ?></h6>
+                    <h6 class="m-0 font-weight-bold text-primary" id="title-chart1">Total Active Researchers</h6>
                 </a>
                 <div class="collapse show" id="collapsestatus">
                     <div class="card-body" style="padding-bottom: 0;">
@@ -402,7 +441,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart = new CanvasJS.Chart("departmentChart", {
                                 animationEnabled: true,
-                                title: { text: "Department-by Researchers' Count", fontSize: 16 },
+                                title: { text: "Active Researchers by Department", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "column", dataPoints: [] }]
                             });
@@ -842,8 +881,9 @@ $totalDepartments = $object->Get_total_departments();
 
 <script>
     function openDetailsModal(departmentName, type, title) {
-        
-        // ADDED LOADING STATE FOR BETTER UI
+        var fromYear = $('#filterFromYear').val() || 'all';
+        var toYear = $('#filterToYear').val() || 'all';
+
         Swal.fire({
             title: 'Fetching Data...',
             allowOutsideClick: false,
@@ -853,11 +893,10 @@ $totalDepartments = $object->Get_total_departments();
         $.ajax({
             url: "actions/fetch_subdep.php",
             type: "POST",
-            data: { action: "fetch_modal_details", department: departmentName, type: type },
+            data: { action: "fetch_modal_details", department: departmentName, type: type, from_year: fromYear, to_year: toYear },
             success: function(result) {
                 Swal.close();
                 try {
-                    // SMART PARSING: Prevents the "Double Parse" crash!
                     var data = (typeof result === "object") ? result : JSON.parse(result);
 
                     if ($.fn.DataTable.isDataTable('#subDepTable')) {
@@ -874,7 +913,7 @@ $totalDepartments = $object->Get_total_departments();
                             }
                         });
                     } else {
-                        modalContent += '<tr><td class="text-center text-muted font-italic py-3">No specific records found for this category.</td><td style="display:none;"></td></tr>';
+                        modalContent += '<tr><td class="text-center text-muted font-italic py-3">No specific records found for this timeframe.</td><td style="display:none;"></td></tr>';
                     }
                     modalContent += '</tbody></table>';
                     
@@ -918,9 +957,6 @@ $totalDepartments = $object->Get_total_departments();
             });
         });
         
-        // ==============================================================================
-        // RANGE FILTER BUTTON CLICK LISTENER
-        // ==============================================================================
         $('#applyYearFilter').click(function() {
             var fromYear = $('#filterFromYear').val();
             var toYear = $('#filterToYear').val();
@@ -963,6 +999,7 @@ $totalDepartments = $object->Get_total_departments();
                     if ($('#card-discipline').length) $('#card-discipline').text(res.chart5.distinct_count.toLocaleString()); 
                     if ($('#card-projects').length) $('#card-projects').text(res.chart7.unique_titles_count.toLocaleString()); 
 
+                    if ($('#title-chart1').length) $('#title-chart1').text('Total Active Researchers');
                     if ($('#title-chart2').length) $('#title-chart2').text('Total Number of Research Conducted: ' + res.chart2.unique_titles_count);
                     if ($('#title-chart3').length) $('#title-chart3').text('Total Number of Publications: ' + res.chart3.unique_titles_count);
                     if ($('#title-chart4').length) $('#title-chart4').text('Total Number of Intellectual Property: ' + res.chart4.unique_titles_count);

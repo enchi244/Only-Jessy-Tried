@@ -65,8 +65,12 @@ $('#paper_presentation_form').on('submit', function (event) {
                         customClass: { confirmButton: 'btn-success' }
                     });
 
-                    var researcherID = $('#researcherModala').data('id');  
-                    loadPaperPresentationTab(researcherID);  
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ location.reload(); }, 800);
+                    } else {
+                        var researcherID = $('#researcherModala').data('id');  
+                        if(researcherID) { loadPaperPresentationTab(researcherID); }
+                    }
 
                     setTimeout(function () {
                         $('#message').html('');
@@ -93,6 +97,7 @@ $('#add_paper_presentation').click(function () {
     $('#has_files_pp').val('None').trigger('change');
     $('#new_files_container_pp').html('');
     $('#existing_files_container_pp').html('');
+    $('#dynamic_links_container').html('');
 
     $('#modal_title').text('Add Paper Presentation');  
     $('#action_paper_presentation').val('Add');
@@ -112,6 +117,7 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
     $('#form_message').html('');
     $('#new_files_container_pp').html('');
     $('#existing_files_container_pp').html('');
+    $('#dynamic_links_container').html('');
 
     $.ajax({
         url: "actions/paper_presentation_action.php",
@@ -143,6 +149,21 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
             $('#date_paper').val(parseLegacyDate(data.date_paper));
             $('#type_pp').val(data.type);
             $('#discipline').val(data.discipline);
+
+            if(data.a_link && data.a_link.trim() !== '') {
+                var links = data.a_link.split("\n");
+                links.forEach(function(link) {
+                    if(link.trim() !== '') {
+                        var linkRow = `
+                            <div class="d-flex mb-2 link-row">
+                                <input type="text" name="a_link[]" class="form-control mr-2" value="${link.trim()}" placeholder="Paste link here (e.g. https://...)" />
+                                <button type="button" class="btn btn-danger remove-link-btn"><i class="fas fa-times"></i></button>
+                            </div>
+                        `;
+                        $('#dynamic_links_container').append(linkRow);
+                    }
+                });
+            }
 
             // Handle Files
             $('#has_files_pp').val(data.has_files).trigger('change');
@@ -200,16 +221,31 @@ $(document).on('click', '.delete_button_paper_presentation, .delete_master_paper
                         showConfirmButton: false,
                     });
 
-                    var researcherID = $('#researcherModala').data('id');
-                    if(researcherID) {
-                        loadPaperPresentationTab(researcherID); 
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ location.reload(); }, 800);
                     } else {
-                        location.reload(); 
+                        var researcherID = $('#researcherModala').data('id');
+                        if(researcherID) { loadPaperPresentationTab(researcherID); } else { location.reload(); }
                     }
                 }
             });
         }
     });
+});
+
+// --- DYNAMIC LINKS LOGIC ---
+$(document).on('click', '#add_new_link_btn', function() {
+    var linkRow = `
+        <div class="d-flex mb-2 link-row">
+            <input type="text" name="a_link[]" class="form-control mr-2" placeholder="Paste link here (e.g. https://...)" />
+            <button type="button" class="btn btn-danger remove-link-btn"><i class="fas fa-times"></i></button>
+        </div>
+    `;
+    $('#dynamic_links_container').append(linkRow);
+});
+
+$(document).on('click', '.remove-link-btn', function() {
+    $(this).closest('.link-row').remove();
 });
 
 // --- DYNAMIC FILE UPLOAD LOGIC ---
