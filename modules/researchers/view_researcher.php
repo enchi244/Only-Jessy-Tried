@@ -121,7 +121,7 @@ include('../../includes/header.php');
     }
 </style>
 
-<a href="researcher.php" class="btn btn-light btn-sm mb-3 shadow-sm font-weight-bold text-gray-700">
+<a href="researcher.php" id="back_to_directory" class="btn btn-light btn-sm mb-3 shadow-sm font-weight-bold text-gray-700">
     <i class="fas fa-arrow-left mr-2"></i>Back to Directory
 </a>
 
@@ -707,6 +707,29 @@ document.addEventListener("DOMContentLoaded", function() {
     const tabBtns = document.querySelectorAll('.custom-tab-btn');
     const tabPanes = document.querySelectorAll('.custom-tab-pane');
     const fabContainer = document.getElementById('fab-container');
+    const backBtn = document.getElementById('back_to_directory');
+
+    // Update the "Back" link whenever a tab is clicked
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.getAttribute('id');
+            // Mapping view_researcher tabs to researcher.php master button IDs
+            const backMapping = {
+                'tab-personal-info': 'btn_view_researchers',
+                'tab-education': 'btn_view_conducted',
+                'tab-degree': 'btn_view_publications',
+                'tab-ip': 'btn_view_ip',
+                'tab-pp': 'btn_view_pp',
+                'tab-tra': 'btn_view_tra',
+                'tab-epc': 'btn_view_epc',
+                'tab-ext': 'btn_view_ext'
+            };
+            
+            if (backBtn && backMapping[tabId]) {
+                backBtn.href = "researcher.php?tab=" + backMapping[tabId];
+            }
+        });
+    });
     const dynamicFabBtn = document.getElementById('dynamic-fab-btn');
 
     // Mapping tab IDs to the "Add" button IDs expected by your jQuery scripts
@@ -783,6 +806,7 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
 <script src="scripts/research_conducted.js"></script>
+<script src="scripts/profile.js"></script>
 <script src="scripts/publication.js"></script>
 <script src="scripts/intellectual_prop.js"></script>
 <script src="scripts/paper_presentation.js"></script>

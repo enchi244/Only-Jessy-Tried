@@ -32,7 +32,15 @@ $(document).ready(function() {
         $('#researcher_table thead').html('<tr><th width="15%">ID</th><th width="25%">Name</th><th width="20%">Department</th><th width="20%">Program</th><th width="10%">Joined</th><th width="10%" class="text-center">Actions</th></tr>');
         dataTable = $('#researcher_table').DataTable({
             "processing": true, "serverSide": true, "order": [],
-            "ajax": { url: "actions/researcher_action.php", type: "POST", data: { action: 'fetch' } },
+            "ajax": { 
+                url: "actions/researcher_action.php", 
+                type: "POST", 
+                data: function(d) {
+                    d.action = 'fetch';
+                    d.filter_rank = $('#filter_rank').val();
+                    d.filter_program = $('#filter_program').val();
+                }
+            },
             "columnDefs": [{ "targets": [0], "orderable": false }],
             "order": [[2, 'asc']], "stateSave": true,
             "drawCallback": function(settings) {
@@ -239,5 +247,11 @@ $(document).ready(function() {
     $('.modal').on('hidden.bs.modal', function() {
         if ($('.modal.show').length > 0) { $('body').addClass('modal-open'); }
         $('#researcherModala .modal-body').scrollTop(0);
+    });
+    // Trigger table refresh when dropdown filters change
+    $('#filter_rank, #filter_program').on('change', function() {
+        if ($.fn.DataTable.isDataTable('#researcher_table')) {
+            $('#researcher_table').DataTable().ajax.reload();
+        }
     });
 });

@@ -32,6 +32,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
     $researcher_id = trim($_POST['researcher_id'] ?? '');
     $filter_status = isset($_POST['status']) ? strtolower($_POST['status']) : 'all';
     
+    // NEW FILTERS
+    $filter_rank = trim($_POST['filter_rank'] ?? '');
+    $filter_program = trim($_POST['filter_program'] ?? '');
+    
     $is_all_time = empty($_POST['from_date']) && empty($_POST['to_date']);
     $from_date_ts = empty($_POST['from_date']) ? 0 : strtotime($_POST['from_date']);
     $to_date_ts = empty($_POST['to_date']) ? PHP_INT_MAX : strtotime($_POST['to_date']) + 86399;
@@ -46,21 +50,22 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
 
         foreach ($tables_to_process as $current_table) {
             
-            // THE FIX: DYNAMICALLY FETCH CO-AUTHORS FOR THE PREVIEW TABLE
+            // Helper subquery for co-authors that also pulls their metadata (Rank and Program)
             $co_author_subquery = "''";
             if ($current_table == 'tbl_researchconducted') {
-                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') FROM tbl_research_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.research_id = r.id AND col.researcher_id != r.researcherID)";
+                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM tbl_research_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.research_id = r.id AND col.researcher_id != r.researcherID)";
             } elseif ($current_table == 'tbl_publication') {
-                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') FROM tbl_publication_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.publication_id = r.id AND col.researcher_id != r.researcherID)";
+                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM tbl_publication_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.publication_id = r.id AND col.researcher_id != r.researcherID)";
             } elseif ($current_table == 'tbl_paperpresentation') {
-                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') FROM tbl_paper_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.paper_id = r.id AND col.researcher_id != r.researcherID)";
+                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM tbl_paper_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.paper_id = r.id AND col.researcher_id != r.researcherID)";
             } elseif ($current_table == 'tbl_itelectualprop') {
                 $co_author_subquery = "r.coauth";
             }
 
+            // Select lead researcher metadata along with module data
             $query = "SELECT d.department AS `Department`, 
-                             CONCAT(d.firstName, ' ', d.familyName) AS `Lead_Researcher`, 
-                             {$co_author_subquery} AS `Co_Researchers`,
+                             d.firstName, d.familyName, d.academic_rank, d.program,
+                             {$co_author_subquery} AS `Co_Researchers_Raw`,
                              d.so_file AS `so_file`,
                              r.moa_file AS `moa_file`,
                              r.* FROM {$current_table} r 
@@ -71,6 +76,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $where_clauses[] = "d.department = '" . $conn->real_escape_string($department) . "'";
             }
             
+            if (!empty($filter_rank)) {
+                $where_clauses[] = "d.academic_rank = '" . $conn->real_escape_string($filter_rank) . "'";
+            }
+
+            if (!empty($filter_program)) {
+                $where_clauses[] = "d.program = '" . $conn->real_escape_string($filter_program) . "'";
+            }
+
             if (!empty($researcher_id)) {
                 $r_id = $conn->real_escape_string($researcher_id);
                 if (in_array($current_table, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation'])) {
@@ -138,14 +151,40 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $title_val = ''; 
                 
                 $clean_row['Department'] = htmlspecialchars($row['Department'] ?? '', ENT_QUOTES, 'UTF-8');
-                $clean_row['Lead_Researcher'] = htmlspecialchars($row['Lead_Researcher'] ?? '', ENT_QUOTES, 'UTF-8');
-                $clean_row['Co_Researchers'] = !empty($row['Co_Researchers']) ? htmlspecialchars($row['Co_Researchers'], ENT_QUOTES, 'UTF-8') : 'None';
+                
+                // STYLED LEAD RESEARCHER (Badge + Discipline)
+                $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-2 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
+                $discipline_text = !empty($row["program"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader"></i> ' . htmlspecialchars($row["program"]) . '</div>' : '';
+                $clean_row['Lead_Researcher'] = "<div class='font-weight-bold text-gray-800'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . $rank_badge . "</div>" . $discipline_text;
+
+                // STYLED CO-RESEARCHERS (Badge + Discipline)
+                if ($current_table == 'tbl_itelectualprop') {
+                    $clean_row['Co_Researchers'] = !empty($row['coauth']) ? htmlspecialchars($row['coauth'], ENT_QUOTES, 'UTF-8') : 'None';
+                } else {
+                    $co_html = "";
+                    if (!empty($row['Co_Researchers_Raw'])) {
+                        $co_list = explode('||', $row['Co_Researchers_Raw']);
+                        foreach ($co_list as $co_data) {
+                            $parts = explode('|', $co_data);
+                            if (count($parts) >= 1) {
+                                $c_name = $parts[0];
+                                $c_rank = $parts[1] ?? '';
+                                $c_prog = $parts[2] ?? '';
+                                $c_badge = !empty($c_rank) ? '<span class="badge badge-light border px-2 py-1 ml-2 align-text-top" style="font-size:0.6rem; color:#5a5c69;">' . htmlspecialchars($c_rank) . '</span>' : '';
+                                $c_discipline = !empty($c_prog) ? '<div class="text-xs text-muted" style="margin-left:5px;">— ' . htmlspecialchars($c_prog) . '</div>' : '';
+                                $co_html .= "<div class='mb-2'><span class='text-gray-700 font-weight-bold' style='font-size:0.9rem;'>$c_name</span>$c_badge $c_discipline</div>";
+                            }
+                        }
+                    }
+                    $clean_row['Co_Researchers'] = !empty($co_html) ? $co_html : 'None';
+                }
+
                 $clean_row['SO_Attached'] = !empty($row['so_file']) ? 'Yes' : 'None';
                 $clean_row['MOA_Attached'] = !empty($row['moa_file']) ? 'Yes' : 'None';
                 
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
-                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'status' || $kl === 'department' || $kl === 'lead_researcher' || $kl === 'co_researchers' || $kl === 'so_file' || $kl === 'moa_file') continue;
+                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'status' || $kl === 'department' || $kl === 'firstname' || $kl === 'familyname' || $kl === 'academic_rank' || $kl === 'program' || $kl === 'co_researchers_raw' || $kl === 'lead_researcher' || $kl === 'co_researchers' || $kl === 'so_file' || $kl === 'moa_file') continue;
                     
                     $clean_row[$k] = htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
                     if ($kl === 'title') $title_val = $clean_row[$k];
@@ -164,16 +203,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 if (!isset($grouped_data[$row_hash])) {
                     $grouped_data[$row_hash] = $clean_row;
                 } else {
-                    $existing_names = explode(', ', $grouped_data[$row_hash]['Lead_Researcher']);
-                    if (!in_array($clean_row['Lead_Researcher'], $existing_names)) {
-                        $grouped_data[$row_hash]['Lead_Researcher'] .= ', ' . $clean_row['Lead_Researcher'];
+                    if (strpos($grouped_data[$row_hash]['Lead_Researcher'], $clean_row['Lead_Researcher']) === false) {
+                        $grouped_data[$row_hash]['Lead_Researcher'] .= "<hr class='my-1'>" . $clean_row['Lead_Researcher'];
                     }
-                    $existing_depts = explode(', ', $grouped_data[$row_hash]['Department']);
-                    if (!in_array($clean_row['Department'], $existing_depts)) {
-                        $grouped_data[$row_hash]['Department'] .= ', ' . $clean_row['Department'];
-                    }
-                    if ($clean_row['SO_Attached'] === 'Yes') $grouped_data[$row_hash]['SO_Attached'] = 'Yes';
-                    if ($clean_row['MOA_Attached'] === 'Yes') $grouped_data[$row_hash]['MOA_Attached'] = 'Yes';
                 }
             }
             
@@ -274,9 +306,8 @@ include('../../includes/header.php');
         </div>
         <div class="enterprise-card-body">
             <form id="filterForm">
-                <div class="row align-items-end">
-                    
-                    <div class="col-lg-2 col-md-4 mb-3">
+                <div class="row align-items-end mb-3">
+                    <div class="col-lg-3 mb-2">
                         <label class="form-label-custom">Target Module</label>
                         <select name="repp" id="repp" class="form-control-custom w-100">
                             <option value="all_modules" style="font-weight: bold;">All Modules</option>
@@ -289,21 +320,7 @@ include('../../includes/header.php');
                         </select>
                     </div>
 
-                    <div class="col-lg-2 col-md-4 mb-3">
-                        <label class="form-label-custom">Department</label>
-                        <select name="department" id="department" class="form-control-custom w-100">
-                            <option value="">All Departments</option>
-                            <?php
-                            $object->query = "SELECT category_name FROM product_category_table WHERE category_status = 'Enable' ORDER BY category_name ASC";
-                            $category_result = $object->get_result();
-                            foreach($category_result as $category) {
-                                echo '<option value="'.$category["category_name"].'">'.$category["category_name"].'</option>';
-                            }
-                            ?>
-                        </select>
-                    </div>
-
-                    <div class="col-lg-2 col-md-4 mb-3">
+                    <div class="col-lg-3 mb-2">
                         <label class="form-label-custom text-primary"><i class="fas fa-user-tie mr-1"></i> Researcher</label>
                         <select name="researcher_id" id="researcher_id" class="form-control-custom w-100 border-primary">
                             <option value="">All Personnel</option>
@@ -317,7 +334,21 @@ include('../../includes/header.php');
                         </select>
                     </div>
 
-                    <div class="col-lg-2 col-md-4 mb-3" id="statusFilterContainer">
+                    <div class="col-lg-3 mb-2">
+                        <label class="form-label-custom">Department</label>
+                        <select name="department" id="department" class="form-control-custom w-100">
+                            <option value="">All Departments</option>
+                            <?php
+                            $object->query = "SELECT category_name FROM product_category_table WHERE category_status = 'Enable' ORDER BY category_name ASC";
+                            $category_result = $object->get_result();
+                            foreach($category_result as $category) {
+                                echo '<option value="'.$category["category_name"].'">'.$category["category_name"].'</option>';
+                            }
+                            ?>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3 mb-2" id="statusFilterContainer">
                         <label class="form-label-custom text-info"><i class="fas fa-tasks mr-1"></i> Project Status</label>
                         <select name="status" id="status" class="form-control-custom w-100 border-info">
                             <option value="all">All Statuses</option>
@@ -325,18 +356,61 @@ include('../../includes/header.php');
                             <option value="completed">Completed</option>
                         </select>
                     </div>
+                </div>
 
-                    <div class="col-lg-1 col-md-4 mb-3">
+                <div class="row align-items-end">
+                    <div class="col-lg-3 mb-2">
+                        <label class="form-label-custom text-danger">Academic Rank</label>
+                        <select name="filter_rank" id="filter_rank" class="form-control-custom w-100 border-danger">
+                            <option value="">All Ranks</option>
+                            <option value="Instructor I">Instructor I</option>
+                            <option value="Instructor II">Instructor II</option>
+                            <option value="Instructor III">Instructor III</option>
+                            <option value="Assistant Professor I">Assistant Professor I</option>
+                            <option value="Assistant Professor II">Assistant Professor II</option>
+                            <option value="Assistant Professor III">Assistant Professor III</option>
+                            <option value="Assistant Professor IV">Assistant Professor IV</option>
+                            <option value="Associate Professor I">Associate Professor I</option>
+                            <option value="Associate Professor II">Associate Professor II</option>
+                            <option value="Associate Professor III">Associate Professor III</option>
+                            <option value="Associate Professor IV">Associate Professor IV</option>
+                            <option value="Associate Professor V">Associate Professor V</option>
+                            <option value="Professor I">Professor I</option>
+                            <option value="Professor II">Professor II</option>
+                            <option value="Professor III">Professor III</option>
+                            <option value="Professor IV">Professor IV</option>
+                            <option value="Professor V">Professor V</option>
+                            <option value="Professor VI">Professor VI</option>
+                            <option value="College Professor">College Professor</option>
+                            <option value="University Professor">University Professor</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3 mb-2">
+                        <label class="form-label-custom text-success">Discipline / Program</label>
+                        <select name="filter_program" id="filter_program" class="form-control-custom w-100 border-success">
+                            <option value="">All Disciplines</option>
+                            <?php
+                            $object->query = "SELECT * FROM tbl_majordiscipline ORDER BY major ASC";
+                            $result_prog = $object->get_result();
+                            foreach($result_prog as $row) {
+                                echo '<option value="'.$row["major"].'">'.htmlspecialchars($row["major"]).'</option>';
+                            }
+                            ?>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2 mb-2">
                         <label class="form-label-custom">Start Date</label>
-                        <input type="date" name="from_date" id="from_date" class="form-control-custom w-100" style="padding: 0.2rem;">
+                        <input type="date" name="from_date" id="from_date" class="form-control-custom w-100">
                     </div>
 
-                    <div class="col-lg-1 col-md-4 mb-3">
+                    <div class="col-lg-2 mb-2">
                         <label class="form-label-custom">End Date</label>
-                        <input type="date" name="to_date" id="to_date" class="form-control-custom w-100" style="padding: 0.2rem;">
+                        <input type="date" name="to_date" id="to_date" class="form-control-custom w-100">
                     </div>
 
-                    <div class="col-lg-2 col-md-12 mb-3">
+                    <div class="col-lg-2 mb-2">
                         <button type="button" id="previewBtn" class="btn-enterprise-search" title="Run Query">
                             <i class="fas fa-search mr-2"></i> Extract
                         </button>
@@ -400,6 +474,8 @@ $(document).ready(function() {
         var researcherId = $('#researcher_id').val();
         var repp = $('#repp').val();
         var statusFilter = $('#status').val(); 
+        var filterRank = $('#filter_rank').val();
+        var filterProgram = $('#filter_program').val();
 
         if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
             Swal.fire({ icon: 'error', title: 'Invalid Timeline', text: 'The Start Date cannot be chronologically after the End Date.', confirmButtonColor: '#2c7be5' });
@@ -411,7 +487,17 @@ $(document).ready(function() {
         $.ajax({
             url: 'report.php',
             type: 'POST',
-            data: { action: 'preview_report', from_date: fromDate, to_date: toDate, department: department, researcher_id: researcherId, repp: repp, status: statusFilter },
+            data: { 
+                action: 'preview_report', 
+                from_date: fromDate, 
+                to_date: toDate, 
+                department: department, 
+                researcher_id: researcherId, 
+                repp: repp, 
+                status: statusFilter,
+                filter_rank: filterRank,
+                filter_program: filterProgram
+            },
             dataType: 'json',
             success: function(response) {
                 Swal.close();
@@ -495,11 +581,13 @@ $(document).ready(function() {
                                         var p_researcher = encodeURIComponent($('#researcher_id').val());
                                         var p_repp = $('#repp').val();
                                         var p_status = $('#status').val(); 
+                                        var p_rank = encodeURIComponent($('#filter_rank').val());
+                                        var p_prog = encodeURIComponent($('#filter_program').val());
                                         var cb = new Date().getTime(); 
 
-                                        const swalLoading = Swal.fire({ title: 'Compiling Document...', text: 'Formatting beautiful Word layout.', icon: 'info', showConfirmButton: false, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+                                        const swalLoading = Swal.fire({ title: 'Compiling Document...', text: 'Formatting Word layout.', icon: 'info', showConfirmButton: false, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
                                         setTimeout(function() {
-                                            window.location.href = 'print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&researcher_id=' + p_researcher + '&repp=' + p_repp + '&status=' + p_status + '&format=word&_cb=' + cb;
+                                            window.location.href = 'print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&researcher_id=' + p_researcher + '&repp=' + p_repp + '&status=' + p_status + '&academic_rank=' + p_rank + '&program=' + p_prog + '&format=word&_cb=' + cb;
                                             swalLoading.close();
                                         }, 800);
                                     }
@@ -514,11 +602,13 @@ $(document).ready(function() {
                                         var p_researcher = encodeURIComponent($('#researcher_id').val());
                                         var p_repp = $('#repp').val();
                                         var p_status = $('#status').val(); 
+                                        var p_rank = encodeURIComponent($('#filter_rank').val());
+                                        var p_prog = encodeURIComponent($('#filter_program').val());
                                         var cb = new Date().getTime(); 
 
-                                        const swalLoading = Swal.fire({ title: 'Compiling Document...', text: 'Formatting beautiful PDF layout.', icon: 'info', showConfirmButton: false, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+                                        const swalLoading = Swal.fire({ title: 'Compiling Document...', text: 'Formatting PDF layout.', icon: 'info', showConfirmButton: false, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
                                         setTimeout(function() {
-                                            window.location.href = 'print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&researcher_id=' + p_researcher + '&repp=' + p_repp + '&status=' + p_status + '&format=pdf&_cb=' + cb;
+                                            window.location.href = 'print_journal.php?from_date=' + p_fromDate + '&to_date=' + p_toDate + '&department=' + p_department + '&researcher_id=' + p_researcher + '&repp=' + p_repp + '&status=' + p_status + '&academic_rank=' + p_rank + '&program=' + p_prog + '&format=pdf&_cb=' + cb;
                                             swalLoading.close();
                                         }, 800);
                                     }

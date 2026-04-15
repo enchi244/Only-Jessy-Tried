@@ -51,6 +51,14 @@ if(isset($_POST["action"]))
         // HIDES TRASHED USERS
         $search_query = ' WHERE status = 1 '; 
 
+        if (!empty($_POST["filter_rank"])) {
+            $search_query .= 'AND academic_rank = "' . $_POST["filter_rank"] . '" ';
+        }
+
+        if (!empty($_POST["filter_program"])) {
+            $search_query .= 'AND program = "' . $_POST["filter_program"] . '" ';
+        }
+
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
             $search_query .= 'AND (researcherID LIKE "%' . $search_value . '%" ';

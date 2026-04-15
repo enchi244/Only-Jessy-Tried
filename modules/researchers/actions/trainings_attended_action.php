@@ -78,9 +78,10 @@ if (isset($_POST["action_training"])) {
             $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
             $sub_array[] = '<div class="mb-1"><span class="font-weight-bold text-gray-800">'.$author_name.'</span>'.$rank_badge.'</div>'.$discipline_badge;
             $sub_array[] = $row["title"];
-            $sub_array[] = $row["type"];
-            $sub_array[] = parse_legacy_date_php($row["date_train"]);
-            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_training" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=tra" class="btn view_button d-none"></a></div>';
+            $sub_array[] = $row["venue"]; // Matches header 3
+            $sub_array[] = parse_legacy_date_php($row["date_train"]); // Matches header 4
+            $sub_array[] = $row["lvl"]; // Matches header 5
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_training" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=tra" class="btn view_button d-none"></a></div>'; // Matches header 6
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));

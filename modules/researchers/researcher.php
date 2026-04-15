@@ -137,6 +137,20 @@ include('../../includes/header.php');
         white-space: nowrap;
         flex: 0 0 auto;
     }
+
+    /* Custom Filter Styling in Card Header */
+    .filter-group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .filter-group-header select {
+        width: auto;
+        min-width: 160px;
+        font-size: 0.8rem;
+        height: 31px;
+        padding: 2px 5px;
+    }
 </style>
 
 <div style="display: none;">
@@ -167,7 +181,46 @@ include('../../includes/header.php');
 <span id="message"></span>
 <div class="card shadow-sm mb-4 border-0">
     <div class="card-header py-3 bg-white border-bottom-0 pt-4 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-gray-700" id="master_table_title"><i class="fas fa-list-ul mr-2"></i>Personnel Roster</h6>
+        <div class="d-flex align-items-center">
+            <h6 class="m-0 font-weight-bold text-gray-700 mr-3" id="master_table_title"><i class="fas fa-list-ul mr-2"></i>Personnel Roster</h6>
+            
+            <div class="filter-group-header d-none d-md-flex">
+                <select name="filter_rank" id="filter_rank" class="form-control form-control-sm border-left-danger">
+                    <option value="">All Ranks</option>
+                    <option value="Instructor I">Instructor I</option>
+                    <option value="Instructor II">Instructor II</option>
+                    <option value="Instructor III">Instructor III</option>
+                    <option value="Assistant Professor I">Assistant Professor I</option>
+                    <option value="Assistant Professor II">Assistant Professor II</option>
+                    <option value="Assistant Professor III">Assistant Professor III</option>
+                    <option value="Assistant Professor IV">Assistant Professor IV</option>
+                    <option value="Associate Professor I">Associate Professor I</option>
+                    <option value="Associate Professor II">Associate Professor II</option>
+                    <option value="Associate Professor III">Associate Professor III</option>
+                    <option value="Associate Professor IV">Associate Professor IV</option>
+                    <option value="Associate Professor V">Associate Professor V</option>
+                    <option value="Professor I">Professor I</option>
+                    <option value="Professor II">Professor II</option>
+                    <option value="Professor III">Professor III</option>
+                    <option value="Professor IV">Professor IV</option>
+                    <option value="Professor V">Professor V</option>
+                    <option value="Professor VI">Professor VI</option>
+                    <option value="College Professor">College Professor</option>
+                    <option value="University Professor">University Professor</option>
+                </select>
+                <select name="filter_program" id="filter_program" class="form-control form-control-sm border-left-primary">
+                    <option value="">All Disciplines</option>
+                    <?php
+                    $object->query = "SELECT * FROM tbl_majordiscipline ORDER BY major ASC";
+                    $program_result = $object->get_result();
+                    foreach($program_result as $row) {
+                        echo '<option value="'.$row["major"].'">'.$row["major"].'</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+        </div>
+
         <button class="btn btn-sm btn-outline-secondary font-weight-bold shadow-sm" id="toggleIDColumn">
             <i class="fas fa-eye-slash mr-1"></i> <span>Hidden ID</span>
         </button>
@@ -319,8 +372,8 @@ include('../../includes/header.php');
                                     <option value="">Select Major Discipline or Program</option>
                                     <?php
                                     $object->query = "SELECT * FROM tbl_majordiscipline";
-                                    $program_result = $object->get_result();
-                                    foreach($program_result as $program) { echo '<option value="'.$program["major"].'">'.$program["major"].'</option>'; }
+                                    $program_result_u = $object->get_result();
+                                    foreach($program_result_u as $program) { echo '<option value="'.$program["major"].'">'.$program["major"].'</option>'; }
                                     ?>
                                 </select>
                             </div>
@@ -376,7 +429,7 @@ include('../../includes/header.php');
                             <button type="button" id="submit_button_rd" class="btn btn-danger pink">Update</button>
                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                         </div>
-                    </form>                                
+                    </form>                                 
                 </div>
 
                 <div class="tab-pane fade" id="education" role="tabpanel" aria-labelledby="education-tab">
@@ -385,7 +438,7 @@ include('../../includes/header.php');
                         <div class="card-header py-3">
                             <div class="row">
                                 <div class="col"><h6 class="m-0 font-weight-bold text-primary">Research Conducted List</h6></div>
-                                <div class="col" align="right"><button type="button" id="add_researcherconducted" class="btn btn-danger pink btn-sm"><i class="fas fa-plus"> Add Research Conducted</i></button></div>
+                                <div class="col" align="right"><button type="button" id="add_researcherconducted_trigger" onclick="$('#add_researcherconducted').click()" class="btn btn-danger pink btn-sm"><i class="fas fa-plus"> Add Research Conducted</i></button></div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -405,7 +458,7 @@ include('../../includes/header.php');
                         <div class="card-header py-3">
                             <div class="row">
                                 <div class="col"><h6 class="m-0 font-weight-bold text-primary">Publications List</h6></div>
-                                <div class="col" align="right"><button type="button" id="add_publication" class="btn btn-danger pink btn-sm"><i class="fas fa-plus"> Add Publication</i></button></div>
+                                <div class="col" align="right"><button type="button" id="add_publication_trigger" onclick="$('#add_publication').click()" class="btn btn-danger pink btn-sm"><i class="fas fa-plus"> Add Publication</i></button></div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -526,6 +579,25 @@ include('../../includes/header.php');
 </div>
 
 <?php include('../../includes/footer.php'); ?>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Check the URL for a 'tab' parameter (e.g., ?tab=btn_view_tra)
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetTabId = urlParams.get('tab');
+    
+    if (targetTabId) {
+        const targetButton = document.getElementById(targetTabId);
+        if (targetButton) {
+            // Delay slightly to ensure DataTables and other scripts are ready
+            setTimeout(function() {
+                targetButton.click();
+                // Optional: Scroll to the table area so the user sees the change
+                targetButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }
+});
+</script>
 
 <script src="<?php echo $object->base_url; ?>js/app.js"></script>
 <script src="<?php echo $object->base_url; ?>js/select2.min.js"></script>
