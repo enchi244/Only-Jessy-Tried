@@ -49,7 +49,7 @@
 
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-building mr-2 text-secondary"></i>Academic Assignment</h6>
                     <div class="form-group row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="department">Select Department</label>
                             <select name="department" id="department" class="form-control" required data-parsley-trigger="change">
                                 <option value="">Select Department</option>
@@ -62,8 +62,8 @@
                                 ?>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label for="program">Major Discipline or Program</label>
+                        <div class="col-md-4">
+                            <label for="program">Major Discipline/Program</label>
                             <select name="program" id="program" class="form-control" required data-parsley-trigger="change">
                                 <option value="">Select Major Discipline or Program</option>
                                 <?php
@@ -73,6 +73,32 @@
                                     echo '<option value="'.$program["major"].'">'.$program["major"].'</option>';
                                 }
                                 ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="academic_rank">Academic Rank</label>
+                            <select name="academic_rank" id="academic_rank" class="form-control" required data-parsley-trigger="change">
+                                <option value="">Select Academic Rank</option>
+                                <option value="Instructor I">Instructor I</option>
+                                <option value="Instructor II">Instructor II</option>
+                                <option value="Instructor III">Instructor III</option>
+                                <option value="Assistant Professor I">Assistant Professor I</option>
+                                <option value="Assistant Professor II">Assistant Professor II</option>
+                                <option value="Assistant Professor III">Assistant Professor III</option>
+                                <option value="Assistant Professor IV">Assistant Professor IV</option>
+                                <option value="Associate Professor I">Associate Professor I</option>
+                                <option value="Associate Professor II">Associate Professor II</option>
+                                <option value="Associate Professor III">Associate Professor III</option>
+                                <option value="Associate Professor IV">Associate Professor IV</option>
+                                <option value="Associate Professor V">Associate Professor V</option>
+                                <option value="Professor I">Professor I</option>
+                                <option value="Professor II">Professor II</option>
+                                <option value="Professor III">Professor III</option>
+                                <option value="Professor IV">Professor IV</option>
+                                <option value="Professor V">Professor V</option>
+                                <option value="Professor VI">Professor VI</option>
+                                <option value="College Professor">College Professor</option>
+                                <option value="University Professor">University Professor</option>
                             </select>
                         </div>
                     </div>

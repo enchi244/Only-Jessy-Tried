@@ -54,7 +54,7 @@ if (isset($_POST["action_intellectualprop"])) {
         $main_query = "
             SELECT ip.*, 
                    (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') FROM tbl_ip_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.ip_id = ip.id) AS all_authors,
-                   pd.id AS author_db_id, pd.familyName AS primary_familyName
+                   pd.id AS author_db_id, pd.familyName AS primary_familyName, pd.academic_rank, pd.program AS primary_discipline
             FROM tbl_itelectualprop ip
             LEFT JOIN tbl_researchdata pd ON (pd.id = ip.lead_researcher_id OR pd.id = ip.researcherID OR pd.researcherID = ip.researcherID)
         ";
@@ -82,7 +82,9 @@ if (isset($_POST["action_intellectualprop"])) {
             $sub_array = array();
             $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown</span>";
             $co_authors = $row["all_authors"] ? $row["all_authors"] : (!empty($row["coauth"]) ? $row["coauth"] : "<span class='text-muted'>None</span>");
-            $sub_array[] = '<span class="font-weight-bold">'.$primary_author.'</span>';
+            $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-1 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
+            $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
+            $sub_array[] = '<div class="mb-1"><span class="font-weight-bold text-gray-800">'.$primary_author.'</span>'.$rank_badge.'</div>'.$discipline_badge;
             $sub_array[] = $row["title"];
             $sub_array[] = $co_authors;
             $sub_array[] = $row["type"];

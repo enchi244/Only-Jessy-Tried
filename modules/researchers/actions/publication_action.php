@@ -252,7 +252,7 @@ if(isset($_POST["action_publication"]) && $_POST["action_publication"] == 'fetch
     $main_query = "
         SELECT pub.*, 
                (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') FROM tbl_publication_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.publication_id = pub.id) AS all_authors,
-               pd.id AS author_db_id, pd.familyName AS primary_familyName
+               pd.id AS author_db_id, pd.familyName AS primary_familyName, pd.academic_rank, pd.program AS primary_discipline
         FROM tbl_publication pub
         LEFT JOIN tbl_researchdata pd ON (pd.id = pub.lead_author_id OR pd.id = pub.researcherID OR pd.researcherID = pub.researcherID)
     ";
@@ -281,8 +281,9 @@ if(isset($_POST["action_publication"]) && $_POST["action_publication"] == 'fetch
         $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
         $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown Lead</span>";
         $co_authors = $row["all_authors"] ? $row["all_authors"] : "<span class='text-muted'>None</span>";
-        $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span></div><div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
-
+        $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-1 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
+        $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1 mb-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
+        $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span>' . $rank_badge . '</div>' . $discipline_badge . '<div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
         $sub_array[] = $author_display;
         $sub_array[] = $row["title"];
         $sub_array[] = $row["journal"];

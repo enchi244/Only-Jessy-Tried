@@ -116,7 +116,9 @@ $(document).ready(function() {
     }
 
     // Initialize Default view on page load
-    loadResearcherTable();
+    if ($('#researcher_table').length > 0) {
+        loadResearcherTable();
+    }
 
 
     // Add New Researcher Form
@@ -146,7 +148,7 @@ $(document).ready(function() {
                         $('#form_message_rm').html(data.error); $('#submit_button').val('Add');
                     } else {
                         $('#researcherModal').modal('hide'); $('#message_rm').html(data.success);
-                        dataTable.ajax.reload();
+                        if (typeof dataTable !== 'undefined') { dataTable.ajax.reload(); }
                         Swal.fire({ title: 'Added!', text: 'The record has been successfully added.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
                         setTimeout(function(){ $('#message_rm').html(''); }, 5000);
                     }
@@ -168,9 +170,17 @@ $(document).ready(function() {
             data: {id: id, action: 'fetch_single'},
             dataType: 'JSON',
             success: function(data) {
-                $('#researcherIDu').val(data.researcherID); $('#familyNameu').val(data.familyName); $('#firstNameu').val(data.firstName); $('#middleNameu').val(data.middleName); $('#Suffixu').val(data.Suffix); $('#departmentu').val(data.department); $('#programu').val(data.program); $('#bachelor_degreeu').val(data.bachelor_degree); $('#bachelor_institutionu').val(data.bachelor_institution); $('#bachelor_YearGraduatedu').val(data.bachelor_YearGraduated); $('#masterDegreeu').val(data.masterDegree); $('#masterInstitutionu').val(data.masterInstitution); $('#masterYearGraduatedu').val(data.masterYearGraduated); $('#doctorateDegreeu').val(data.doctorateDegree); $('#doctorateInstitutionu').val(data.doctorateInstitution); $('#doctorateYearGraduateu').val(data.doctorateYearGraduate); $('#postDegreeu').val(data.postDegree); $('#postInstitutionu').val(data.postInstitution); $('#postYearGraduateu').val(data.postYearGraduate);
-                $('#modal_title').text('Edit'); $('#submit_button_rd').val('Edit'); $('#researcherModala').data('id', id).modal('show'); $('#hidden_id_rd').val(id);
-                loadResearchConductedTab(id); loadPublicationTab(id); loadIntellectualPropTab(id); loadPaperPresentationTab(id); loadTrainingsAttendedTab(id); loadExtensionProjectsTab(id); loadextprotab(id); 
+                $('#researcherIDu').val(data.researcherID); $('#familyNameu').val(data.familyName); $('#firstNameu').val(data.firstName); $('#middleNameu').val(data.middleName); $('#Suffixu').val(data.Suffix); $('#departmentu').val(data.department); $('#programu').val(data.program); $('#academic_ranku').val(data.academic_rank); $('#bachelor_degreeu').val(data.bachelor_degree); $('#bachelor_institutionu').val(data.bachelor_institution); $('#bachelor_YearGraduatedu').val(data.bachelor_YearGraduated); $('#masterDegreeu').val(data.masterDegree); $('#masterInstitutionu').val(data.masterInstitution); $('#masterYearGraduatedu').val(data.masterYearGraduated); $('#doctorateDegreeu').val(data.doctorateDegree); $('#doctorateInstitutionu').val(data.doctorateInstitution); $('#doctorateYearGraduateu').val(data.doctorateYearGraduate); $('#postDegreeu').val(data.postDegree); $('#postInstitutionu').val(data.postInstitution); $('#postYearGraduateu').val(data.postYearGraduate);
+                $('#submit_button_rd').val('Edit'); $('#researcherModala').data('id', id).modal('show'); $('#hidden_id_rd').val(id);
+                
+                // Only try to load the sub-tabs if the functions actually exist in the current window context
+                if (typeof loadResearchConductedTab === "function") { loadResearchConductedTab(id); }
+                if (typeof loadPublicationTab === "function") { loadPublicationTab(id); }
+                if (typeof loadIntellectualPropTab === "function") { loadIntellectualPropTab(id); }
+                if (typeof loadPaperPresentationTab === "function") { loadPaperPresentationTab(id); }
+                if (typeof loadTrainingsAttendedTab === "function") { loadTrainingsAttendedTab(id); }
+                if (typeof loadExtensionProjectsTab === "function") { loadExtensionProjectsTab(id); }
+                if (typeof loadextprotab === "function") { loadextprotab(id); }
             }
         });
     });
@@ -180,14 +190,20 @@ $(document).ready(function() {
     $('#submit_button_rd').on('click', function(event) {
         event.preventDefault(); 
         var dataPayload = {
-            researcherIDu: $('#researcherIDu').val(), familyNameu: $('#familyNameu').val(), firstNameu: $('#firstNameu').val(), middleNameu: $('#middleNameu').val(), Suffixu: $('#Suffixu').val(), departmentu: $('#departmentu').val(), programu: $('#programu').val(), bachelor_degreeu: $('#bachelor_degreeu').val(), bachelor_institutionu: $('#bachelor_institutionu').val(), bachelor_YearGraduatedu: $('#bachelor_YearGraduatedu').val(), masterDegreeu: $('#masterDegreeu').val(), masterInstitutionu: $('#masterInstitutionu').val(), masterYearGraduatedu: $('#masterYearGraduatedu').val(), doctorateDegreeu: $('#doctorateDegreeu').val(), doctorateInstitutionu: $('#doctorateInstitutionu').val(), doctorateYearGraduateu: $('#doctorateYearGraduateu').val(), postDegreeu: $('#postDegreeu').val(), postInstitutionu: $('#postInstitutionu').val(), postYearGraduateu: $('#postYearGraduateu').val(), hidden_id_rd: $('#hidden_id_rd').val(), action_rd: 'update'
+            researcherIDu: $('#researcherIDu').val(), familyNameu: $('#familyNameu').val(), firstNameu: $('#firstNameu').val(), middleNameu: $('#middleNameu').val(), Suffixu: $('#Suffixu').val(), departmentu: $('#departmentu').val(), programu: $('#programu').val(), academic_ranku: $('#academic_ranku').val(), bachelor_degreeu: $('#bachelor_degreeu').val(), bachelor_institutionu: $('#bachelor_institutionu').val(), bachelor_YearGraduatedu: $('#bachelor_YearGraduatedu').val(), masterDegreeu: $('#masterDegreeu').val(), masterInstitutionu: $('#masterInstitutionu').val(), masterYearGraduatedu: $('#masterYearGraduatedu').val(), doctorateDegreeu: $('#doctorateDegreeu').val(), doctorateInstitutionu: $('#doctorateInstitutionu').val(), doctorateYearGraduateu: $('#doctorateYearGraduateu').val(), postDegreeu: $('#postDegreeu').val(), postInstitutionu: $('#postInstitutionu').val(), postYearGraduateu: $('#postYearGraduateu').val(), hidden_id_rd: $('#hidden_id_rd').val(), action_rd: 'update'
         };
 
         $.ajax({
             url: 'actions/update_researcher.php', method: 'POST', data: dataPayload, dataType: 'json',
             success: function(response) {
                 Swal.fire({ title: 'Updated!', text: 'The record has been successfully updated.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
-                dataTable.ajax.reload();
+                
+                if (window.location.pathname.indexOf('view_researcher.php') !== -1) {
+                    setTimeout(function() { location.reload(); }, 600);
+                } else if (typeof dataTable !== 'undefined') {
+                    $('#researcherModala').modal('hide');
+                    dataTable.ajax.reload();
+                }
             }
         }); 
     });
@@ -203,7 +219,7 @@ $(document).ready(function() {
                     url: url, method: "POST", data: dataPayload,
                     success: function(data) {
                         Swal.fire({ title: 'Deleted!', text: 'Record deleted successfully.', icon: 'success', timer: 600, showConfirmButton: false });
-                        dataTable.ajax.reload(); 
+                        if (typeof dataTable !== 'undefined') { dataTable.ajax.reload(); } else { setTimeout(function() { location.reload(); }, 600); }
                     }
                 });
             }

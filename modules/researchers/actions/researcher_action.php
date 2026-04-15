@@ -87,7 +87,9 @@ if(isset($_POST["action"]))
         foreach($result as $row) {
             $sub_array = array();
             $sub_array[] = $row["researcherID"];
-            $sub_array[] = $row["familyName"].", ".$row["firstName"]." ".$row["middleName"]." ".$row["Suffix"];
+            $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-2 align-text-top" style="font-size:0.7rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
+            $discipline_badge = !empty($row["program"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader"></i> ' . htmlspecialchars($row["program"]) . '</div>' : '';
+            $sub_array[] = "<div class='font-weight-bold text-gray-800'>" . htmlspecialchars($row["familyName"].", ".$row["firstName"]." ".trim($row["middleName"]." ".$row["Suffix"])) . $rank_badge . "</div>" . $discipline_badge;
             $sub_array[] = !empty($row["department"]) ? $row["department"] : "N/A";
             $sub_array[] = !empty($row["program"]) ? $row["program"] : "N/A";
             $sub_array[] = $row["user_created_on"];
@@ -130,6 +132,7 @@ if(isset($_POST["action"]))
                 ':Suffix'                => $_POST['Suffix'],
                 ':department'            => $_POST['department'],
                 ':program'               => $_POST['program'],
+                ':academic_rank'         => $_POST['academic_rank'] ?? '',
                 ':bachelor_degree'       => $_POST['bachelor_degree'],
                 ':bachelor_institution'  => $_POST['bachelor_institution'],
                 ':bachelor_YearGraduated'=> $_POST['bachelor_YearGraduated'],
@@ -148,12 +151,12 @@ if(isset($_POST["action"]))
             $object->query = "
             INSERT INTO tbl_researchdata (
                 researcherID, familyName, firstName, middleName, Suffix, department, program, 
-                bachelor_degree, bachelor_institution, bachelor_YearGraduated, masterDegree, 
+                academic_rank, bachelor_degree, bachelor_institution, bachelor_YearGraduated, masterDegree, 
                 masterInstitution, masterYearGraduated, doctorateDegree, doctorateInstitution, 
                 doctorateYearGraduate, postDegree, postInstitution, postYearGraduate, status, user
             ) 
             VALUES (
-                :researcherID, :familyName, :firstName, :middleName, :Suffix, :department, :program, 
+                :researcherID, :familyName, :firstName, :middleName, :Suffix, :department, :program, :academic_rank,
                 :bachelor_degree, :bachelor_institution, :bachelor_YearGraduated, :masterDegree, 
                 :masterInstitution, :masterYearGraduated, :doctorateDegree, :doctorateInstitution, 
                 :doctorateYearGraduate, :postDegree, :postInstitution, :postYearGraduate, 1, :user
@@ -181,6 +184,7 @@ if(isset($_POST["action"]))
             $data['Suffix'] = $row['Suffix'];
             $data['department'] = $row['department'];
             $data['program'] = $row['program'];
+            $data['academic_rank'] = $row['academic_rank'];
             $data['bachelor_degree'] = $row['bachelor_degree'];
             $data['bachelor_institution'] = $row['bachelor_institution'];
             $data['bachelor_YearGraduated'] = $row['bachelor_YearGraduated'];
@@ -209,6 +213,7 @@ if(isset($_POST["action"]))
             ':Suffix'                => $_POST['Suffixu'],
             ':department'            => $_POST['departmentu'],
             ':program'               => $_POST['programu'],
+            ':academic_rank'         => $_POST['academic_ranku'] ?? '',
             ':bachelor_degree'       => $_POST['bachelor_degreeu'],
             ':bachelor_institution'  => $_POST['bachelor_institutionu'],
             ':bachelor_YearGraduated'=> $_POST['bachelor_YearGraduatedu'],
@@ -227,7 +232,7 @@ if(isset($_POST["action"]))
         $object->query = "
         UPDATE tbl_researchdata 
         SET researcherID = :researcherID, familyName = :familyName, firstName = :firstName, middleName = :middleName,
-            Suffix = :Suffix, department = :department, program = :program, bachelor_degree = :bachelor_degree,
+            Suffix = :Suffix, department = :department, program = :program, academic_rank = :academic_rank, bachelor_degree = :bachelor_degree,
             bachelor_institution = :bachelor_institution, bachelor_YearGraduated = :bachelor_YearGraduated,
             masterDegree = :masterDegree, masterInstitution = :masterInstitution, masterYearGraduated = :masterYearGraduated,
             doctorateDegree = :doctorateDegree, doctorateInstitution = :doctorateInstitution, doctorateYearGraduate = :doctorateYearGraduate,
