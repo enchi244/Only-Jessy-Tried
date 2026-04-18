@@ -34,7 +34,7 @@ function getSafeRows($obj) {
 $html_chunks = [];
 
 // ==============================================================================
-// UNIVERSAL PORTFOLIO/MODULE DOCUMENT GENERATOR
+// UNIVERSAL PORTFOLIO/MODULE DOCUMENT GENERATOR (TABLE FORMAT)
 // ==============================================================================
 
 // Header Setup
@@ -55,11 +55,11 @@ if (!empty($researcher_id)) {
 }
 
 $html_chunks[] = "
-<table width='100%' style='margin-bottom: 30px; border-bottom: 3px solid #2c7be5; font-family: Arial, sans-serif;'>
+<table width='100%' style='margin-bottom: 20px; border-bottom: 3px solid #2c7be5; font-family: Arial, sans-serif;'>
     <tr>
-        <td style='text-align: center; padding-bottom: 20px;'>
-            <h1 style='font-size: 28px; font-weight: bold; color: #2c3e50; margin: 0; text-transform: uppercase;'>{$header_title}</h1>
-            <div style='font-size: 16px; color: #6e84a3; margin-top: 5px;'>{$header_subtitle}</div>
+        <td style='text-align: center; padding-bottom: 15px;'>
+            <h1 style='font-size: 26px; font-weight: bold; color: #2c3e50; margin: 0; text-transform: uppercase;'>{$header_title}</h1>
+            <div style='font-size: 14px; color: #6e84a3; margin-top: 5px;'>{$header_subtitle}</div>
         </td>
     </tr>
 </table>";
@@ -75,18 +75,37 @@ $all_modules = [
 
 $modules_to_run = ($repp === 'all_modules') ? $all_modules : array_filter($all_modules, function($m) use ($repp) { return $m['table'] === $repp; });
 
+// Exclusion keys for the dynamic details column
+$exclude_keys = ['id', 'researcherid', 'lead_researcher_id', 'lead_author_id', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'coauth', 'user_created_on', 'has_files', 'all_authors', 'primary_familyname', 'author_db_id'];
+
 foreach ($modules_to_run as $mod) {
     
-    // Category Header (Table)
+    // Module Table Title
     $html_chunks[] = "
-    <table width='100%' cellpadding='10' cellspacing='0' style='margin-top: 30px; margin-bottom: 15px; border-collapse: collapse;'>
-        <tr>
-            <td style='background-color: #2c7be5; color: #ffffff; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-transform: uppercase;'>
-                {$mod['title']}
-            </td>
-        </tr>
-    </table>";
+    <h3 style='color: #2c7be5; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px;'>
+        {$mod['title']}
+    </h3>";
     
+    // Start Office Table Layout
+    $html_chunks[] = "
+    <table width='100%' border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 20px;'>
+        <thead style='background-color: #f8f9fc; color: #4e73df; font-size: 11px; text-transform: uppercase;'>
+            <tr>
+                <th width='25%' align='left' style='padding: 10px;'>Title</th>
+                <th width='15%' align='left' style='padding: 10px;'>Lead Proponent</th>
+                <th width='15%' align='left' style='padding: 10px;'>Co-Authors</th>";
+                
+    if ($mod['has_status']) {
+        $html_chunks[] = "<th width='10%' align='center' style='padding: 10px;'>Status</th>";
+    }
+
+    $html_chunks[] = "
+                <th width='35%' align='left' style='padding: 10px;'>Specific Details</th>
+            </tr>
+        </thead>
+        <tbody>";
+    
+    // Query Building
     $col_table = ''; $col_fk = '';
     if ($mod['table'] == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
     if ($mod['table'] == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
@@ -99,7 +118,7 @@ foreach ($modules_to_run as $mod) {
         $co_author_subquery = "r.coauth";
     }
 
-    $query = "SELECT r.*, d.department, CONCAT(d.firstName, ' ', d.familyName) AS Lead_Researcher, {$co_author_subquery} AS Co_Researchers FROM {$mod['table']} r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE 1=1";
+    $query = "SELECT r.*, d.department, CONCAT(d.firstName, ' ', d.familyName) AS Lead_Researcher, {$co_author_subquery} AS Co_Researchers FROM {$mod['table']} r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.status = 1";
 
     if (!empty($researcher_id)) {
         if ($col_table !== '') {
@@ -142,71 +161,45 @@ foreach ($modules_to_run as $mod) {
             $title_clean = htmlspecialchars($item['title'] ?? 'Untitled');
             
             // =========================================================
-            // DYNAMIC DETAIL EXTRACTOR (Captures everything like Excel!)
+            // DYNAMIC DETAIL EXTRACTOR (Stacks cleanly into the last column)
             // =========================================================
-            $exclude_keys = ['id', 'researcherid', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'user_created_on'];
-            
-            $detail_str = "<table width='100%' cellpadding='4' cellspacing='0' style='font-size: 13px; color: #555; margin-top: 10px; border-top: 1px solid #d1d3e2; padding-top: 10px;'>";
-            $count = 0;
-            
+            $detail_str = "";
             foreach ($item as $k => $v) {
                 $kl = strtolower($k);
-                // Exclude system keys and empty fields
                 if (in_array($kl, $exclude_keys) || trim((string)$v) === '' || is_numeric($k)) continue;
                 
-                // Format the Key (e.g., "funding_source" -> "Funding Source")
                 $clean_label = ucwords(str_replace('_', ' ', $k));
                 $clean_val = htmlspecialchars((string)$v);
                 
-                // Start a new row every 2 items for a nice grid
-                if ($count % 2 == 0) $detail_str .= "<tr>";
-                
-                $detail_str .= "<td width='50%' valign='top' style='padding-bottom: 8px;'><strong>{$clean_label}:</strong> {$clean_val}</td>";
-                
-                if ($count % 2 == 1) $detail_str .= "</tr>";
-                $count++;
+                $detail_str .= "<div style='margin-bottom: 4px;'><strong style='color:#333333;'>{$clean_label}:</strong> <span style='color:#555555;'>{$clean_val}</span></div>";
             }
-            
-            // Close an odd row correctly
-            if ($count % 2 != 0) { $detail_str .= "<td width='50%'></td></tr>"; }
-            $detail_str .= "</table>";
-            
-            if ($count === 0) $detail_str = ""; // Clear if no extra details exist
+            if ($detail_str === "") $detail_str = "<span style='color: #999; font-style: italic;'>No extra details available</span>";
             // =========================================================
 
-            // Table-Based Card Layout (Works for Word & PDF beautifully)
-            $html_chunks[] = "
-            <table width='100%' cellpadding='15' cellspacing='0' style='margin-bottom: 15px; border-left: 4px solid #e3e6f0; background-color: #f8f9fc; font-family: Arial, sans-serif; page-break-inside: avoid; border-collapse: collapse;'>
-                <tr>
-                    <td style='border: 1px solid #eaecf4; border-left: none;'>
-                        <div style='font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 8px;'>• {$title_clean}</div>
-                        <div style='font-size: 14px; color: #333333; margin-bottom: 4px;'><strong>Lead Proponent:</strong> {$item['Lead_Researcher']}</div>";
-            
-            if (!empty($item['Co_Researchers'])) {
-                $html_chunks[] = "<div style='font-size: 14px; color: #2c7be5; margin-bottom: 6px;'><strong>Co-Authors:</strong> {$item['Co_Researchers']}</div>";
-            }
+            $co_authors_display = !empty($item['Co_Researchers']) ? htmlspecialchars($item['Co_Researchers']) : '<span style="color: #999; font-style: italic;">None</span>';
+
+            // ROW DATA
+            $html_chunks[] = "<tr style='page-break-inside: avoid;'>";
+            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'><strong>{$title_clean}</strong></td>";
+            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'>{$item['Lead_Researcher']}</td>";
+            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'>{$co_authors_display}</td>";
             
             if ($mod['has_status']) {
-                $s_val = $item['stat'] ?? $item['status_exct'] ?? 'Unknown';
-                $bg_color = preg_match('/ongoing|progress/i', $s_val) ? '#f6c23e' : '#1cc88a';
-                $text_color = preg_match('/ongoing|progress/i', $s_val) ? '#333333' : '#ffffff';
-                
-                $html_chunks[] = "<div style='font-size: 14px; color: #555; margin-bottom: 6px;'><strong>Status:</strong> <span style='background-color: {$bg_color}; color: {$text_color}; padding: 4px 8px; font-size: 11px; font-weight: bold;'>$s_val</span></div>";
+                $s_val = htmlspecialchars($item['stat'] ?? $item['status_exct'] ?? 'Unknown');
+                $html_chunks[] = "<td valign='top' align='center' style='padding: 10px; color: #12263f;'><strong>{$s_val}</strong></td>";
             }
 
-            // INJECT ALL THE DYNAMIC DETAILS
-            $html_chunks[] = $detail_str;
-
-            $html_chunks[] = "
-                    </td>
-                </tr>
-            </table>";
+            $html_chunks[] = "<td valign='top' style='padding: 10px;'>{$detail_str}</td>";
+            $html_chunks[] = "</tr>";
         }
     }
     
+    // Close the table
     if (!$found_items) {
-        $html_chunks[] = "<div style='text-align: center; color: #858796; font-style: italic; padding: 20px; font-family: Arial, sans-serif;'>No records found for this category.</div>";
+        $colspan = $mod['has_status'] ? 5 : 4;
+        $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
     }
+    $html_chunks[] = "</tbody></table>";
 }
 
 $doc_name = (!empty($researcher_id)) ? 'Researcher_Portfolio_' : 'Module_Report_';
@@ -224,7 +217,8 @@ if ($format === 'word') {
     echo "<head>";
     echo "<meta charset='utf-8'><title>Report</title>";
     echo "<style>";
-    echo "@page WordSection1 { size: 8.5in 11in; margin: 1.0in; }";
+    // FORCES THE WORD DOC INTO LANDSCAPE MODE SO THE TABLE FITS PERFECTLY!
+    echo "@page WordSection1 { size: 11.0in 8.5in; mso-page-orientation: landscape; margin: 0.8in; }";
     echo "div.WordSection1 { page: WordSection1; }";
     echo "</style>";
     echo "</head>";
@@ -238,11 +232,11 @@ if ($format === 'word') {
 } else {
     try {
         if (!class_exists('\Mpdf\Mpdf')) {
-            die("Error: mPDF library is not installed. Please make sure you have run 'composer install' in your root directory.");
+            die("Error: mPDF library is not installed.");
         }
         $mpdf = new \Mpdf\Mpdf([
             'mode' => 'utf-8', 
-            'format' => 'A4-P', 
+            'format' => 'A4-L', // FORCES PDF INTO LANDSCAPE MODE (A4-Landscape)
             'tempDir' => __DIR__ . '/tmp'
         ]);
         
