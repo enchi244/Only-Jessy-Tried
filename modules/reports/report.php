@@ -50,6 +50,57 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
     $from_date_ts = empty($_POST['from_date']) ? 0 : strtotime($_POST['from_date']);
     $to_date_ts = empty($_POST['to_date']) ? PHP_INT_MAX : strtotime($_POST['to_date']) + 86399;
 
+    $label_map = [
+        'journal' => 'Journal',
+        'vol_num_issue_num' => 'Volume / Issue',
+        'issn_isbn' => 'ISSN / ISBN',
+        'indexing' => 'Indexing',
+        'publication_date' => 'Published',
+        'date_applied' => 'Date Applied',
+        'date_granted' => 'Date Granted',
+        'date_paper' => 'Date of Paper',
+        'start' => 'Start Date',
+        'end' => 'End Date',
+        'start_date' => 'Start Date',
+        'completed_date' => 'Completed',
+        'started_date' => 'Started',
+        'funding_source' => 'Funding Source',
+        'approved_budget' => 'Approved Budget',
+        'research_agenda_cluster' => 'Agenda Cluster',
+        'target_beneficiaries_communities' => 'Beneficiaries',
+        'type_learning_dev' => 'Learning & Dev Type',
+        'sponsor_org' => 'Sponsor Org',
+        'totnh' => 'Total Hours',
+        'conference_title' => 'Conference',
+        'conference_venue' => 'Venue',
+        'conference_organizer' => 'Organizer',
+        'sdgs' => 'SDGs',
+        'lvl' => 'Level',
+        'type' => 'Type',
+        'venue' => 'Venue',
+        'discipline' => 'Discipline',
+        'partners' => 'Partners',
+        'terminal_report' => 'Terminal Report'
+    ];
+
+    $type_map = [
+        'tbl_publication' => 'publications',
+        'tbl_researchconducted' => 'research_conducted',
+        'tbl_itelectualprop' => 'ip',
+        'tbl_paperpresentation' => 'paper_presentation',
+        'tbl_trainingsattended' => 'trainings',
+        'tbl_extension_project_conducted' => 'extension'
+    ];
+
+    $date_col_map = [
+        'tbl_researchconducted' => 'started_date',
+        'tbl_publication' => 'publication_date',
+        'tbl_itelectualprop' => 'date_granted',
+        'tbl_paperpresentation' => 'date_paper',
+        'tbl_extension_project_conducted' => 'start_date',
+        'tbl_trainingsattended' => 'date_train'
+    ];
+
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
     try {
         $conn = new mysqli("localhost", "root", "", "rms");
@@ -60,13 +111,18 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
 
         foreach ($tables_to_process as $current_table) {
             
+            $raw_type = $type_map[$current_table];
+            $target_date_col = $date_col_map[$current_table]; 
+            
             $co_author_subquery = "''";
-            if ($current_table == 'tbl_researchconducted') {
-                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM tbl_research_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.research_id = r.id AND col.researcher_id != r.researcherID)";
-            } elseif ($current_table == 'tbl_publication') {
-                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM tbl_publication_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.publication_id = r.id AND col.researcher_id != r.researcherID)";
-            } elseif ($current_table == 'tbl_paperpresentation') {
-                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM tbl_paper_collaborators col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.paper_id = r.id AND col.researcher_id != r.researcherID)";
+            $col_table = ''; $col_fk = '';
+            
+            if ($current_table == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
+            if ($current_table == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
+            if ($current_table == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
+
+            if ($col_table !== '') {
+                $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM $col_table col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.$col_fk = r.id AND col.researcher_id != r.researcherID)";
             } elseif ($current_table == 'tbl_itelectualprop') {
                 $co_author_subquery = "r.coauth";
             }
@@ -85,27 +141,37 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
             if ($department !== 'all' && !empty($department)) {
                 $arr = explode(',', $department);
                 $escaped = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string(trim($v)) . "'"; }, $arr);
-                $where_clauses[] = "d.department IN (" . implode(',', $escaped) . ")";
+                $in_str = implode(',', $escaped);
+                if ($col_table !== '') {
+                    $where_clauses[] = "(d.department IN ($in_str) OR r.id IN (SELECT sub_col.$col_fk FROM $col_table sub_col JOIN tbl_researchdata sub_d ON sub_col.researcher_id = sub_d.id WHERE sub_d.department IN ($in_str)))";
+                } else {
+                    $where_clauses[] = "d.department IN ($in_str)";
+                }
             }
             if ($filter_rank !== 'all' && !empty($filter_rank)) {
                 $arr = explode(',', $filter_rank);
                 $escaped = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string(trim($v)) . "'"; }, $arr);
-                $where_clauses[] = "d.academic_rank IN (" . implode(',', $escaped) . ")";
+                $in_str = implode(',', $escaped);
+                if ($col_table !== '') {
+                    $where_clauses[] = "(d.academic_rank IN ($in_str) OR r.id IN (SELECT sub_col.$col_fk FROM $col_table sub_col JOIN tbl_researchdata sub_d ON sub_col.researcher_id = sub_d.id WHERE sub_d.academic_rank IN ($in_str)))";
+                } else {
+                    $where_clauses[] = "d.academic_rank IN ($in_str)";
+                }
             }
             if ($filter_program !== 'all' && !empty($filter_program)) {
                 $arr = explode(',', $filter_program);
                 $escaped = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string(trim($v)) . "'"; }, $arr);
-                $where_clauses[] = "d.program IN (" . implode(',', $escaped) . ")";
+                $in_str = implode(',', $escaped);
+                if ($col_table !== '') {
+                    $where_clauses[] = "(d.program IN ($in_str) OR r.id IN (SELECT sub_col.$col_fk FROM $col_table sub_col JOIN tbl_researchdata sub_d ON sub_col.researcher_id = sub_d.id WHERE sub_d.program IN ($in_str)))";
+                } else {
+                    $where_clauses[] = "d.program IN ($in_str)";
+                }
             }
 
             if (!empty($researcher_id)) {
                 $r_id = $conn->real_escape_string($researcher_id);
-                if (in_array($current_table, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation'])) {
-                    $col_table = ''; $col_fk = '';
-                    if ($current_table == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
-                    if ($current_table == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
-                    if ($current_table == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
-                    
+                if ($col_table !== '') {
                     $where_clauses[] = "(r.researcherID = '$r_id' OR r.id IN (SELECT $col_fk FROM $col_table WHERE researcher_id = '$r_id'))";
                 } else {
                     $where_clauses[] = "r.researcherID = '$r_id'";
@@ -129,16 +195,12 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 if ($is_all_time) {
                     $date_matched = true;
                 } else {
-                    foreach ($row as $key => $val) {
-                        $key_lower = strtolower($key);
-                        if (strpos($key_lower, 'date') !== false || strpos($key_lower, 'start') !== false || strpos($key_lower, 'end') !== false) {
-                            $val_clean = trim((string)$val);
-                            if (preg_match('/^\d{2}-\d{4}$/', $val_clean)) { $val_clean = "01-" . $val_clean; }
-                            $ts = strtotime($val_clean);
-                            if ($ts !== false && $ts >= $from_date_ts && $ts <= $to_date_ts) {
-                                $date_matched = true;
-                                break;
-                            }
+                    if (isset($row[$target_date_col]) && !empty($row[$target_date_col])) {
+                        $val_clean = trim((string)$row[$target_date_col]);
+                        if (preg_match('/^\d{2}-\d{4}$/', $val_clean)) { $val_clean = "01-" . $val_clean; }
+                        $ts = strtotime($val_clean);
+                        if ($ts !== false && $ts >= $from_date_ts && $ts <= $to_date_ts) {
+                            $date_matched = true;
                         }
                     }
                 }
@@ -161,14 +223,20 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $clean_row = array();
                 $title_val = ''; 
                 
+                $clean_row['Record_ID'] = $row['id'];
+                $clean_row['Raw_Type'] = $raw_type;
+
                 $clean_row['Department'] = htmlspecialchars($row['Department'] ?? '', ENT_QUOTES, 'UTF-8');
                 
                 $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-2 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
                 $discipline_text = !empty($row["program"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader"></i> ' . htmlspecialchars($row["program"]) . '</div>' : '';
-                $clean_row['Lead_Researcher'] = "<div class='font-weight-bold text-gray-800'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . $rank_badge . "</div>" . $discipline_text;
+                
+                // NEW CLEAN NAME
+                $clean_row['Lead_Proponent'] = "<div class='font-weight-bold text-gray-800'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . $rank_badge . "</div>" . $discipline_text;
 
                 if ($current_table == 'tbl_itelectualprop') {
-                    $clean_row['Co_Researchers'] = !empty($row['coauth']) ? htmlspecialchars($row['coauth'], ENT_QUOTES, 'UTF-8') : 'None';
+                    // NEW CLEAN NAME
+                    $clean_row['Co_Authors'] = !empty($row['coauth']) ? htmlspecialchars($row['coauth'], ENT_QUOTES, 'UTF-8') : 'None';
                 } else {
                     $co_html = "";
                     if (!empty($row['Co_Researchers_Raw'])) {
@@ -185,24 +253,28 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                             }
                         }
                     }
-                    $clean_row['Co_Researchers'] = !empty($co_html) ? $co_html : 'None';
+                    $clean_row['Co_Authors'] = !empty($co_html) ? $co_html : 'None';
                 }
 
-                $clean_row['SO_Attached'] = !empty($row['so_file']) ? 'Yes' : 'None';
-                $clean_row['MOA_Attached'] = !empty($row['moa_file']) ? 'Yes' : 'None';
+                // NEW CLEAN NAMES
+                $clean_row['SO_File'] = !empty($row['so_file']) ? 'Yes' : 'None';
+                $clean_row['MOA_File'] = !empty($row['moa_file']) ? 'Yes' : 'None';
                 
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
-                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'lead_author_id' || $kl === 'lead_researcher_id' || $kl === 'status' || $kl === 'department' || $kl === 'firstname' || $kl === 'familyname' || $kl === 'academic_rank' || $kl === 'program' || $kl === 'co_researchers_raw' || $kl === 'lead_researcher' || $kl === 'co_researchers' || $kl === 'so_file' || $kl === 'moa_file' || $kl === 'has_files') continue;
+                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'lead_author_id' || $kl === 'lead_researcher_id' || $kl === 'status' || $kl === 'department' || $kl === 'firstname' || $kl === 'familyname' || $kl === 'academic_rank' || $kl === 'program' || $kl === 'co_researchers_raw' || $kl === 'lead_proponent' || $kl === 'co_authors' || $kl === 'so_file' || $kl === 'moa_file' || $kl === 'has_files') continue;
                     
-                    $clean_row[$k] = htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-                    if ($kl === 'title') $title_val = $clean_row[$k];
+                    $friendly_k = isset($label_map[$kl]) ? $label_map[$kl] : $k;
+                    $clean_row[$friendly_k] = htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+                    if ($kl === 'title') $title_val = $clean_row[$friendly_k];
                 }
                 
                 if (!empty($title_val)) {
                     $row_hash = md5(strtolower(trim($title_val)));
                 } else {
-                    $row_hash = md5(implode('|', $clean_row)); 
+                    $hash_data = $clean_row;
+                    unset($hash_data['Record_ID'], $hash_data['Raw_Type']);
+                    $row_hash = md5(implode('|', $hash_data)); 
                 }
                 
                 if ($date_matched && $status_matched) {
@@ -212,45 +284,53 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 if (!isset($grouped_data[$row_hash])) {
                     $grouped_data[$row_hash] = $clean_row;
                 } else {
-                    if (strpos($grouped_data[$row_hash]['Lead_Researcher'], $clean_row['Lead_Researcher']) === false) {
-                        $grouped_data[$row_hash]['Lead_Researcher'] .= "<hr class='my-1'>" . $clean_row['Lead_Researcher'];
+                    if (strpos($grouped_data[$row_hash]['Lead_Proponent'], $clean_row['Lead_Proponent']) === false) {
+                        $grouped_data[$row_hash]['Lead_Proponent'] .= "<hr class='my-1'>" . $clean_row['Lead_Proponent'];
                     }
                 }
             }
             
             foreach ($grouped_data as $hash => $group) {
                 if (isset($titles_in_range[$hash])) {
+                    
+                    $action_btn = '<button type="button" class="btn btn-sm btn-info view-item-details" data-id="'.$group['Record_ID'].'" data-type="'.$group['Raw_Type'].'" title="View Record Details"><i class="fas fa-eye"></i></button>';
+
                     if ($is_multi_module) {
-                        $module_category = ucwords(str_replace(['tbl_', 'itelectualprop', '_project_conducted'], ['', 'intellectual_property', ''], $current_table));
+                        $module_category = ucwords(str_replace(['tbl_', 'itelectualprop', '_project_conducted'], ['', 'intellectual property', ''], $current_table));
                         $module_category = str_replace('_', ' ', $module_category);
                         
+                        $friendly_target_date = isset($label_map[$target_date_col]) ? $label_map[$target_date_col] : ucwords(str_replace('_', ' ', $target_date_col));
+                        $relevant_date = $group[$friendly_target_date] ?? 'N/A';
+                        
                         $extra_details = [];
-                        $relevant_date = 'N/A';
                         
                         foreach ($group as $k => $v) {
                             $kl = strtolower($k);
-                            if ($v !== '' && !in_array($kl, ['title', 'lead_researcher', 'co_researchers', 'department', 'so_attached', 'moa_attached'])) {
-                                if (strpos($kl, 'date') !== false || strpos($kl, 'start') !== false || strpos($kl, 'end') !== false) {
-                                    $relevant_date = $v;
-                                } else {
-                                    $extra_details[] = ucfirst(str_replace('_', ' ', $k)) . ": " . $v;
-                                }
+                            // Hide the exact date column from details since it has its own dedicated column now
+                            if ($v !== '' && $k !== $friendly_target_date && !in_array($kl, ['title', 'lead_proponent', 'co_authors', 'department', 'so_file', 'moa_file', 'record_id', 'raw_type', 'action'])) {
+                                
+                                // THE FIX: Beautiful vertical formatting for the UI
+                                $extra_details[] = "<div style='margin-bottom: 3px; line-height: 1.3;'><span style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$k}:</span> <span style='color:#12263f; font-weight:600; font-size:12px;'>{$v}</span></div> ";
                             }
                         }
 
                         $final_data_output[] = [
-                            'Module_Category' => $module_category,
-                            'Research_Title' => $group['title'] ?? 'N/A',
+                            'Record_ID' => $group['Record_ID'],
+                            'Raw_Type' => $group['Raw_Type'],
+                            'Action' => $action_btn,
+                            'Module' => $module_category,
+                            'Title' => $group['Title'] ?? $group['title'] ?? 'N/A',
                             'Department' => $group['Department'] ?? 'N/A',
-                            'Lead_Researcher' => $group['Lead_Researcher'] ?? 'N/A',
-                            'Co_Researchers' => $group['Co_Researchers'] ?? 'None',
-                            'SO_Attached' => $group['SO_Attached'],
-                            'MOA_Attached' => $group['MOA_Attached'],
-                            'Relevant_Date' => $relevant_date,
-                            'Specific_Details' => implode(" | ", $extra_details)
+                            'Lead_Proponent' => $group['Lead_Proponent'] ?? 'N/A',
+                            'Co_Authors' => $group['Co_Authors'] ?? 'None',
+                            'Date' => $relevant_date,
+                            'Additional_Details' => implode("", $extra_details),
+                            'SO_File' => $group['SO_File'],
+                            'MOA_File' => $group['MOA_File']
                         ];
                     } else {
-                        $final_data_output[] = $group;
+                        $out_group = ['Action' => $action_btn] + $group;
+                        $final_data_output[] = $out_group;
                     }
                 }
             }
@@ -269,11 +349,11 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
 include('../../includes/header.php');
 ?>
 
+<link href="<?php echo $object->base_url; ?>css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap4.min.css">
 
 <style>
     body { background-color: #f4f7f6; }
-    /* THE CSS FIX: Changed overflow to visible so dropdowns aren't cut off! */
     .enterprise-card { background: #ffffff; border: none; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.04); margin-bottom: 2rem; overflow: visible; }
     .enterprise-card-header { background-color: #ffffff; border-bottom: 1px solid #edf2f9; padding: 1.5rem 1.5rem 1rem 1.5rem; border-radius: 12px 12px 0 0; }
     .enterprise-card-header h6 { color: #2c3e50; font-weight: 700; font-size: 1.1rem; letter-spacing: 0.02rem; margin: 0; }
@@ -296,12 +376,44 @@ include('../../includes/header.php');
     .table-enterprise { border-collapse: separate; border-spacing: 0; width: 100%; }
     .table-enterprise thead th { background-color: #f9fbfd; color: #6e84a3; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #edf2f9; border-top: none; padding: 1rem; white-space: nowrap; }
     .table-enterprise tbody td { padding: 1rem; color: #12263f; font-size: 0.95rem; vertical-align: middle; border-bottom: 1px solid #edf2f9; }
-    .table-enterprise tbody tr:hover td { background-color: #f9fbfd; }
+    
+    .table-enterprise tbody tr.clickable-row { cursor: pointer; transition: background-color 0.2s; }
+    .table-enterprise tbody tr.clickable-row:hover td { background-color: #eaecf4 !important; }
 
-    /* Custom Vanilla JS Dropdown Styles (Conflict Free) */
     .dropdown-menu-custom { box-shadow: 0 10px 25px rgba(0,0,0,0.2); border-radius: 10px; z-index: 9999 !important; }
     .custom-control-label { cursor: pointer; color: #4e73df; font-weight: 600; font-size: 0.9rem; }
     .check-item + label { color: #5a5c69; font-weight: 500; font-size: 0.85rem;}
+
+    .select2-container { width: 100% !important; }
+    .select2-container--default .select2-selection--single {
+        background-color: #f9fbfd;
+        border: 1px solid #d2ddec;
+        border-radius: 8px;
+        height: 42px;
+        outline: none;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #12263f;
+        font-size: 0.95rem;
+        line-height: 40px;
+        padding-left: 1rem;
+        padding-right: 50px; 
+        font-weight: 600;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__clear {
+        height: 42px;
+        line-height: 40px;
+        color: #e74a3b;
+        font-size: 1.2rem;
+        margin-right: 15px; 
+        transition: color 0.2s;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__clear:hover { color: #be2617; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 40px; right: 10px; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow b { border-color: #858796 transparent transparent transparent; border-width: 5px 4px 0 4px; }
+    .select2-container--default.select2-container--open .select2-selection--single { background-color: #ffffff; border-color: #2c7be5; box-shadow: 0 0 0 3px rgba(44, 123, 229, 0.15); }
+    .select2-dropdown { border: 1px solid #edf2f9; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 9999; }
+    .select2-search__field { border-radius: 4px !important; outline: none; border: 1px solid #2c7be5 !important; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -364,9 +476,9 @@ include('../../includes/header.php');
                     </div>
 
                     <div class="col-lg-3 mb-2">
-                        <label class="form-label-custom text-primary"><i class="fas fa-user-tie mr-1"></i> Specific Researcher</label>
-                        <select name="researcher_id" id="researcher_id" class="form-control-custom w-100 border-primary">
-                            <option value="">All Personnel</option>
+                        <label class="form-label-custom text-primary"><i class="fas fa-search mr-1"></i> Specific Researcher</label>
+                        <select name="researcher_id" id="researcher_id" class="form-control-custom w-100">
+                            <option value="">Search all personnel...</option>
                             <?php
                             $object->query = "SELECT id, firstName, familyName FROM tbl_researchdata WHERE status = 1 ORDER BY firstName ASC";
                             $res_researchers = $object->get_result();
@@ -492,14 +604,32 @@ include('../../includes/header.php');
         </div>
     </div>
 
-    <div class="enterprise-card" id="previewContainer" style="display: none; overflow: hidden;">
+    <div class="enterprise-card" id="previewContainer" style="display: none;">
         <div class="enterprise-card-header d-flex flex-row align-items-center justify-content-between">
-            <h6><i class="fas fa-database text-success mr-2"></i> Query Results Matrix</h6>
+            <h6><i class="fas fa-database text-success mr-2"></i> Query Results Matrix <small class="text-muted ml-2">(Click any row to view details)</small></h6>
             <span class="badge-soft-success" id="recordCount">0 Records Found</span>
         </div>
         <div class="enterprise-card-body">
             <div class="table-responsive">
-                <table class="table-enterprise" id="previewTable"></table>
+                <table class="table-enterprise w-100" style="width: 100%;" id="previewTable"></table>
+            </div>
+        </div>
+    </div>
+
+    <div id="itemDetailsModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-search-plus mr-2"></i> Comprehensive Record Details</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="itemDetailsBody" style="font-size: 0.95rem;">
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close Details</button>
+                </div>
             </div>
         </div>
     </div>
@@ -516,11 +646,17 @@ include('../../includes/header.php');
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap4.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="<?php echo $object->base_url; ?>js/select2.min.js"></script>
 
 <script>
 $(document).ready(function() {
     
-    // --- VANILLA JS DROPDOWN LOGIC (100% Conflict Free) ---
+    $('#researcher_id').select2({
+        placeholder: "Search all personnel...",
+        allowClear: true,
+        width: '100%'
+    });
+
     $('.dropdown-btn').click(function(e) {
         e.stopPropagation();
         var $menu = $(this).siblings('.dropdown-menu-custom');
@@ -528,14 +664,8 @@ $(document).ready(function() {
         $menu.slideToggle('fast');
     });
     
-    $('.dropdown-menu-custom').on('click', function(e) {
-        e.stopPropagation(); 
-    });
-
-    $(document).click(function() {
-        $('.dropdown-menu-custom').slideUp('fast'); 
-    });
-    // -----------------------------------------------------
+    $('.dropdown-menu-custom').on('click', function(e) { e.stopPropagation(); });
+    $(document).click(function() { $('.dropdown-menu-custom').slideUp('fast'); });
 
     function updateDropdownText($container) {
         var $btnText = $container.find('.btn-text');
@@ -581,14 +711,8 @@ $(document).ready(function() {
         updateDropdownText($container);
     });
 
-    $('.custom-multi-select .check-item').change(function() {
-        var $container = $(this).closest('.custom-multi-select');
-        updateDropdownText($container);
-    });
-
-    $('.custom-multi-select').each(function() {
-        updateDropdownText($(this));
-    });
+    $('.custom-multi-select .check-item').change(function() { updateDropdownText($(this).closest('.custom-multi-select')); });
+    $('.custom-multi-select').each(function() { updateDropdownText($(this)); });
 
     function getDropdownValues(containerId) {
         var $container = $('#' + containerId);
@@ -597,16 +721,32 @@ $(document).ready(function() {
         if ($items.filter(':checked').length === $items.length) { return 'all'; }
         
         var selected = [];
-        $items.filter(':checked').each(function() {
-            selected.push($(this).val());
-        });
+        $items.filter(':checked').each(function() { selected.push($(this).val()); });
         return selected.join(',');
     }
-    // ---------------------------------
 
     $('#filterForm').on('submit', function(e) {
         e.preventDefault();
         $('#previewBtn').click();
+    });
+
+    $('#previewTable').on('click', 'tbody tr.clickable-row', function(e) {
+        if ($(e.target).closest('button').length) return; 
+
+        var id = $(this).data('id');
+        var type = $(this).data('type');
+        
+        if(!id || !type) return;
+
+        Swal.fire({ title: 'Loading Details...', showConfirmButton: false, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+        $.post("../../actions/fetch_subdep.php", { action: "fetch_item_details", id: id, type: type }, function(res) {
+            Swal.close();
+            $('#itemDetailsBody').html(res);
+            $('#itemDetailsModal').modal('show');
+        }).fail(function() {
+            Swal.fire('Connection Error', 'Failed to retrieve details from the database.', 'error');
+        });
     });
 
     $('#previewBtn').click(function() {
@@ -653,6 +793,8 @@ $(document).ready(function() {
                 if (response.error) {
                     Swal.fire('Error', response.error, 'error');
                 } else {
+                    $('#previewContainer').css('display', 'block');
+                    
                     if ($.fn.DataTable.isDataTable('#previewTable')) { $('#previewTable').DataTable().destroy(); }
                     $('#previewTable').empty();
                     
@@ -665,9 +807,19 @@ $(document).ready(function() {
                         
                         $.each(response.data[0], function(key, value) {
                             var cleanHeader = key.replace(/_/g, ' ');
-                            theadHtml += '<th>' + cleanHeader + '</th>';
-                            columnsMap.push({ data: key });
-                            if(key.toLowerCase() === 'department') defSortIndex = columnsMap.length - 1;
+                            
+                            // THE FIX: Identify which ones to hide
+                            if(key === 'Record_ID' || key === 'Raw_Type' || key === 'Action') {
+                                text = '<th style="display:none;">' + cleanHeader + '</th>';
+                                theadHtml += text;
+                                columnsMap.push({ data: key, visible: false });
+                            } else {
+                                text = '<th>' + cleanHeader + '</th>';
+                                theadHtml += text;
+                                columnsMap.push({ data: key });
+                                // Sort by Module or Title to keep it clean
+                                if(key.toLowerCase() === 'module' || key.toLowerCase() === 'title') defSortIndex = columnsMap.length - 1;
+                            }
                         });
                         theadHtml += '</tr></thead>';
                         $('#previewTable').html(theadHtml + '<tbody></tbody>');
@@ -677,7 +829,7 @@ $(document).ready(function() {
                             for (var i=0; i<data.header.length; i++) {
                                 var headerText = data.header[i].toLowerCase().trim();
                                 if (headerText === 'department') deptIndex = i;
-                                if (headerText === 'module category' || headerText === 'module_category') modIndex = i;
+                                if (headerText === 'module' || headerText === 'module category' || headerText === 'module_category') modIndex = i;
                             }
                             if (deptIndex !== -1) {
                                 data.body.sort(function(a, b) {
@@ -707,18 +859,26 @@ $(document).ready(function() {
                             }
                         };
 
-                        $('#previewTable').DataTable({
+                        var dt = $('#previewTable').DataTable({
                             data: response.data,
                             columns: columnsMap,
                             pageLength: 10,
                             scrollX: true,
-                            order: [[defSortIndex, 'asc']], 
+                            autoWidth: false, 
+                            
+                            createdRow: function(row, data, dataIndex) {
+                                $(row).addClass('clickable-row');
+                                $(row).attr('data-id', data.Record_ID);
+                                $(row).attr('data-type', data.Raw_Type);
+                            },
+
                             dom: "<'row'<'col-sm-12 col-md-7'B><'col-sm-12 col-md-5 d-flex justify-content-end'f>>" +
                                  "<'row'<'col-sm-12'tr>>" +
                                  "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
                             buttons: [
-                                { extend: 'excelHtml5', text: '<i class="fas fa-file-excel mr-1"></i> Excel', className: 'btn btn-success btn-sm', title: 'Data_Extraction_Report', customizeData: exportCustomize },
-                                { extend: 'csvHtml5', text: '<i class="fas fa-file-csv mr-1"></i> CSV', className: 'btn btn-info btn-sm', title: 'Data_Extraction_Report', customizeData: exportCustomize },
+                                // EXCEL AND CSV ARE EXPORTING ONLY VISIBLE COLUMNS
+                                { extend: 'excelHtml5', text: '<i class="fas fa-file-excel mr-1"></i> Excel', className: 'btn btn-success btn-sm', title: 'Data_Extraction_Report', exportOptions: { columns: ':visible' }, customizeData: exportCustomize },
+                                { extend: 'csvHtml5', text: '<i class="fas fa-file-csv mr-1"></i> CSV', className: 'btn btn-info btn-sm', title: 'Data_Extraction_Report', exportOptions: { columns: ':visible' }, customizeData: exportCustomize },
                                 {
                                     text: '<i class="fas fa-file-word mr-1"></i> Word Doc',
                                     className: 'btn btn-primary btn-sm',
@@ -768,12 +928,13 @@ $(document).ready(function() {
                             ]
                         });
                         
+                        setTimeout(function(){ dt.columns.adjust(); }, 100);
+                        
                     } else {
                         $('#recordCount').text("0 Records Confirmed");
                         $('#previewTable').html('<tbody><tr><td class="text-center p-4 text-muted">No records align with your selected parameters.</td></tr></tbody>');
                     }
                     
-                    $('#previewContainer').fadeIn(600);
                     $('html, body').animate({ scrollTop: $("#previewContainer").offset().top - 20 }, 500);
                 }
             },
