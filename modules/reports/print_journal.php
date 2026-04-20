@@ -79,11 +79,7 @@ if (!empty($researcher_id)) {
 
 $html_chunks[] = "
 <table width='100%' style='margin-bottom: 20px; border-bottom: 3px solid #2c7be5; font-family: Arial, sans-serif;'>
-<table width='100%' style='margin-bottom: 20px; border-bottom: 3px solid #2c7be5; font-family: Arial, sans-serif;'>
     <tr>
-        <td style='text-align: center; padding-bottom: 15px;'>
-            <h1 style='font-size: 26px; font-weight: bold; color: #2c3e50; margin: 0; text-transform: uppercase;'>{$header_title}</h1>
-            <div style='font-size: 14px; color: #6e84a3; margin-top: 5px;'>{$header_subtitle}</div>
         <td style='text-align: center; padding-bottom: 15px;'>
             <h1 style='font-size: 26px; font-weight: bold; color: #2c3e50; margin: 0; text-transform: uppercase;'>{$header_title}</h1>
             <div style='font-size: 14px; color: #6e84a3; margin-top: 5px;'>{$header_subtitle}</div>
@@ -92,6 +88,39 @@ $html_chunks[] = "
 </table>";
 
 $exclude_keys = ['id', 'researcherid', 'lead_researcher_id', 'lead_author_id', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'coauth', 'user_created_on', 'has_files', 'all_authors', 'primary_familyname', 'author_db_id'];
+
+$label_map = [
+    'journal' => 'Journal',
+    'vol_num_issue_num' => 'Volume / Issue',
+    'issn_isbn' => 'ISSN / ISBN',
+    'indexing' => 'Indexing',
+    'publication_date' => 'Published',
+    'date_applied' => 'Date Applied',
+    'date_granted' => 'Date Granted',
+    'date_paper' => 'Date of Paper',
+    'start' => 'Start Date',
+    'end' => 'End Date',
+    'start_date' => 'Start Date',
+    'completed_date' => 'Completed',
+    'started_date' => 'Started',
+    'funding_source' => 'Funding Source',
+    'approved_budget' => 'Approved Budget',
+    'research_agenda_cluster' => 'Agenda Cluster',
+    'target_beneficiaries_communities' => 'Beneficiaries',
+    'type_learning_dev' => 'Learning & Dev Type',
+    'sponsor_org' => 'Sponsor Org',
+    'totnh' => 'Total Hours',
+    'conference_title' => 'Conference',
+    'conference_venue' => 'Venue',
+    'conference_organizer' => 'Organizer',
+    'sdgs' => 'SDGs',
+    'lvl' => 'Level',
+    'type' => 'Type',
+    'venue' => 'Venue',
+    'discipline' => 'Discipline',
+    'partners' => 'Partners',
+    'terminal_report' => 'Terminal Report'
+];
 
 foreach ($modules_to_run as $mod) {
     
@@ -106,41 +135,23 @@ foreach ($modules_to_run as $mod) {
             <tr>
                 <th width='25%' align='left' style='padding: 10px;'>Title</th>
                 <th width='15%' align='left' style='padding: 10px;'>Lead Proponent</th>
-                <th width='15%' align='left' style='padding: 10px;'>Co-Authors</th>";
+                <th width='18%' align='left' style='padding: 10px;'>Co-Authors</th>";
                 
     if ($mod['has_status']) {
         $html_chunks[] = "<th width='10%' align='center' style='padding: 10px;'>Status</th>";
     }
 
     $html_chunks[] = "
-                <th width='35%' align='left' style='padding: 10px;'>Specific Details</th>
-            </tr>
-        </thead>
-        <tbody>";
-    <table width='100%' border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 20px;'>
-        <thead style='background-color: #f8f9fc; color: #4e73df; font-size: 11px; text-transform: uppercase;'>
-            <tr>
-                <th width='25%' align='left' style='padding: 10px;'>Title</th>
-                <th width='15%' align='left' style='padding: 10px;'>Lead Proponent</th>
-                <th width='15%' align='left' style='padding: 10px;'>Co-Authors</th>";
-                
-    if ($mod['has_status']) {
-        $html_chunks[] = "<th width='10%' align='center' style='padding: 10px;'>Status</th>";
-    }
-
-    $html_chunks[] = "
-                <th width='35%' align='left' style='padding: 10px;'>Specific Details</th>
+                <th width='32%' align='left' style='padding: 10px;'>Specific Details</th>
             </tr>
         </thead>
         <tbody>";
     
-    // Query Building
     $col_table = ''; $col_fk = '';
     if ($mod['table'] == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
     if ($mod['table'] == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
     if ($mod['table'] == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
 
-    // THE FIX: Fetch Academic Rank and Program in the main SQL query
     $query = "SELECT r.*, d.department, CONCAT(d.firstName, ' ', d.familyName) AS Lead_Researcher, d.academic_rank, d.program 
               FROM {$mod['table']} r 
               JOIN tbl_researchdata d ON r.researcherID = d.id 
@@ -154,28 +165,49 @@ foreach ($modules_to_run as $mod) {
         }
     }
     
-    // Apply Multi-Select In Clauses
+    // THE FIX: Advanced Multi-Select Search (Checks both Lead and Co-Authors)
     if ($department !== 'all' && !empty($department)) {
         $arr = explode(',', $department);
         $escaped = array_map(function($v) { return "'" . addslashes(trim($v)) . "'"; }, $arr);
-        $query .= " AND d.department IN (" . implode(',', $escaped) . ")";
+        $in_str = implode(',', $escaped);
+        if ($col_table !== '') {
+            $query .= " AND (d.department IN ($in_str) OR r.id IN (SELECT sub_col.$col_fk FROM $col_table sub_col JOIN tbl_researchdata sub_d ON sub_col.researcher_id = sub_d.id WHERE sub_d.department IN ($in_str)))";
+        } else {
+            $query .= " AND d.department IN ($in_str)";
+        }
     }
     if ($academic_rank !== 'all' && !empty($academic_rank)) {
         $arr = explode(',', $academic_rank);
         $escaped = array_map(function($v) { return "'" . addslashes(trim($v)) . "'"; }, $arr);
-        $query .= " AND d.academic_rank IN (" . implode(',', $escaped) . ")";
+        $in_str = implode(',', $escaped);
+        if ($col_table !== '') {
+            $query .= " AND (d.academic_rank IN ($in_str) OR r.id IN (SELECT sub_col.$col_fk FROM $col_table sub_col JOIN tbl_researchdata sub_d ON sub_col.researcher_id = sub_d.id WHERE sub_d.academic_rank IN ($in_str)))";
+        } else {
+            $query .= " AND d.academic_rank IN ($in_str)";
+        }
     }
     if ($program !== 'all' && !empty($program)) {
         $arr = explode(',', $program);
         $escaped = array_map(function($v) { return "'" . addslashes(trim($v)) . "'"; }, $arr);
-        $query .= " AND d.program IN (" . implode(',', $escaped) . ")";
+        $in_str = implode(',', $escaped);
+        if ($col_table !== '') {
+            $query .= " AND (d.program IN ($in_str) OR r.id IN (SELECT sub_col.$col_fk FROM $col_table sub_col JOIN tbl_researchdata sub_d ON sub_col.researcher_id = sub_d.id WHERE sub_d.program IN ($in_str)))";
+        } else {
+            $query .= " AND d.program IN ($in_str)";
+        }
     }
 
     $object->query = $query;
     $items = getSafeRows($object);
     $found_items = false;
     
-    foreach ($items as $item) {
+    // De-duplicate array (because searching Co-Authors can return the same project multiple times)
+    $unique_items = [];
+    foreach ($items as $itm) {
+        $unique_items[$itm['id']] = $itm;
+    }
+    
+    foreach ($unique_items as $item) {
         $date_matched = false;
         if ($is_all_time) { $date_matched = true; } 
         else {
@@ -206,27 +238,30 @@ foreach ($modules_to_run as $mod) {
                 $kl = strtolower($k);
                 if (in_array($kl, $exclude_keys) || trim((string)$v) === '' || is_numeric($k) || $kl === 'academic_rank' || $kl === 'program') continue;
                 
-                $clean_label = ucwords(str_replace('_', ' ', $k));
+                $clean_label = isset($label_map[$kl]) ? $label_map[$kl] : ucwords(str_replace('_', ' ', $k));
                 $clean_val = htmlspecialchars((string)$v);
                 
-                $detail_str .= "<div style='margin-bottom: 4px;'><strong style='color:#333333;'>{$clean_label}:</strong> <span style='color:#555555;'>{$clean_val}</span></div>";
+                if (($kl === 'approved_budget' || $kl === 'budget') && is_numeric(str_replace(['₱', ',', ' '], '', $clean_val))) {
+                    $clean_val = '₱' . number_format((float)str_replace(['₱', ',', ' '], '', $clean_val), 2);
+                }
+                
+                $detail_str .= "<div style='margin-bottom: 4px; line-height: 1.4;'><span style='color:#7a869a; font-size:10px;'>{$clean_label}:</span> <span style='color:#12263f; font-weight:bold; font-size:11px;'>{$clean_val}</span></div>";
             }
             if ($detail_str === "") $detail_str = "<span style='color: #999; font-style: italic;'>No extra details available</span>";
 
-            // THE FIX: Format Lead Researcher with Rank and Program
             $lead_name = htmlspecialchars($item['Lead_Researcher'] ?? 'Unknown');
             $lead_rank = htmlspecialchars($item['academic_rank'] ?? '');
             $lead_prog = htmlspecialchars($item['program'] ?? '');
             
             $lead_display = "<strong>{$lead_name}</strong>";
-            if (!empty($lead_rank)) {
-                $lead_display .= "<br><span style='font-size: 10px; color: #555555;'>{$lead_rank}</span>";
-            }
-            if (!empty($lead_prog)) {
-                $lead_display .= "<br><span style='font-size: 10px; color: #777777;'><em>{$lead_prog}</em></span>";
+            $lead_meta = [];
+            if (!empty($lead_rank)) $lead_meta[] = $lead_rank;
+            if (!empty($lead_prog)) $lead_meta[] = $lead_prog;
+            
+            if (!empty($lead_meta)) {
+                $lead_display .= "<br><span style='font-size: 10px; color: #555555;'>" . implode(" • ", $lead_meta) . "</span>";
             }
 
-            // THE FIX: Fetch Co-Authors with their Rank and Program attached
             $co_authors_display = '<span style="color: #999; font-style: italic;">None</span>';
             if ($col_table !== '') {
                 $object->query = "SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') as coauths FROM $col_table col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.$col_fk = '".$item['id']."' AND col.researcher_id != '".$item['researcherID']."'";
@@ -244,13 +279,14 @@ foreach ($modules_to_run as $mod) {
                             $c_prog = isset($parts[2]) && $parts[2] !== '' ? htmlspecialchars($parts[2]) : '';
 
                             $c_display = "<strong>{$c_name}</strong>";
-                            if (!empty($c_rank)) {
-                                $c_display .= "<br><span style='font-size: 10px; color: #555555;'>{$c_rank}</span>";
+                            $c_meta = [];
+                            if (!empty($c_rank)) $c_meta[] = $c_rank;
+                            if (!empty($c_prog)) $c_meta[] = $c_prog;
+
+                            if (!empty($c_meta)) {
+                                $c_display .= " <span style='font-size: 9.5px; color: #666;'>(" . implode(" • ", $c_meta) . ")</span>";
                             }
-                            if (!empty($c_prog)) {
-                                $c_display .= "<br><span style='font-size: 10px; color: #777777;'><em>{$c_prog}</em></span>";
-                            }
-                            $co_html_arr[] = "<div style='margin-bottom: 8px;'>{$c_display}</div>";
+                            $co_html_arr[] = "<div style='margin-bottom: 3px;'>{$c_display}</div>";
                         }
                     }
                     $co_authors_display = implode("", $co_html_arr);
@@ -267,8 +303,6 @@ foreach ($modules_to_run as $mod) {
             if ($mod['has_status']) {
                 $s_val = htmlspecialchars($item['stat'] ?? $item['status_exct'] ?? 'Unknown');
                 $html_chunks[] = "<td valign='top' align='center' style='padding: 10px; color: #12263f;'><strong>{$s_val}</strong></td>";
-                $s_val = htmlspecialchars($item['stat'] ?? $item['status_exct'] ?? 'Unknown');
-                $html_chunks[] = "<td valign='top' align='center' style='padding: 10px; color: #12263f;'><strong>{$s_val}</strong></td>";
             }
 
             $html_chunks[] = "<td valign='top' style='padding: 10px;'>{$detail_str}</td>";
@@ -279,10 +313,7 @@ foreach ($modules_to_run as $mod) {
     if (!$found_items) {
         $colspan = $mod['has_status'] ? 5 : 4;
         $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
-        $colspan = $mod['has_status'] ? 5 : 4;
-        $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
     }
-    $html_chunks[] = "</tbody></table>";
     $html_chunks[] = "</tbody></table>";
 }
 
@@ -315,7 +346,6 @@ if ($format === 'word') {
 } else {
     try {
         if (!class_exists('\Mpdf\Mpdf')) {
-            die("Error: mPDF library is not installed.");
             die("Error: mPDF library is not installed.");
         }
         $mpdf = new \Mpdf\Mpdf([
