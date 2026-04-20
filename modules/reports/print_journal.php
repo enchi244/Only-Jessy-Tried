@@ -79,7 +79,11 @@ if (!empty($researcher_id)) {
 
 $html_chunks[] = "
 <table width='100%' style='margin-bottom: 20px; border-bottom: 3px solid #2c7be5; font-family: Arial, sans-serif;'>
+<table width='100%' style='margin-bottom: 20px; border-bottom: 3px solid #2c7be5; font-family: Arial, sans-serif;'>
     <tr>
+        <td style='text-align: center; padding-bottom: 15px;'>
+            <h1 style='font-size: 26px; font-weight: bold; color: #2c3e50; margin: 0; text-transform: uppercase;'>{$header_title}</h1>
+            <div style='font-size: 14px; color: #6e84a3; margin-top: 5px;'>{$header_subtitle}</div>
         <td style='text-align: center; padding-bottom: 15px;'>
             <h1 style='font-size: 26px; font-weight: bold; color: #2c3e50; margin: 0; text-transform: uppercase;'>{$header_title}</h1>
             <div style='font-size: 14px; color: #6e84a3; margin-top: 5px;'>{$header_subtitle}</div>
@@ -113,7 +117,24 @@ foreach ($modules_to_run as $mod) {
             </tr>
         </thead>
         <tbody>";
+    <table width='100%' border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 20px;'>
+        <thead style='background-color: #f8f9fc; color: #4e73df; font-size: 11px; text-transform: uppercase;'>
+            <tr>
+                <th width='25%' align='left' style='padding: 10px;'>Title</th>
+                <th width='15%' align='left' style='padding: 10px;'>Lead Proponent</th>
+                <th width='15%' align='left' style='padding: 10px;'>Co-Authors</th>";
+                
+    if ($mod['has_status']) {
+        $html_chunks[] = "<th width='10%' align='center' style='padding: 10px;'>Status</th>";
+    }
+
+    $html_chunks[] = "
+                <th width='35%' align='left' style='padding: 10px;'>Specific Details</th>
+            </tr>
+        </thead>
+        <tbody>";
     
+    // Query Building
     $col_table = ''; $col_fk = '';
     if ($mod['table'] == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
     if ($mod['table'] == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
@@ -246,6 +267,8 @@ foreach ($modules_to_run as $mod) {
             if ($mod['has_status']) {
                 $s_val = htmlspecialchars($item['stat'] ?? $item['status_exct'] ?? 'Unknown');
                 $html_chunks[] = "<td valign='top' align='center' style='padding: 10px; color: #12263f;'><strong>{$s_val}</strong></td>";
+                $s_val = htmlspecialchars($item['stat'] ?? $item['status_exct'] ?? 'Unknown');
+                $html_chunks[] = "<td valign='top' align='center' style='padding: 10px; color: #12263f;'><strong>{$s_val}</strong></td>";
             }
 
             $html_chunks[] = "<td valign='top' style='padding: 10px;'>{$detail_str}</td>";
@@ -256,7 +279,10 @@ foreach ($modules_to_run as $mod) {
     if (!$found_items) {
         $colspan = $mod['has_status'] ? 5 : 4;
         $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
+        $colspan = $mod['has_status'] ? 5 : 4;
+        $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
     }
+    $html_chunks[] = "</tbody></table>";
     $html_chunks[] = "</tbody></table>";
 }
 
@@ -289,6 +315,7 @@ if ($format === 'word') {
 } else {
     try {
         if (!class_exists('\Mpdf\Mpdf')) {
+            die("Error: mPDF library is not installed.");
             die("Error: mPDF library is not installed.");
         }
         $mpdf = new \Mpdf\Mpdf([
