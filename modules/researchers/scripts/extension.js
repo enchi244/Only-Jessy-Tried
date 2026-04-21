@@ -20,8 +20,16 @@ function loadextprotab(projectID) {
 // Handle Form Submission for Extension
 $('#ext_project_form').on('submit', function (event) {
     event.preventDefault();
-    if ($('#ext_project_form').parsley().isValid()) {
-        var formData = new FormData(this); // Use FormData to support files
+
+    // Re-initialize Parsley to ensure it includes the dynamically added date and hidden fields
+    var extensionForm = $('#ext_project_form').parsley({
+        excluded: 'input[type=button], input[type=submit], input[type=reset]'
+    });
+
+    console.log("Validation status:", extensionForm.isValid());
+
+    if (extensionForm.isValid()) {
+        var formData = new FormData(this);
 
         $.ajax({
             url: "actions/extension_action.php",
@@ -37,7 +45,7 @@ $('#ext_project_form').on('submit', function (event) {
                 $('#submit_button_ext').attr('disabled', false);
                 if (data.error != '') {
                     $('#form_message').html(data.error);
-                    $('#submit_button_ext').val('Add');
+                    $('#submit_button_ext').val($('#action_ext').val());
                 } else {
                     $('#extModal').modal('hide');
                     
@@ -49,15 +57,17 @@ $('#ext_project_form').on('submit', function (event) {
                         showConfirmButton: false 
                     });
 
-                    // FIX: Reload table if in associated modal, otherwise reload page to update cards
                     var projectID = $('#viewExtensionsModal').data('project-id');
                     if(projectID) {
                         loadextprotab(projectID);
                     } else {
-                        // We are on the main profile; reload to see new PHP-rendered cards
                         setTimeout(function(){ location.reload(); }, 1000);
                     }
                 }
+            },
+            error: function() {
+                $('#submit_button_ext').attr('disabled', false).val('Save Data');
+                $('#form_message').html('<div class="alert alert-danger">Server Error: Could not save data.</div>');
             }
         });
     }
@@ -66,13 +76,25 @@ $('#ext_project_form').on('submit', function (event) {
 // Add New Extension
 $('#add_extension').click(function () {
     $('#ext_project_form')[0].reset();
+    
+    // Clear custom date fields
+    $('#period_start').val('');
+    $('#period_end').val('');
+    $('#period_implement').val('');
+    
     $('#linked_extension_project').val(null).trigger('change');
-    $('#ext_project_form').parsley().reset();
+    
+    // Reset and Rebind Parsley
+    if ($('#ext_project_form').parsley()) {
+        $('#ext_project_form').parsley().destroy();
+    }
+    $('#ext_project_form').parsley();
+    
     $('#modal_title').text('Add Extension');
     $('#action_ext').val('Add');
     
-    // FIX: This now correctly picks up the ID because we changed the DIV to an INPUT
-    var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val();
+    // FIX: Retrieve Researcher ID from common context sources
+    var rid = $('#hidden_id_rd').val() || $('.edit_researcher').data('id') || $('#researcherModala').data('id');
     $('#hidden_researcherID_ext').val(rid);
 
     var parentProjectID = $('#viewExtensionsModal').data('project-id');
@@ -87,7 +109,11 @@ $('#add_extension').click(function () {
 $(document).on('click', '.edit_button_ext', function () {
     var extID = $(this).data('id');
     $('#ext_project_form')[0].reset();
-    $('#ext_project_form').parsley().reset();
+    
+    if ($('#ext_project_form').parsley()) {
+        $('#ext_project_form').parsley().reset();
+    }
+    
     $('#form_message').html('');
 
     $.ajax({
@@ -104,13 +130,26 @@ $(document).on('click', '.edit_button_ext', function () {
             $('#fund_source').val(data.fund_source);
             $('#target_beneficiaries').val(data.target_beneficiaries);
             $('#partners').val(data.partners);
-            $('#stat_ext').val(data.stat); // Fixed key: was stat_ext
+            $('#stat_ext').val(data.stat);
+
+            // Handle splitting the period implement string back into date inputs
+            if (data.period_implement && data.period_implement.includes(" to ")) {
+                var dates = data.period_implement.split(" to ");
+                $('#period_start').val(dates[0]);
+                $('#period_end').val(dates[1]);
+                $('#period_implement').val(data.period_implement);
+            } else {
+                $('#period_start').val('');
+                $('#period_end').val('');
+                $('#period_implement').val(data.period_implement);
+            }
 
             $('#modal_title').text('Edit Extension');
             $('#action_ext').val('Edit');
             $('#submit_button_ext').val('Edit');
             $('#extModal').modal('show');
             $('#hidden_extID').val(extID);
+            $('#hidden_existing_attachment').val(data.attachments);
         }
     });
 });

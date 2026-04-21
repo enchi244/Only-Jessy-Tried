@@ -57,9 +57,30 @@
 
                     <div class="row">
                         <div class="col-md-4 form-group mb-4">
-                            <label for="period_implement"><i class="far fa-calendar-alt mr-2 text-primary"></i>Period of Impl.</label>
-                            <input type="text" name="period_implement" id="period_implement" class="form-control" placeholder="E.g. Jan - Dec 2023" required />
+                        <label><i class="far fa-calendar-alt mr-2 text-primary"></i>Period of Impl.</label>
+                        <div class="input-group">
+                            <input type="date" id="period_start" class="form-control" data-parsley-required="true" />
+                            <div class="input-group-append input-group-prepend">
+                                <span class="input-group-text">to</span>
+                            </div>
+                            <input type="date" id="period_end" class="form-control" data-parsley-required="true" />
                         </div>
+                        <input type="hidden" name="period_implement" id="period_implement" />
+                    </div>
+
+                    <script>
+                        // Update the hidden field whenever dates change
+                        document.getElementById('period_start').addEventListener('change', updatePeriodString);
+                        document.getElementById('period_end').addEventListener('change', updatePeriodString);
+
+                        function updatePeriodString() {
+                            const start = document.getElementById('period_start').value;
+                            const end = document.getElementById('period_end').value;
+                            if (start && end) {
+                                document.getElementById('period_implement').value = start + " to " + end;
+                            }
+                        }
+                    </script>
                         <div class="col-md-4 form-group mb-4">
                             <label for="fund_source"><i class="fas fa-hand-holding-usd mr-2 text-primary"></i>Funding Source</label>
                             <input type="text" name="fund_source" id="fund_source" class="form-control" placeholder="Enter funding source" required />

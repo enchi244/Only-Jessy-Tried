@@ -102,8 +102,16 @@ if (isset($_POST["action_ext"])) {
             move_uploaded_file($_FILES['attachments_ext']['tmp_name'], '../../../uploads/documents/' . $attachment_name);
         }
 
+        // Debug/Fallback: Ensure researcherID is not empty
+        $researcherID = !empty($_POST['hidden_researcherID_ext']) ? $_POST['hidden_researcherID_ext'] : null;
+
+        if (!$researcherID) {
+            echo json_encode(array('error' => '<div class="alert alert-danger">Error: Researcher ID is missing. Please refresh and try again.</div>'));
+            exit;
+        }
+
         $data = array(
-            ':researcherID'         => $_POST['hidden_researcherID_ext'],
+            ':researcherID'         => $researcherID,
             ':title'                => $_POST['title_ext'],
             ':description'          => $_POST['description_ext'],
             ':proj_lead'            => $_POST['proj_lead'],
