@@ -77,15 +77,34 @@ if (!empty($researcher_id)) {
     $header_subtitle = ($department !== 'all') ? "Filtered Departments" : "All Departments";
 }
 
+// ==============================================================================
+// THE FIX: Professional Letterhead Formatting (Banner + Framed Title)
+// ==============================================================================
+$logo_path = '../../img/serdac.png';
+$logo_html = '';
+
+if (file_exists($logo_path)) {
+    $logo_data = base64_encode(file_get_contents($logo_path));
+    $logo_src = 'data:image/png;base64,' . $logo_data;
+    // Hardcoded width guarantees MS Word renders it nicely centered
+    $logo_html = "<img src='{$logo_src}' width='750' style='max-width: 90%; height: auto;' alt='RDEC-SDMU Header Logo' />";
+}
+
 $html_chunks[] = "
-<table width='100%' style='margin-bottom: 20px; border-bottom: 3px solid #2c7be5; font-family: Arial, sans-serif;'>
+<table width='100%' cellpadding='0' cellspacing='0' style='font-family: Arial, Helvetica, sans-serif; margin-bottom: 25px;'>
     <tr>
-        <td style='text-align: center; padding-bottom: 15px;'>
-            <h1 style='font-size: 26px; font-weight: bold; color: #2c3e50; margin: 0; text-transform: uppercase;'>{$header_title}</h1>
-            <div style='font-size: 14px; color: #6e84a3; margin-top: 5px;'>{$header_subtitle}</div>
+        <td align='center' style='padding-bottom: 15px;'>
+            {$logo_html}
+        </td>
+    </tr>
+    <tr>
+        <td align='center' style='border-top: 2px solid #2c7be5; border-bottom: 2px solid #2c7be5; padding: 12px 0; background-color: #fcfcfc;'>
+            <h1 style='font-size: 22px; font-weight: bold; color: #12263f; margin: 0; padding: 0; text-transform: uppercase; letter-spacing: 1px;'>{$header_title}</h1>
+            <div style='font-size: 12px; color: #6e84a3; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px;'>{$header_subtitle}</div>
         </td>
     </tr>
 </table>";
+// ==============================================================================
 
 $exclude_keys = ['id', 'researcherid', 'lead_researcher_id', 'lead_author_id', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'coauth', 'user_created_on', 'has_files', 'all_authors', 'primary_familyname', 'author_db_id'];
 
@@ -165,7 +184,6 @@ foreach ($modules_to_run as $mod) {
         }
     }
     
-    // THE FIX: Advanced Multi-Select Search (Checks both Lead and Co-Authors)
     if ($department !== 'all' && !empty($department)) {
         $arr = explode(',', $department);
         $escaped = array_map(function($v) { return "'" . addslashes(trim($v)) . "'"; }, $arr);
@@ -201,7 +219,6 @@ foreach ($modules_to_run as $mod) {
     $items = getSafeRows($object);
     $found_items = false;
     
-    // De-duplicate array (because searching Co-Authors can return the same project multiple times)
     $unique_items = [];
     foreach ($items as $itm) {
         $unique_items[$itm['id']] = $itm;
@@ -237,6 +254,8 @@ foreach ($modules_to_run as $mod) {
             foreach ($item as $k => $v) {
                 $kl = strtolower($k);
                 if (in_array($kl, $exclude_keys) || trim((string)$v) === '' || is_numeric($k) || $kl === 'academic_rank' || $kl === 'program') continue;
+                
+                if (in_array($kl, ['file', 'terminal_report_file', 'attachments', 'so_file', 'moa_file'])) continue;
                 
                 $clean_label = isset($label_map[$kl]) ? $label_map[$kl] : ucwords(str_replace('_', ' ', $k));
                 $clean_val = htmlspecialchars((string)$v);

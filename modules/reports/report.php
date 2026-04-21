@@ -101,6 +101,16 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         'tbl_trainingsattended' => 'date_train'
     ];
 
+    // THE FIX: Strict translation dictionary for perfect grammar formatting
+    $friendly_modules = [
+        'tbl_researchconducted' => 'Research Conducted',
+        'tbl_publication' => 'Publications',
+        'tbl_itelectualprop' => 'Intellectual Property',
+        'tbl_paperpresentation' => 'Paper Presentations',
+        'tbl_trainingsattended' => 'Trainings Attended',
+        'tbl_extension_project_conducted' => 'Extension Projects'
+    ];
+
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
     try {
         $conn = new mysqli("localhost", "root", "", "rms");
@@ -226,16 +236,13 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $clean_row['Record_ID'] = $row['id'];
                 $clean_row['Raw_Type'] = $raw_type;
 
-                $clean_row['Department'] = htmlspecialchars($row['Department'] ?? '', ENT_QUOTES, 'UTF-8');
+                $clean_row['College'] = htmlspecialchars($row['Department'] ?? '', ENT_QUOTES, 'UTF-8');
                 
                 $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-2 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
                 $discipline_text = !empty($row["program"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader"></i> ' . htmlspecialchars($row["program"]) . '</div>' : '';
-                
-                // NEW CLEAN NAME
                 $clean_row['Lead_Proponent'] = "<div class='font-weight-bold text-gray-800'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . $rank_badge . "</div>" . $discipline_text;
 
                 if ($current_table == 'tbl_itelectualprop') {
-                    // NEW CLEAN NAME
                     $clean_row['Co_Authors'] = !empty($row['coauth']) ? htmlspecialchars($row['coauth'], ENT_QUOTES, 'UTF-8') : 'None';
                 } else {
                     $co_html = "";
@@ -256,13 +263,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                     $clean_row['Co_Authors'] = !empty($co_html) ? $co_html : 'None';
                 }
 
-                // NEW CLEAN NAMES
-                $clean_row['SO_File'] = !empty($row['so_file']) ? 'Yes' : 'None';
-                $clean_row['MOA_File'] = !empty($row['moa_file']) ? 'Yes' : 'None';
-                
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
-                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'lead_author_id' || $kl === 'lead_researcher_id' || $kl === 'status' || $kl === 'department' || $kl === 'firstname' || $kl === 'familyname' || $kl === 'academic_rank' || $kl === 'program' || $kl === 'co_researchers_raw' || $kl === 'lead_proponent' || $kl === 'co_authors' || $kl === 'so_file' || $kl === 'moa_file' || $kl === 'has_files') continue;
+                    
+                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'lead_author_id' || $kl === 'lead_researcher_id' || $kl === 'status' || $kl === 'department' || $kl === 'college' || $kl === 'firstname' || $kl === 'familyname' || $kl === 'academic_rank' || $kl === 'program' || $kl === 'co_researchers_raw' || $kl === 'lead_proponent' || $kl === 'co_authors' || $kl === 'so_file' || $kl === 'moa_file' || $kl === 'has_files' || $kl === 'file' || $kl === 'terminal_report_file' || $kl === 'attachments') continue;
                     
                     $friendly_k = isset($label_map[$kl]) ? $label_map[$kl] : $k;
                     $clean_row[$friendly_k] = htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -296,8 +300,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                     $action_btn = '<button type="button" class="btn btn-sm btn-info view-item-details" data-id="'.$group['Record_ID'].'" data-type="'.$group['Raw_Type'].'" title="View Record Details"><i class="fas fa-eye"></i></button>';
 
                     if ($is_multi_module) {
-                        $module_category = ucwords(str_replace(['tbl_', 'itelectualprop', '_project_conducted'], ['', 'intellectual property', ''], $current_table));
-                        $module_category = str_replace('_', ' ', $module_category);
+                        
+                        // THE FIX: Apply the strict dictionary translation here!
+                        $module_category = isset($friendly_modules[$current_table]) ? $friendly_modules[$current_table] : 'Unknown Category';
                         
                         $friendly_target_date = isset($label_map[$target_date_col]) ? $label_map[$target_date_col] : ucwords(str_replace('_', ' ', $target_date_col));
                         $relevant_date = $group[$friendly_target_date] ?? 'N/A';
@@ -306,10 +311,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         
                         foreach ($group as $k => $v) {
                             $kl = strtolower($k);
-                            // Hide the exact date column from details since it has its own dedicated column now
-                            if ($v !== '' && $k !== $friendly_target_date && !in_array($kl, ['title', 'lead_proponent', 'co_authors', 'department', 'so_file', 'moa_file', 'record_id', 'raw_type', 'action'])) {
-                                
-                                // THE FIX: Beautiful vertical formatting for the UI
+                            if ($v !== '' && $k !== $friendly_target_date && !in_array($kl, ['title', 'lead_proponent', 'co_authors', 'department', 'college', 'record_id', 'raw_type', 'action'])) {
                                 $extra_details[] = "<div style='margin-bottom: 3px; line-height: 1.3;'><span style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$k}:</span> <span style='color:#12263f; font-weight:600; font-size:12px;'>{$v}</span></div> ";
                             }
                         }
@@ -320,13 +322,11 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                             'Action' => $action_btn,
                             'Module' => $module_category,
                             'Title' => $group['Title'] ?? $group['title'] ?? 'N/A',
-                            'Department' => $group['Department'] ?? 'N/A',
+                            'College' => $group['College'] ?? 'N/A',
                             'Lead_Proponent' => $group['Lead_Proponent'] ?? 'N/A',
                             'Co_Authors' => $group['Co_Authors'] ?? 'None',
                             'Date' => $relevant_date,
-                            'Additional_Details' => implode("", $extra_details),
-                            'SO_File' => $group['SO_File'],
-                            'MOA_File' => $group['MOA_File']
+                            'Additional_Details' => implode("", $extra_details)
                         ];
                     } else {
                         $out_group = ['Action' => $action_btn] + $group;
@@ -375,10 +375,15 @@ include('../../includes/header.php');
     .badge-soft-success { background-color: rgba(0, 210, 122, 0.15); color: #00d27a; font-weight: 700; padding: 0.5em 0.8em; border-radius: 6px; }
     .table-enterprise { border-collapse: separate; border-spacing: 0; width: 100%; }
     .table-enterprise thead th { background-color: #f9fbfd; color: #6e84a3; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #edf2f9; border-top: none; padding: 1rem; white-space: nowrap; }
-    .table-enterprise tbody td { padding: 1rem; color: #12263f; font-size: 0.95rem; vertical-align: middle; border-bottom: 1px solid #edf2f9; }
+    .table-enterprise tbody td { padding: 1rem; color: #12263f; font-size: 0.95rem; vertical-align: top; border-bottom: 1px solid #edf2f9; }
     
     .table-enterprise tbody tr.clickable-row { cursor: pointer; transition: background-color 0.2s; }
     .table-enterprise tbody tr.clickable-row:hover td { background-color: #eaecf4 !important; }
+
+    .col-nowrap { white-space: nowrap !important; }
+    .col-title { min-width: 300px !important; white-space: normal !important; }
+    .col-details { min-width: 350px !important; white-space: normal !important; }
+    .col-authors { min-width: 250px !important; white-space: normal !important; }
 
     .dropdown-menu-custom { box-shadow: 0 10px 25px rgba(0,0,0,0.2); border-radius: 10px; z-index: 9999 !important; }
     .custom-control-label { cursor: pointer; color: #4e73df; font-weight: 600; font-size: 0.9rem; }
@@ -490,16 +495,16 @@ include('../../includes/header.php');
                     </div>
 
                     <div class="col-lg-3 mb-2">
-                        <label class="form-label-custom">Department</label>
-                        <div class="custom-multi-select position-relative w-100" id="deptDropdownContainer" data-name="Departments">
+                        <label class="form-label-custom">College</label>
+                        <div class="custom-multi-select position-relative w-100" id="deptDropdownContainer" data-name="Colleges">
                             <div class="form-control-custom w-100 text-left d-flex justify-content-between align-items-center bg-white shadow-sm dropdown-btn" style="cursor: pointer; border-color: #b7b9cc;">
-                                <span class="btn-text text-truncate font-weight-bold text-primary">All Departments</span>
+                                <span class="btn-text text-truncate font-weight-bold text-primary">All Colleges</span>
                                 <i class="fas fa-chevron-down text-muted" style="font-size: 0.8rem;"></i>
                             </div>
                             <div class="dropdown-menu-custom shadow-lg" style="display:none; position:absolute; top:105%; left:0; right:0; background:white; max-height:280px; overflow-y:auto; border:1px solid #edf2f9; border-radius:10px; padding:15px;">
                                 <div class="custom-control custom-checkbox mb-3 pb-3 border-bottom">
                                     <input type="checkbox" class="custom-control-input check-all" id="dept_all" checked>
-                                    <label class="custom-control-label" for="dept_all">All Departments</label>
+                                    <label class="custom-control-label" for="dept_all">All Colleges</label>
                                 </div>
                                 <?php
                                 $object->query = "SELECT category_name FROM product_category_table WHERE category_status = 'Enable' ORDER BY category_name ASC";
@@ -808,16 +813,19 @@ $(document).ready(function() {
                         $.each(response.data[0], function(key, value) {
                             var cleanHeader = key.replace(/_/g, ' ');
                             
-                            // THE FIX: Identify which ones to hide
+                            var colClass = 'col-nowrap'; 
+                            if (key === 'Title' || key === 'Research_Title') colClass = 'col-title';
+                            if (key === 'Additional_Details' || key === 'Specific_Details') colClass = 'col-details';
+                            if (key === 'Lead_Proponent' || key === 'Co_Authors') colClass = 'col-authors';
+                            
                             if(key === 'Record_ID' || key === 'Raw_Type' || key === 'Action') {
                                 text = '<th style="display:none;">' + cleanHeader + '</th>';
                                 theadHtml += text;
                                 columnsMap.push({ data: key, visible: false });
                             } else {
-                                text = '<th>' + cleanHeader + '</th>';
+                                text = '<th class="' + colClass + '">' + cleanHeader + '</th>';
                                 theadHtml += text;
-                                columnsMap.push({ data: key });
-                                // Sort by Module or Title to keep it clean
+                                columnsMap.push({ data: key, className: colClass });
                                 if(key.toLowerCase() === 'module' || key.toLowerCase() === 'title') defSortIndex = columnsMap.length - 1;
                             }
                         });
@@ -828,7 +836,7 @@ $(document).ready(function() {
                             var deptIndex = -1; var modIndex = -1;
                             for (var i=0; i<data.header.length; i++) {
                                 var headerText = data.header[i].toLowerCase().trim();
-                                if (headerText === 'department') deptIndex = i;
+                                if (headerText === 'college' || headerText === 'department') deptIndex = i;
                                 if (headerText === 'module' || headerText === 'module category' || headerText === 'module_category') modIndex = i;
                             }
                             if (deptIndex !== -1) {
@@ -849,7 +857,7 @@ $(document).ready(function() {
                                     if (dept !== currentDept) {
                                         if (currentDept !== null) { newBody.push(new Array(data.header.length).fill('')); }
                                         var divider = new Array(data.header.length).fill('');
-                                        divider[deptIndex] = '==== ' + (dept || 'UNSPECIFIED DEPARTMENT').toUpperCase() + ' ====';
+                                        divider[deptIndex] = '==== ' + (dept || 'UNSPECIFIED COLLEGE').toUpperCase() + ' ====';
                                         newBody.push(divider);
                                         currentDept = dept;
                                     }
@@ -876,7 +884,6 @@ $(document).ready(function() {
                                  "<'row'<'col-sm-12'tr>>" +
                                  "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
                             buttons: [
-                                // EXCEL AND CSV ARE EXPORTING ONLY VISIBLE COLUMNS
                                 { extend: 'excelHtml5', text: '<i class="fas fa-file-excel mr-1"></i> Excel', className: 'btn btn-success btn-sm', title: 'Data_Extraction_Report', exportOptions: { columns: ':visible' }, customizeData: exportCustomize },
                                 { extend: 'csvHtml5', text: '<i class="fas fa-file-csv mr-1"></i> CSV', className: 'btn btn-info btn-sm', title: 'Data_Extraction_Report', exportOptions: { columns: ':visible' }, customizeData: exportCustomize },
                                 {
