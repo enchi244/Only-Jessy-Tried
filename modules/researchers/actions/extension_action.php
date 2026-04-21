@@ -6,7 +6,7 @@ $object = new rms();
 
 if (isset($_POST["action_ext"])) {
 
-    // Logic for auto-filling from a Base Extension Project - UPDATED
+    // Logic for auto-filling from a Base Extension Project
     if ($_POST["action_ext"] == 'fetch_project_info') {
         $proj_id = intval($_POST['project_id']);
         $data = array(
@@ -18,7 +18,6 @@ if (isset($_POST["action_ext"])) {
             'target_beneficiaries' => ''
         );
 
-        // Fetching partners and other details from the conducted project table
         $object->query = "
             SELECT r.firstName, r.familyName, ep.researcherID, ep.partners, ep.funding_source, ep.approved_budget, ep.target_beneficiaries_communities
             FROM tbl_extension_project_conducted ep
@@ -29,7 +28,7 @@ if (isset($_POST["action_ext"])) {
         $lead_id = 0;
         foreach($result as $row) {
             $data['proj_lead'] = trim($row['firstName'] . ' ' . $row['familyName']);
-            $data['partners'] = $row['partners']; // This is the fix for Partners
+            $data['partners'] = $row['partners'];
             $data['fund_source'] = $row['funding_source'];
             $data['budget'] = $row['approved_budget'];
             $data['target_beneficiaries'] = $row['target_beneficiaries_communities'];
@@ -139,7 +138,7 @@ if (isset($_POST["action_ext"])) {
             ':budget'               => $object->clean_input($_POST['budget']),
             ':fund_source'          => $object->clean_input($_POST['fund_source']),
             ':target_beneficiaries' => $object->clean_input($_POST['target_beneficiaries']),
-            ':partners'             => $object->clean_input($_POST['partners']),
+            ':partners'             => $object->clean_input($_POST['partners_ext']), // Updated to unique ID
             ':stat'                 => $object->clean_input($_POST['stat_ext']),
             ':attachments'          => $attachment_name,
             ':a_link'               => $object->clean_input($_POST['a_link_ext'] ?? '')
@@ -213,7 +212,7 @@ if (isset($_POST["action_ext"])) {
             ':budget'               => $object->clean_input($_POST['budget']),
             ':fund_source'          => $object->clean_input($_POST['fund_source']),
             ':target_beneficiaries' => $object->clean_input($_POST['target_beneficiaries']),
-            ':partners'             => $object->clean_input($_POST['partners']),
+            ':partners'             => $object->clean_input($_POST['partners_ext']), // Updated to unique ID
             ':stat'                 => $object->clean_input($_POST['stat_ext']),
             ':attachments'          => $attachment_name,
             ':a_link'               => $object->clean_input($_POST['a_link_ext'] ?? ''),

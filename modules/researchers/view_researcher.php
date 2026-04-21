@@ -31,11 +31,12 @@ $object->query = "SELECT rc.* FROM tbl_researchconducted rc JOIN tbl_research_co
 $object->execute();
 $research_conducted = $object->statement_result();
 
-$object->query = "SELECT * FROM tbl_publication WHERE researcherID = '$researcher_id' ORDER BY publication_date DESC";
+// Use join tables to ensure co-authors/collaborators see records on their profiles
+$object->query = "SELECT p.* FROM tbl_publication p JOIN tbl_publication_collaborators col ON p.id = col.publication_id WHERE col.researcher_id = '$researcher_id' AND p.status = 1 ORDER BY p.publication_date DESC";
 $object->execute();
 $publications = $object->statement_result();
 
-$object->query = "SELECT * FROM tbl_itelectualprop WHERE researcherID = '$researcher_id' ORDER BY date_applied DESC";
+$object->query = "SELECT ip.* FROM tbl_itelectualprop ip JOIN tbl_ip_collaborators col ON ip.id = col.ip_id WHERE col.researcher_id = '$researcher_id' AND ip.status = 1 ORDER BY ip.date_applied DESC";
 $object->execute();
 $intellectual_props = $object->statement_result();
 

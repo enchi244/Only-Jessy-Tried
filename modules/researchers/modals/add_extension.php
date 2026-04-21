@@ -86,8 +86,8 @@
 
                     <div class="row">
                         <div class="col-md-6 form-group mb-3">
-                            <label for="partners"><i class="fas fa-handshake mr-2 text-primary"></i>Partners</label>
-                            <input type="text" name="partners" id="partners" class="form-control" placeholder="Enter partners involved" required />
+                            <label for="partners_ext"><i class="fas fa-handshake mr-2 text-primary"></i>Partners</label>
+                            <textarea name="partners_ext" id="partners_ext" class="form-control" rows="2" placeholder="Enter partners involved" required></textarea>
                         </div>
                         <div class="col-md-6 form-group mb-3">
                             <label for="stat_ext"><i class="fas fa-info-circle mr-2 text-primary"></i>Status</label>

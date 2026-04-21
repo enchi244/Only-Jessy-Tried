@@ -44,7 +44,7 @@ function initResearcherSelects() {
     });
 }
 
-// Handle Auto-fill when Based Project is selected - UPDATED
+// Handle Auto-fill when Based Project is selected
 $(document).on('change', '#linked_extension_project', function() {
     var projectID = $(this).val();
     var action = $('#action_ext').val();
@@ -74,8 +74,8 @@ $(document).on('change', '#linked_extension_project', function() {
                     $('#assist_coordinators').trigger('change');
                 }
                 
-                // Populating Partners and other fields
-                $('#partners').val(data.partners); 
+                // Populating Partners (Using new unique ID) and other fields
+                $('#partners_ext').val(data.partners); 
                 $('#fund_source').val(data.fund_source);
                 $('#budget').val(data.budget);
                 $('#target_beneficiaries').val(data.target_beneficiaries);
@@ -160,6 +160,7 @@ $('#add_extension').click(function () {
     $('#linked_extension_project').val(null).trigger('change');
     $('#proj_lead').empty().trigger('change');
     $('#assist_coordinators').empty().trigger('change');
+    $('#partners_ext').val(''); // Explicitly clear unique ID field
     
     initResearcherSelects();
     
@@ -221,7 +222,7 @@ $(document).on('click', '.edit_button_ext', function () {
             $('#budget').val(data.budget);
             $('#fund_source').val(data.fund_source);
             $('#target_beneficiaries').val(data.target_beneficiaries);
-            $('#partners').val(data.partners); // Fix for Edit
+            $('#partners_ext').val(data.partners); // Using new unique ID
             $('#stat_ext').val(data.stat);
             $('#a_link_ext').val(data.a_link);
 
