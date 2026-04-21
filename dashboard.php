@@ -34,7 +34,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         
         $dept_tracked_items = []; 
 
-        // THE FIX: "WHERE r.status = 1" strictly ignores the Recycle Bin!
         if ($is_researcher) {
             $query = "SELECT id as active_res_id, department, user_created_on FROM {$table} WHERE status = 1";
         } 
@@ -128,7 +127,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
 
         $chart_data = [];
         foreach($dept_counts as $dept => $cnt) {
-            $chart_data[] = ['label' => $dept, 'y' => $cnt];
+            // THE FIX: Anti-Zero Filter! Only send the college to the chart if they actually have projects!
+            if ($cnt > 0) {
+                $chart_data[] = ['label' => $dept, 'y' => $cnt];
+            }
         }
         
         return [
@@ -160,7 +162,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
 
     $chart1_data = [];
     foreach($chart1_dept_counts as $dept => $cnt) {
-        $chart1_data[] = ['label' => $dept, 'y' => $cnt];
+        // THE FIX: Applied the Anti-Zero filter here too!
+        if ($cnt > 0) {
+            $chart1_data[] = ['label' => $dept, 'y' => $cnt];
+        }
     }
 
     $total_active = count($global_active_researchers);
@@ -441,7 +446,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart = new CanvasJS.Chart("departmentChart", {
                                 animationEnabled: true,
-                                title: { text: "Active Researchers by Department", fontSize: 16 },
+                                title: { text: "Active Researchers by College", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "column", dataPoints: [] }]
                             });
@@ -500,7 +505,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart2 = new CanvasJS.Chart("departmentChart2", {
                                 animationEnabled: true,
-                                title: { text: "Research Conducted-by Department's Count", fontSize: 16 },
+                                title: { text: "Research Conducted-by College's Count", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "bar", dataPoints: [] }]
                             });
@@ -559,7 +564,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart3 = new CanvasJS.Chart("departmentChart3", {
                                 animationEnabled: true,
-                                title: { text: "Publications-by Department's Count", fontSize: 16 },
+                                title: { text: "Publications-by College's Count", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "column", dataPoints: [] }]
                             });
@@ -618,7 +623,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart4 = new CanvasJS.Chart("departmentChart4", {
                                 animationEnabled: true,
-                                title: { text: "Intellectual Property-by Department's Count", fontSize: 16 },
+                                title: { text: "Intellectual Property-by College's Count", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "bar", dataPoints: [] }]
                             });
@@ -677,7 +682,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart5 = new CanvasJS.Chart("departmentChart5", {
                                 animationEnabled: true,
-                                title: { text: "Paper Presentation-by Department's Count", fontSize: 16 },
+                                title: { text: "Paper Presentation-by College's Count", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "column", dataPoints: [] }]
                             });
@@ -736,7 +741,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart6 = new CanvasJS.Chart("departmentChart6", {
                                 animationEnabled: true,
-                                title: { text: "Trainings Attended-by Department's Count", fontSize: 16 },
+                                title: { text: "Trainings Attended-by College's Count", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "bar", dataPoints: [] }]
                             });
@@ -795,7 +800,7 @@ $totalDepartments = $object->Get_total_departments();
                         <script>
                             var chart7 = new CanvasJS.Chart("departmentChart7", {
                                 animationEnabled: true,
-                                title: { text: "Extension Project Conducted-by Department's Count", fontSize: 16 },
+                                title: { text: "Extension Project Conducted-by College's Count", fontSize: 16 },
                                 axisX: { labelFormatter: function() { return ""; }, tickLength: 0, lineThickness: 1 },
                                 data: [{ type: "pie", dataPoints: [] }]
                             });
