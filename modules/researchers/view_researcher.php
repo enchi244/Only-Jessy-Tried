@@ -592,7 +592,7 @@ include('../../includes/header.php');
     </button>
 </div>
 
-<div id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>"></div>
+<input type="hidden" id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>">
 
 <div id="researcherModala" class="modal fade" data-backdrop="static">
     <div class="modal-dialog modal-xl">

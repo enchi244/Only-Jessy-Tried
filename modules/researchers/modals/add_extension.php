@@ -50,7 +50,7 @@
                         <div class="col-md-4 form-group mb-4">
                             <label for="assist_coordinators"><i class="fas fa-users-cog mr-2 text-primary"></i>Asst. Coordinators</label>
                             <select name="assist_coordinators[]" id="assist_coordinators" class="form-control select2-researcher" style="width: 100%;" multiple="multiple" required>
-                                </select>
+                            </select>
                         </div>
                         <div class="col-md-4 form-group mb-4">
                             <label for="target_beneficiaries"><i class="fas fa-users mr-2 text-primary"></i>Beneficiaries</label>
@@ -60,29 +60,17 @@
 
                     <div class="row">
                         <div class="col-md-4 form-group mb-4">
-                        <label><i class="far fa-calendar-alt mr-2 text-primary"></i>Period of Impl.</label>
-                        <div class="input-group">
-                            <input type="date" name="period_start" id="period_start" class="form-control" data-parsley-required="true" />
-                            <div class="input-group-append input-group-prepend">
-                                <span class="input-group-text">to</span>
+                            <label><i class="far fa-calendar-alt mr-2 text-primary"></i>Period of Impl.</label>
+                            <div class="input-group">
+                                <input type="date" name="period_start" id="period_start" class="form-control" data-parsley-required="true" />
+                                <div class="input-group-append input-group-prepend">
+                                    <span class="input-group-text">to</span>
+                                </div>
+                                <input type="date" name="period_end" id="period_end" class="form-control" data-parsley-required="true" />
                             </div>
-                            <input type="date" name="period_end" id="period_end" class="form-control" data-parsley-required="true" />
+                            <input type="hidden" name="period_implement" id="period_implement" />
                         </div>
-                        <input type="hidden" name="period_implement" id="period_implement" />
-                    </div>
 
-                    <script>
-                        document.getElementById('period_start').addEventListener('change', updatePeriodString);
-                        document.getElementById('period_end').addEventListener('change', updatePeriodString);
-
-                        function updatePeriodString() {
-                            const start = document.getElementById('period_start').value;
-                            const end = document.getElementById('period_end').value;
-                            if (start && end) {
-                                document.getElementById('period_implement').value = start + " to " + end;
-                            }
-                        }
-                    </script>
                         <div class="col-md-4 form-group mb-4">
                             <label for="fund_source"><i class="fas fa-hand-holding-usd mr-2 text-primary"></i>Funding Source</label>
                             <input type="text" name="fund_source" id="fund_source" class="form-control" placeholder="Enter funding source" required />

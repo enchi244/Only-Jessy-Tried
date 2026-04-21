@@ -43,6 +43,15 @@ function initResearcherSelects() {
     });
 }
 
+// Date Combiner Logic
+$(document).on('change', '#period_start, #period_end', function() {
+    const start = $('#period_start').val();
+    const end = $('#period_end').val();
+    if (start && end) {
+        $('#period_implement').val(start + " to " + end);
+    }
+});
+
 // Ensure Leader is not in Coordinator list
 $(document).on('change', '#proj_lead', function() {
     var selectedLeader = $(this).val();
@@ -64,6 +73,13 @@ $('#ext_project_form').on('submit', function (event) {
     var extensionForm = $('#ext_project_form').parsley();
 
     if (extensionForm.isValid()) {
+        // Double check date string before save
+        const start = $('#period_start').val();
+        const end = $('#period_end').val();
+        if (start && end) {
+            $('#period_implement').val(start + " to " + end);
+        }
+
         var formData = new FormData(this);
 
         $.ajax({
@@ -102,6 +118,8 @@ $('#add_extension').click(function () {
     $('#period_start').val('');
     $('#period_end').val('');
     $('#period_implement').val('');
+    $('#existing_attachment_link').html('');
+    $('#hidden_existing_attachment').val('');
     
     // Reset Select2 fields
     $('#linked_extension_project').val(null).trigger('change');
@@ -126,6 +144,8 @@ $('#add_extension').click(function () {
 $(document).on('click', '.edit_button_ext', function () {
     var extID = $(this).data('id');
     $('#ext_project_form')[0].reset();
+    $('#existing_attachment_link').html('');
+    $('#hidden_existing_attachment').val('');
     initResearcherSelects();
 
     $.ajax({
@@ -156,11 +176,18 @@ $(document).on('click', '.edit_button_ext', function () {
             $('#target_beneficiaries').val(data.target_beneficiaries);
             $('#partners').val(data.partners);
             $('#stat_ext').val(data.stat);
+            $('#a_link_ext').val(data.a_link);
 
             if (data.period_implement && data.period_implement.includes(" to ")) {
                 var dates = data.period_implement.split(" to ");
                 $('#period_start').val(dates[0]);
                 $('#period_end').val(dates[1]);
+                $('#period_implement').val(data.period_implement);
+            }
+
+            if (data.attachments) {
+                $('#hidden_existing_attachment').val(data.attachments);
+                $('#existing_attachment_link').html('<i class="fas fa-file-alt text-primary mr-1"></i> Current file: <a href="../../uploads/documents/' + data.attachments + '" target="_blank">View File</a>');
             }
 
             $('#modal_title').text('Edit Extension');
