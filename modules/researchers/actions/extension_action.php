@@ -47,6 +47,46 @@ if (isset($_POST["action_ext"])) {
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
         exit;
     }
+    if ($_POST["action_ext"] == 'fetch_associated') {
+        $order_column = array('tbl_ext.title', 'tbl_ext.proj_lead', 'tbl_ext.assist_coordinators', 'tbl_ext.period_implement', 'tbl_ext.budget', 'tbl_ext.fund_source', 'tbl_ext.target_beneficiaries', 'tbl_ext.partners', 'tbl_ext.stat');
+        $main_query = "SELECT tbl_ext.* FROM tbl_ext INNER JOIN tbl_extension_activity_links ON tbl_ext.id = tbl_extension_activity_links.extension_activity_id ";
+        $search_query = " WHERE tbl_extension_activity_links.extension_project_id = '" . intval($_POST["project_id"]) . "' AND tbl_ext.status = 1 "; 
+
+        if (isset($_POST["search"]["value"])) {
+            $search_value = $_POST["search"]["value"];
+            $search_query .= "AND (tbl_ext.title LIKE '%" . $search_value . "%' OR tbl_ext.proj_lead LIKE '%" . $search_value . "%') ";
+        }
+        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY tbl_ext.id ASC ";
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
+
+        $object->query = $main_query . $search_query . $order_query;
+        $object->execute();
+        $filtered_rows = $object->row_count();
+        $object->query .= $limit_query;
+        $result = $object->get_result();
+        
+        $object->query = $main_query . $search_query;
+        $object->execute();
+        $total_rows = $object->row_count();
+
+        $data = array();
+        foreach ($result as $row) {
+            $sub_array = array();
+            $sub_array[] = $row["title"];
+            $sub_array[] = $row["proj_lead"];
+            $sub_array[] = $row["assist_coordinators"];
+            $sub_array[] = $row["period_implement"];
+            $sub_array[] = "₱" . number_format((float)$row["budget"], 2);
+            $sub_array[] = $row["fund_source"];
+            $sub_array[] = $row["target_beneficiaries"];
+            $sub_array[] = $row["partners"];
+            $sub_array[] = $row["stat"];
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-primary btn-sm edit_button_ext" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button> <button type="button" class="btn btn-danger btn-sm delete_button_ext" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button></div>';
+            $data[] = $sub_array;
+        }
+        echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
+        exit;
+    }
     
     if ($_POST["action_ext"] == 'fetch') {
         $order_column = array('title', 'description', 'proj_lead', 'assist_coordinators', 'period_implement', 'budget', 'fund_source', 'target_beneficiaries', 'partners', 'stat');
@@ -124,8 +164,9 @@ if (isset($_POST["action_ext"])) {
             $object->query = "CREATE TABLE IF NOT EXISTS tbl_extension_activity_links (id INT AUTO_INCREMENT PRIMARY KEY, extension_activity_id INT NOT NULL, extension_project_id INT NOT NULL)";
             $object->execute();
 
-            if(!empty($_POST['linked_extension_project'])) {
-                $object->query = "INSERT INTO tbl_extension_activity_links (extension_activity_id, extension_project_id) VALUES ('".$new_ext_id."', '".intval($_POST['linked_extension_project'])."')";
+            $link_project_id = !empty($_POST['hidden_parent_project_id']) ? $_POST['hidden_parent_project_id'] : (!empty($_POST['linked_extension_project']) ? $_POST['linked_extension_project'] : null);
+            if(!empty($link_project_id)) {
+                $object->query = "INSERT INTO tbl_extension_activity_links (extension_activity_id, extension_project_id) VALUES ('".$new_ext_id."', '".intval($link_project_id)."')";
                 $object->execute();
             }
             $success = '<div class="alert alert-success">Extension Activity Added</div>';

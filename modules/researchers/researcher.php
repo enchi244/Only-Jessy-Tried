@@ -174,7 +174,6 @@ include('../../includes/header.php');
         <button type="button" class="btn btn-outline-danger" id="btn_view_pp"><i class="fas fa-file-alt mr-1"></i> Paper Presentation</button>
         <button type="button" class="btn btn-outline-danger" id="btn_view_tra"><i class="fas fa-chalkboard-teacher mr-1"></i> Trainings</button>
         <button type="button" class="btn btn-outline-danger" id="btn_view_epc"><i class="fas fa-project-diagram mr-1"></i> Ext. Projects</button>
-        <button type="button" class="btn btn-outline-danger" id="btn_view_ext"><i class="fas fa-hands-helping mr-1"></i> Extensions</button>
     </div>
 </div>
 
@@ -340,7 +339,6 @@ include('../../includes/header.php');
                 <li class="nav-item"><a class="nav-link" id="pp-tab" data-toggle="tab" href="#pp" role="tab" aria-controls="pp" aria-selected="false">Paper Presentation</a></li>
                 <li class="nav-item"><a class="nav-link" id="tra-tab" data-toggle="tab" href="#tra" role="tab" aria-controls="tra" aria-selected="false">Trainings Attended</a></li>
                 <li class="nav-item"><a class="nav-link" id="epc-tab" data-toggle="tab" href="#epc" role="tab" aria-controls="epc" aria-selected="false">Extension Project Conducted</a></li>
-                <li class="nav-item"><a class="nav-link" id="ext-tab" data-toggle="tab" href="#ext" role="tab" aria-controls="ext" aria-selected="false">Extension</a></li>
             </ul>
 
             <div class="tab-content" id="researcherTabContent">
@@ -551,30 +549,51 @@ include('../../includes/header.php');
                         </div>
                     </div>
                 </div>
-
-                <div class="tab-pane fade" id="ext" role="tabpanel" aria-labelledby="ext-tab">
-                    <h1 class="h3 mb-4 text-gray-800">Extension Management</h1>
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <div class="row">
-                                <div class="col"><h6 class="m-0 font-weight-bold text-primary">Extension List</h6></div>
-                                <div class="col" align="right"><button type="button" id="add_extension" class="btn btn-danger pink btn-sm"><i class="fas fa-plus"> Add Extension</i></button></div>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="ext_project_table" width="100%" cellspacing="0">
-                                    <thead><tr><th>Title</th><th>Project Leader</th><th>Assistant Coordinators</th><th>Period of Implementation</th><th>Budget</th><th>Funding Source</th><th>Target Beneficiaries</th><th>Partners</th><th>Status</th><th>Action</th></tr></thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
+    </div>
+</div>
+
+<div id="viewExtensionsModal" class="modal fade" data-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="fas fa-hands-helping mr-2 text-danger"></i> Associated Extensions</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col" align="right">
+                        <button type="button" id="add_extension" class="btn btn-danger pink btn-sm">
+                            <i class="fas fa-plus"> Add Extension</i>
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="ext_project_table" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Project Leader</th>
+                                <th>Asst. Coordinators</th>
+                                <th>Period</th>
+                                <th>Budget</th>
+                                <th>Funding Source</th>
+                                <th>Target Beneficiaries</th>
+                                <th>Partners</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 

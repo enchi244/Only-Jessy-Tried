@@ -123,7 +123,11 @@ if (isset($_POST["action_extension"])) {
             $sub_array[] = $row["partners"];
             $sub_array[] = $row["status_exct"];
             $sub_array[] = '<div align="center">' . $file_badge . '</div>';
-            $sub_array[] = '<div align="center"><button type="button" class="btn btn-primary btn-sm edit_button_extension_project" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button> <button type="button" class="btn btn-danger btn-sm delete_button_extension_project" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button></div>';
+            $sub_array[] = '<div align="center">
+                <button type="button" class="btn btn-info btn-sm view_associated_extensions text-white mr-1" data-id="' . $row["id"] . '" title="View Associated Extensions"><i class="fas fa-hands-helping"></i></button>
+                <button type="button" class="btn btn-primary btn-sm edit_button_extension_project mr-1" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button> 
+                <button type="button" class="btn btn-danger btn-sm delete_button_extension_project" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button>
+            </div>';
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));

@@ -129,9 +129,8 @@
                 <div class="modal-footer">
                     <input type="hidden" name="hidden_researcherID_ext" id="hidden_researcherID_ext" />
                     <input type="hidden" name="hidden_extID" id="hidden_extID" />
-                    
+                    <input type="hidden" name="hidden_parent_project_id" id="hidden_parent_project_id" />
                     <input type="hidden" name="action_ext" id="action_ext" value="Add" />
-                    
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                     <input type="submit" name="submit_button_ext" id="submit_button_ext" class="btn btn-danger pink px-4" value="Save Data" />
                 </div>

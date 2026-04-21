@@ -1,22 +1,24 @@
-// Function to Load Extension Data using the Researcher ID
-function loadextprotab(researcherID) {
+// Function to Load Extension Data using the Parent Extension Project ID
+function loadextprotab(projectID) {
     $(document).ready(function() {
-    $('#extModal').on('shown.bs.modal', function () {
-        $('#linked_extension_project').select2({
-            theme: "classic",
-            dropdownParent: $('#extModal')
+        $('#extModal').on('shown.bs.modal', function () {
+            $('#linked_extension_project').select2({
+                theme: "classic",
+                dropdownParent: $('#extModal')
+            });
+        });
+
+        // Auto-fill Project Leader when an Extension Project is selected
+        $('#linked_extension_project').on('change', function() {
+            var selectedOption = $(this).find('option:selected');
+            var leadName = selectedOption.attr('data-lead');
+            
+            if (leadName && leadName.trim() !== '') {
+                $('#proj_lead').val(leadName);
+            }
         });
     });
-    // Auto-fill Project Leader when an Extension Project is selected
-    $('#linked_extension_project').on('change', function() {
-        var selectedOption = $(this).find('option:selected');
-        var leadName = selectedOption.attr('data-lead');
-        
-        if (leadName && leadName.trim() !== '') {
-            $('#proj_lead').val(leadName);
-        }
-    });
-});
+
     $('#ext_project_form').parsley(); // Initialize form validation
     if ($.fn.dataTable.isDataTable('#ext_project_table')) {
         $('#ext_project_table').DataTable().clear().destroy();
@@ -27,9 +29,10 @@ function loadextprotab(researcherID) {
         "serverSide": true,
         "order": [],
         "ajax": {
-            url: "actions/extension_action.php", // THIS POINTS TO YOUR NEW BACKEND FILE
+            url: "actions/extension_action.php",
             type: "POST",
-            data: { rid: researcherID, action_ext: 'fetch' }
+            // Pass the parent project ID and trigger a specific fetch action
+            data: { project_id: projectID, action_ext: 'fetch_associated' } 
         },
         "columnDefs": [
             {
@@ -40,12 +43,6 @@ function loadextprotab(researcherID) {
     });
     return extProjectsTable;
 }
-
-// Handle Tab Switching for Dynamic Content
-$('#extModal').on('shown.bs.tab', function () {
-    var id = $('#hidden_id_ext').val();
-    loadextprotab(id);
-});
 
 // Handle Form Submission for Extension
 $('#ext_project_form').on('submit', function (event) {
@@ -75,8 +72,9 @@ $('#ext_project_form').on('submit', function (event) {
                         Swal.fire({ title: 'Updated!', text: 'The extension has been successfully updated.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
                     }
 
-                    var researcherID = $('#researcherModala').data('id');
-                    loadextprotab(researcherID);
+                    // Reload table using the active Project ID stored on the modal
+                    var projectID = $('#viewExtensionsModal').data('project-id');
+                    loadextprotab(projectID);
                     setTimeout(function () { $('#message').html(''); }, 5000);
                 }
             }
@@ -89,7 +87,8 @@ $('#extModal').on('hidden.bs.modal', function () {
     if ($('.modal.show').length > 0) {
         $('body').addClass('modal-open');
     }
-    $('#researcherModala .modal-body').scrollTop(0);
+    // Prevent closing the parent modal
+    $('#viewExtensionsModal').css('overflow-y', 'auto');
 });
 
 // Add New Extension
@@ -99,8 +98,15 @@ $('#add_extension').click(function () {
     $('#ext_project_form').parsley().reset();
     $('#modal_title').text('Add Extension');
     $('#action_ext').val('Add');
+    
+    // Get Researcher ID from main profile
     var rid = $('#researcherModala').data('id');
     $('#hidden_researcherID_ext').val(rid);
+
+    // Get Parent Extension Project ID from the modal container
+    var parentProjectID = $('#viewExtensionsModal').data('project-id');
+    $('#hidden_parent_project_id').val(parentProjectID); // Ensure we link it in the backend
+
     $('#submit_button_ext').val('Add');
     $('#extModal').modal('show');
     $('#form_message').html('');
@@ -121,14 +127,18 @@ $(document).on('click', '.edit_button_ext', function () {
         dataType: 'JSON',
         success: function (data) {
             const inputDateStarted_ext = data.period_implement;
-            const [monthStarted, dayStarted, yearStarted] = inputDateStarted_ext.split('-');
-            const formattedDateStarted_ext = `${yearStarted}-${monthStarted}-${dayStarted}`;
+            if(inputDateStarted_ext && inputDateStarted_ext.includes('-')) {
+                const [monthStarted, dayStarted, yearStarted] = inputDateStarted_ext.split('-');
+                const formattedDateStarted_ext = `${yearStarted}-${monthStarted}-${dayStarted}`;
+                $('#period_implement').val(formattedDateStarted_ext);
+            } else {
+                $('#period_implement').val('');
+            }
 
             $('#title_ext').val(data.title);
             $('#description_ext').val(data.description);
             $('#proj_lead').val(data.proj_lead);
             $('#assist_coordinators').val(data.assist_coordinators);
-            $('#period_implement').val(formattedDateStarted_ext);
             $('#budget').val(data.budget);
             $('#fund_source').val(data.fund_source);
             $('#target_beneficiaries').val(data.target_beneficiaries);
@@ -164,8 +174,10 @@ $(document).on('click', '.delete_button_ext', function () {
                 data: { extID: extID, action_ext: 'delete' },
                 success: function (data) {
                     Swal.fire({ title: 'Deleted!', text: 'The extension has been successfully deleted.', icon: 'success', timer: 600, showConfirmButton: false });
-                    var researcherID = $('#researcherModala').data('id');
-                    loadextprotab(researcherID);
+                    
+                    var projectID = $('#viewExtensionsModal').data('project-id');
+                    loadextprotab(projectID);
+                    
                     setTimeout(function () { $('#message').html(''); }, 5000);
                 },
                 error: function (xhr, status, error) {
