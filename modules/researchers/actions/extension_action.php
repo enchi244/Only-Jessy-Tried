@@ -1,18 +1,26 @@
 <?php
-// extension_action.php
+// modules/researchers/actions/extension_action.php
 include('../../../core/rms.php');
 
 $object = new rms();
 
 if (isset($_POST["action_ext"])) {
 
-    // Logic for auto-filling from a Base Extension Project
+    // Logic for auto-filling from a Base Extension Project - UPDATED
     if ($_POST["action_ext"] == 'fetch_project_info') {
         $proj_id = intval($_POST['project_id']);
-        $data = array('proj_lead' => '', 'assist_coordinators' => '');
+        $data = array(
+            'proj_lead' => '', 
+            'assist_coordinators' => '', 
+            'partners' => '', 
+            'fund_source' => '', 
+            'budget' => '', 
+            'target_beneficiaries' => ''
+        );
 
+        // Fetching partners and other details from the conducted project table
         $object->query = "
-            SELECT r.firstName, r.familyName, ep.researcherID 
+            SELECT r.firstName, r.familyName, ep.researcherID, ep.partners, ep.funding_source, ep.approved_budget, ep.target_beneficiaries_communities
             FROM tbl_extension_project_conducted ep
             LEFT JOIN tbl_researchdata r ON ep.researcherID = r.id
             WHERE ep.id = '".$proj_id."'
@@ -21,6 +29,10 @@ if (isset($_POST["action_ext"])) {
         $lead_id = 0;
         foreach($result as $row) {
             $data['proj_lead'] = trim($row['firstName'] . ' ' . $row['familyName']);
+            $data['partners'] = $row['partners']; // This is the fix for Partners
+            $data['fund_source'] = $row['funding_source'];
+            $data['budget'] = $row['approved_budget'];
+            $data['target_beneficiaries'] = $row['target_beneficiaries_communities'];
             $lead_id = $row['researcherID'];
         }
 
@@ -50,7 +62,7 @@ if (isset($_POST["action_ext"])) {
         exit;
     }
 
-    // Associated Table Fetch - UPDATED TO USE DIRECT COLUMN
+    // Associated Table Fetch
     if ($_POST["action_ext"] == 'fetch_associated') {
         $order_column = array('title', 'proj_lead', 'assist_coordinators', 'period_implement', 'budget', 'fund_source', 'target_beneficiaries', 'partners', 'stat');
         $main_query = "SELECT * FROM tbl_ext ";
@@ -95,10 +107,8 @@ if (isset($_POST["action_ext"])) {
         exit;
     }
 
-    // Add New Extension Activity - UPDATED
+    // Add New Extension Activity
     if ($_POST["action_ext"] == 'Add') {
-        $error = ''; $success = '';
-        
         $attachment_name = '';
         if(isset($_FILES['attachments_ext']) && $_FILES['attachments_ext']['name'] != '') {
             $attachment_name = 'ext_att_' . time() . '_' . rand(100, 999) . '.' . pathinfo($_FILES['attachments_ext']['name'], PATHINFO_EXTENSION);
@@ -120,7 +130,7 @@ if (isset($_POST["action_ext"])) {
 
         $data = array(
             ':researcherID'         => $researcherID,
-            ':extension_project_id' => $parent_project_id, // SAVED DIRECTLY
+            ':extension_project_id' => $parent_project_id,
             ':title'                => $object->clean_input($_POST['title_ext']),
             ':description'          => $object->clean_input($_POST['description_ext']),
             ':proj_lead'            => $object->clean_input($_POST['proj_lead']),
@@ -147,12 +157,11 @@ if (isset($_POST["action_ext"])) {
             )
         ";
         $object->execute($data);
-        
         echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Extension Activity Added</div>'));
         exit;
     }
 
-    // Fetch Single for Edit - UPDATED
+    // Fetch Single for Edit
     if ($_POST["action_ext"] == 'fetch_single') {
         $object->query = "SELECT * FROM tbl_ext WHERE id = '" . intval($_POST["extID"]) . "'";
         $result = $object->get_result();
@@ -176,7 +185,7 @@ if (isset($_POST["action_ext"])) {
         exit;
     }
 
-    // Update Extension Activity - UPDATED
+    // Update Extension Activity
     if ($_POST["action_ext"] == 'Edit') {
         $ext_id = intval($_POST['hidden_extID']);
         $attachment_name = $_POST['hidden_existing_attachment'] ?? '';
@@ -221,7 +230,6 @@ if (isset($_POST["action_ext"])) {
             WHERE id = :hidden_extID
         ";
         $object->execute($data);
-
         echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Extension Activity Updated</div>'));
         exit;
     }

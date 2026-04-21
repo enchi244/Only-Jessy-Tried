@@ -1,3 +1,5 @@
+// modules/researchers/scripts/extension.js
+
 // Function to Load Extension Data
 function loadextprotab(projectID) {
     if ($.fn.dataTable.isDataTable('#ext_project_table')) {
@@ -27,24 +29,60 @@ function initResearcherSelects() {
         placeholder: "Search Researcher...",
         allowClear: true,
         ajax: {
-            url: "actions/fetch_researchers.php", // You will need to create this simple action file
+            url: "actions/fetch_researchers.php",
             type: "POST",
             dataType: 'json',
             delay: 250,
             data: function (params) {
-                return {
-                    search: params.term
-                };
+                return { search: params.term };
             },
             processResults: function (data) {
-                return {
-                    results: data
-                };
+                return { results: data };
             },
             cache: true
         }
     });
 }
+
+// Handle Auto-fill when Based Project is selected - UPDATED
+$(document).on('change', '#linked_extension_project', function() {
+    var projectID = $(this).val();
+    var action = $('#action_ext').val();
+    
+    // Only auto-fill if we are in "Add" mode
+    if (projectID != '' && action == 'Add') {
+        $.ajax({
+            url: "actions/extension_action.php",
+            method: "POST",
+            data: { action_ext: 'fetch_project_info', project_id: projectID },
+            dataType: 'json',
+            success: function(data) {
+                // Populate Leader Select2
+                if (data.proj_lead) {
+                    var newOption = new Option(data.proj_lead, data.proj_lead, true, true);
+                    $('#proj_lead').empty().append(newOption).trigger('change');
+                }
+                
+                // Populate Coordinators Select2
+                if (data.assist_coordinators) {
+                    var coords = data.assist_coordinators.split(', ');
+                    $('#assist_coordinators').empty();
+                    coords.forEach(function(c) {
+                        var opt = new Option(c, c, true, true);
+                        $('#assist_coordinators').append(opt);
+                    });
+                    $('#assist_coordinators').trigger('change');
+                }
+                
+                // Populating Partners and other fields
+                $('#partners').val(data.partners); 
+                $('#fund_source').val(data.fund_source);
+                $('#budget').val(data.budget);
+                $('#target_beneficiaries').val(data.target_beneficiaries);
+            }
+        });
+    }
+});
 
 // Date Combiner Logic
 $(document).on('change', '#period_start, #period_end', function() {
@@ -59,11 +97,7 @@ $(document).on('change', '#period_start, #period_end', function() {
 $(document).on('change', '#proj_lead', function() {
     var selectedLeader = $(this).val();
     var coordinatorSelect = $('#assist_coordinators');
-    
-    // Get current coordinator values
     var currentCoordinators = coordinatorSelect.val() || [];
-    
-    // If leader was in coordinators, remove them
     var index = currentCoordinators.indexOf(selectedLeader);
     if (index > -1) {
         currentCoordinators.splice(index, 1);
@@ -76,7 +110,6 @@ $('#ext_project_form').on('submit', function (event) {
     var extensionForm = $('#ext_project_form').parsley();
 
     if (extensionForm.isValid()) {
-        // Double check date string before save
         const start = $('#period_start').val();
         const end = $('#period_end').val();
         if (start && end) {
@@ -124,10 +157,9 @@ $('#add_extension').click(function () {
     $('#existing_attachment_link').html('');
     $('#hidden_existing_attachment').val('');
     
-    // Reset Select2 fields
     $('#linked_extension_project').val(null).trigger('change');
-    $('#proj_lead').val(null).trigger('change');
-    $('#assist_coordinators').val(null).trigger('change');
+    $('#proj_lead').empty().trigger('change');
+    $('#assist_coordinators').empty().trigger('change');
     
     initResearcherSelects();
     
@@ -139,6 +171,10 @@ $('#add_extension').click(function () {
 
     var parentProjectID = $('#viewExtensionsModal').data('project-id');
     $('#hidden_parent_project_id').val(parentProjectID); 
+
+    if(parentProjectID) {
+        $('#linked_extension_project').val(parentProjectID).trigger('change');
+    }
 
     $('#submit_button_ext').val('Add');
     $('#extModal').modal('show');
@@ -157,27 +193,35 @@ $(document).on('click', '.edit_button_ext', function () {
         data: { extID: extID, action_ext: 'fetch_single' },
         dataType: 'JSON',
         success: function (data) {
+            $('#modal_title').text('Edit Extension');
+            $('#action_ext').val('Edit');
+            $('#submit_button_ext').val('Edit');
+            
             $('#title_ext').val(data.title);
             $('#description_ext').val(data.description);
             
-            // Set Select2 values for Leader and Coordinators
+            // Setting the project ID first to avoid triggering Add auto-fill
+            $('#linked_extension_project').val(data.extension_project_id).trigger('change');
+            
             if(data.proj_lead) {
                 var newOption = new Option(data.proj_lead, data.proj_lead, true, true);
-                $('#proj_lead').append(newOption).trigger('change');
+                $('#proj_lead').empty().append(newOption).trigger('change');
             }
             
             if(data.assist_coordinators) {
                 var coords = data.assist_coordinators.split(', ');
+                $('#assist_coordinators').empty();
                 coords.forEach(function(c) {
                     var opt = new Option(c, c, true, true);
-                    $('#assist_coordinators').append(opt).trigger('change');
+                    $('#assist_coordinators').append(opt);
                 });
+                $('#assist_coordinators').trigger('change');
             }
 
             $('#budget').val(data.budget);
             $('#fund_source').val(data.fund_source);
             $('#target_beneficiaries').val(data.target_beneficiaries);
-            $('#partners').val(data.partners);
+            $('#partners').val(data.partners); // Fix for Edit
             $('#stat_ext').val(data.stat);
             $('#a_link_ext').val(data.a_link);
 
@@ -193,9 +237,6 @@ $(document).on('click', '.edit_button_ext', function () {
                 $('#existing_attachment_link').html('<i class="fas fa-file-alt text-primary mr-1"></i> Current file: <a href="../../uploads/documents/' + data.attachments + '" target="_blank">View File</a>');
             }
 
-            $('#modal_title').text('Edit Extension');
-            $('#action_ext').val('Edit');
-            $('#submit_button_ext').val('Edit');
             $('#extModal').modal('show');
             $('#hidden_extID').val(extID);
         }
