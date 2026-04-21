@@ -150,6 +150,18 @@
                         </div>
 
                     <div class="dynamic-files-section" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <style>
+                            /* Fix for long file names causing overflow */
+                            .dynamic-files-section .existing-files-container .d-flex > div:first-child,
+                            .dynamic-files-section .new-files-container .d-flex > div:first-child {
+                                min-width: 0;
+                                flex: 1;
+                                padding-right: 10px;
+                            }
+                            .dynamic-files-section a, .dynamic-files-section .text-gray-800 {
+                                word-break: break-word;
+                            }
+                        </style>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
                             
