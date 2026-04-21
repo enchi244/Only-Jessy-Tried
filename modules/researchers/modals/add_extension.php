@@ -22,8 +22,8 @@
                     </div>
 
                     <div class="form-group mb-4">
-                        <label for="linked_extension_project"><i class="fas fa-project-diagram mr-2 text-primary"></i>Based on Extension Project (Optional)</label>
-                        <select name="linked_extension_project" id="linked_extension_project" class="form-control select2-single" style="width: 100%;">
+                        <label for="linked_extension_project"><i class="fas fa-project-diagram mr-2 text-primary"></i>Based on Extension Project <span class="text-danger">*</span></label>
+                        <select name="linked_extension_project" id="linked_extension_project" class="form-control select2-single" style="width: 100%;" required>
                             <option value="">Select an Extension Project...</option>
                             <?php
                             $object->query = "SELECT id, title FROM tbl_extension_project_conducted WHERE status = 1 ORDER BY title ASC";

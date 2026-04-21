@@ -51,8 +51,13 @@ if (isset($_POST["action_extension"])) {
 
     if ($_POST["action_extension"] == 'fetch_all') {
         $order_column = array('tbl_researchdata.familyName', 'tbl_extension_project_conducted.title', 'tbl_extension_project_conducted.funding_source', 'tbl_extension_project_conducted.target_beneficiaries_communities', 'tbl_extension_project_conducted.status_exct');
-        $main_query = "SELECT tbl_extension_project_conducted.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix, tbl_researchdata.academic_rank, tbl_researchdata.program AS primary_discipline, (SELECT COUNT(l.id) FROM tbl_extension_activity_links l JOIN tbl_ext e ON l.extension_activity_id = e.id WHERE l.extension_project_id = tbl_extension_project_conducted.id AND (e.status = 1 OR e.status IS NULL)) AS ext_count FROM tbl_extension_project_conducted LEFT JOIN tbl_researchdata ON tbl_extension_project_conducted.researcherID = tbl_researchdata.id";
-        $search_query = " WHERE tbl_extension_project_conducted.status = 1 "; // HIDE TRASH
+        
+        // UPDATED QUERY: Counts activities directly from tbl_ext using the new project ID column
+        $main_query = "SELECT tbl_extension_project_conducted.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix, tbl_researchdata.academic_rank, tbl_researchdata.program AS primary_discipline, 
+        (SELECT COUNT(id) FROM tbl_ext WHERE extension_project_id = tbl_extension_project_conducted.id AND (status = 1 OR status IS NULL)) AS ext_count 
+        FROM tbl_extension_project_conducted LEFT JOIN tbl_researchdata ON tbl_extension_project_conducted.researcherID = tbl_researchdata.id";
+        
+        $search_query = " WHERE tbl_extension_project_conducted.status = 1 "; 
         
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
@@ -82,6 +87,7 @@ if (isset($_POST["action_extension"])) {
             $sub_array[] = $row["target_beneficiaries_communities"];
             $sub_array[] = $row["status_exct"];
             
+            // LOGIC FIX: Check ext_count to determine color (btn-info is Blue)
             $has_extensions = ($row['ext_count'] > 0);
             $btn_class = $has_extensions ? 'btn-info text-white' : 'btn-secondary text-white';
             $btn_attr = $has_extensions ? 'title="View Associated Extensions"' : 'disabled title="No extensions linked to this project"';
@@ -97,8 +103,10 @@ if (isset($_POST["action_extension"])) {
     
     if ($_POST["action_extension"] == 'fetch') {
         $order_column = array('title', 'start_date', 'completed_date', 'funding_source', 'approved_budget', 'target_beneficiaries_communities', 'partners', 'status_exct', 'has_files');
-        $main_query = "SELECT tbl_extension_project_conducted.*, (SELECT COUNT(l.id) FROM tbl_extension_activity_links l JOIN tbl_ext e ON l.extension_activity_id = e.id WHERE l.extension_project_id = tbl_extension_project_conducted.id AND (e.status = 1 OR e.status IS NULL)) AS ext_count FROM tbl_extension_project_conducted";
-        $search_query = " WHERE researcherID = '" . $_POST["rid"] . "' AND status = 1 "; // HIDE TRASH
+        
+        // UPDATED QUERY: Counts activities directly from tbl_ext using the new project ID column
+        $main_query = "SELECT tbl_extension_project_conducted.*, (SELECT COUNT(id) FROM tbl_ext WHERE extension_project_id = tbl_extension_project_conducted.id AND (status = 1 OR status IS NULL)) AS ext_count FROM tbl_extension_project_conducted";
+        $search_query = " WHERE researcherID = '" . $_POST["rid"] . "' AND status = 1 "; 
 
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
@@ -129,6 +137,8 @@ if (isset($_POST["action_extension"])) {
             $sub_array[] = $row["partners"];
             $sub_array[] = $row["status_exct"];
             $sub_array[] = '<div align="center">' . $file_badge . '</div>';
+            
+            // LOGIC FIX: Apply same blue/grey logic to individual researcher table
             $has_extensions = ($row['ext_count'] > 0);
             $btn_class = $has_extensions ? 'btn-info text-white' : 'btn-secondary text-white';
             $btn_attr = $has_extensions ? 'title="View Associated Extensions"' : 'disabled title="No extensions linked to this project"';
@@ -289,7 +299,6 @@ if (isset($_POST["action_extension"])) {
         exit;
     }
 
-    // SOFT DELETE FIX
     if ($_POST["action_extension"] == 'delete') {
         $ext_id = intval($_POST["extensionID"]);
         $object->query = "UPDATE tbl_extension_project_conducted SET status = 0 WHERE id = '" . $ext_id . "'";

@@ -47,7 +47,7 @@ $object->query = "SELECT * FROM tbl_trainingsattended WHERE researcherID = '$res
 $object->execute();
 $trainings = $object->statement_result();
 
-$object->query = "SELECT * FROM tbl_extension_project_conducted WHERE researcherID = '$researcher_id' ORDER BY start_date DESC";
+$object->query = "SELECT *, (SELECT COUNT(l.id) FROM tbl_extension_activity_links l JOIN tbl_ext e ON l.extension_activity_id = e.id WHERE l.extension_project_id = tbl_extension_project_conducted.id AND (e.status = 1 OR e.status IS NULL)) AS ext_count FROM tbl_extension_project_conducted WHERE researcherID = '$researcher_id' AND status = 1 ORDER BY start_date DESC";
 $object->execute();
 $ext_projects = $object->statement_result();
 
@@ -482,7 +482,9 @@ include('../../includes/header.php');
 
                                                         <div class="mt-2">
                                                             <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-info-circle mr-1"></i><?php echo htmlspecialchars($ep['status_exct']); ?></span>
-                                                            
+                                                            <button type="button" onclick="$('#inner-ext-tab').tab('show');" class="badge <?php echo ($ep['ext_count'] > 0) ? 'badge-info' : 'badge-secondary'; ?> px-2 py-1 mr-2 border-0 isolate-click" <?php echo ($ep['ext_count'] == 0) ? 'disabled title="No extensions linked"' : 'title="View Activities"'; ?>>
+                                                                <i class="fas fa-hands-helping mr-1"></i> Extension Activities (<?php echo $ep['ext_count']; ?>)
+                                                            </button>
                                                             <?php if(!empty($ep['terminal_report_file'])): ?>
                                                                 <a href="../../uploads/documents/<?php echo htmlspecialchars($ep['terminal_report_file']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-2 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-file-download mr-1"></i> Download Report</a>
                                                             <?php else: ?>
