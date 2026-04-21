@@ -104,8 +104,8 @@ if (isset($_POST["action_ext"])) {
     if ($_POST["action_ext"] == 'fetch_associated') {
         $order_column = array('tbl_ext.title', 'tbl_ext.proj_lead', 'tbl_ext.assist_coordinators', 'tbl_ext.period_implement', 'tbl_ext.budget', 'tbl_ext.fund_source', 'tbl_ext.target_beneficiaries', 'tbl_ext.partners', 'tbl_ext.stat');
         $main_query = "SELECT tbl_ext.* FROM tbl_ext INNER JOIN tbl_extension_activity_links ON tbl_ext.id = tbl_extension_activity_links.extension_activity_id ";
-        $search_query = " WHERE tbl_extension_activity_links.extension_project_id = '" . intval($_POST["project_id"]) . "' AND tbl_ext.status = 1 "; 
-
+        $search_query = " WHERE tbl_extension_activity_links.extension_project_id = '" . intval($_POST["project_id"]) . "' AND (tbl_ext.status = 1 OR tbl_ext.status IS NULL) ";
+        
         if (isset($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
             $search_query .= "AND (tbl_ext.title LIKE '%" . $search_value . "%' OR tbl_ext.proj_lead LIKE '%" . $search_value . "%') ";

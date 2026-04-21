@@ -555,26 +555,31 @@ include('../../includes/header.php');
     </div>
 </div>
 
+<style>
+    /* Safely hide unnecessary columns to simplify the table view without breaking DataTables logic */
+    #ext_project_table th:nth-child(2), #ext_project_table td:nth-child(2),
+    #ext_project_table th:nth-child(3), #ext_project_table td:nth-child(3),
+    #ext_project_table th:nth-child(4), #ext_project_table td:nth-child(4),
+    #ext_project_table th:nth-child(5), #ext_project_table td:nth-child(5),
+    #ext_project_table th:nth-child(6), #ext_project_table td:nth-child(6),
+    #ext_project_table th:nth-child(7), #ext_project_table td:nth-child(7),
+    #ext_project_table th:nth-child(8), #ext_project_table td:nth-child(8) {
+        display: none !important;
+    }
+</style>
 <div id="viewExtensionsModal" class="modal fade" data-backdrop="static">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title"><i class="fas fa-hands-helping mr-2 text-danger"></i> Associated Extensions</h4>
+                <h4 class="modal-title font-weight-bold text-gray-800"><i class="fas fa-hands-helping mr-2 text-info"></i> Associated Extensions</h4>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col" align="right">
-                        <button type="button" id="add_extension" class="btn btn-danger pink btn-sm">
-                            <i class="fas fa-plus"> Add Extension</i>
-                        </button>
-                    </div>
-                </div>
+            <div class="modal-body p-4">
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="ext_project_table" width="100%" cellspacing="0">
-                        <thead>
+                    <table class="table table-bordered table-hover" id="ext_project_table" width="100%" cellspacing="0">
+                        <thead class="bg-light text-gray-700">
                             <tr>
-                                <th>Title</th>
+                                <th width="65%">Title</th>
                                 <th>Project Leader</th>
                                 <th>Asst. Coordinators</th>
                                 <th>Period</th>
@@ -582,16 +587,16 @@ include('../../includes/header.php');
                                 <th>Funding Source</th>
                                 <th>Target Beneficiaries</th>
                                 <th>Partners</th>
-                                <th>Status</th>
-                                <th>Action</th>
+                                <th width="20%" class="text-center">Status</th>
+                                <th width="15%" class="text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-default shadow-sm border" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

@@ -11,7 +11,10 @@ function loadextprotab(projectID) {
         "ajax": {
             url: "actions/extension_action.php",
             type: "POST",
-            data: { project_id: projectID, action_ext: 'fetch_associated' } 
+            data: function(d) {
+                d.project_id = projectID;
+                d.action_ext = 'fetch_associated';
+            }
         }
     });
     return extProjectsTable;
