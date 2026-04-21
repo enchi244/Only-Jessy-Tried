@@ -43,11 +43,14 @@
                     <div class="row">
                         <div class="col-md-4 form-group mb-4">
                             <label for="proj_lead"><i class="fas fa-user-tie mr-2 text-primary"></i>Project Leader</label>
-                            <input type="text" name="proj_lead" id="proj_lead" class="form-control" placeholder="Leader name" required />
+                            <select name="proj_lead" id="proj_lead" class="form-control select2-researcher" style="width: 100%;" required>
+                                <option value="">Search Researcher...</option>
+                            </select>
                         </div>
                         <div class="col-md-4 form-group mb-4">
                             <label for="assist_coordinators"><i class="fas fa-users-cog mr-2 text-primary"></i>Asst. Coordinators</label>
-                            <input type="text" name="assist_coordinators" id="assist_coordinators" class="form-control" placeholder="Coordinators" required />
+                            <select name="assist_coordinators[]" id="assist_coordinators" class="form-control select2-researcher" style="width: 100%;" multiple="multiple" required>
+                                </select>
                         </div>
                         <div class="col-md-4 form-group mb-4">
                             <label for="target_beneficiaries"><i class="fas fa-users mr-2 text-primary"></i>Beneficiaries</label>
@@ -69,7 +72,6 @@
                     </div>
 
                     <script>
-                        // Update the hidden field whenever dates change
                         document.getElementById('period_start').addEventListener('change', updatePeriodString);
                         document.getElementById('period_end').addEventListener('change', updatePeriodString);
 
@@ -136,30 +138,3 @@
         </form>
     </div>
 </div>
-<script>
-    // Auto-fill Project Leader and Assistant Coordinators
-    $(document).off('change', '#linked_extension_project').on('change', '#linked_extension_project', function() {
-        var projectID = $(this).val();
-        if(projectID) {
-            $.ajax({
-                url: "actions/extension_action.php",
-                method: "POST",
-                data: { project_id: projectID, action_ext: 'fetch_project_info' },
-                dataType: "json",
-                success: function(data) {
-                    if(data.proj_lead !== undefined) {
-                        $('#proj_lead').val(data.proj_lead);
-                        if ($('#proj_lead').parsley()) { $('#proj_lead').parsley().validate(); }
-                    }
-                    if(data.assist_coordinators !== undefined) {
-                        $('#assist_coordinators').val(data.assist_coordinators);
-                        if ($('#assist_coordinators').parsley()) { $('#assist_coordinators').parsley().validate(); }
-                    }
-                }
-            });
-        } else {
-            $('#proj_lead').val('');
-            $('#assist_coordinators').val('');
-        }
-    });
-</script>
