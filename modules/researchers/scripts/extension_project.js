@@ -319,6 +319,7 @@ $(document).on('click', '.delete-existing-extp-file', function(e) {
 // --- VIEW ASSOCIATED EXTENSIONS MODAL TRIGGER ---
 $(document).on('click', '.view_associated_extensions', function (e) {
     e.preventDefault();
+    e.stopPropagation();
     var projectID = $(this).data('id');
     
     // Store project ID in the modal so we know which project these extensions belong to

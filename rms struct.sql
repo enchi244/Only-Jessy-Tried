@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 17, 2026 at 07:53 PM
+-- Generation Time: Apr 15, 2026 at 08:04 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -52,8 +52,36 @@ CREATE TABLE `tbl_ext` (
   `target_beneficiaries` varchar(255) NOT NULL,
   `partners` varchar(255) NOT NULL,
   `stat` varchar(255) NOT NULL,
-  `attachments` varchar(255) NOT NULL,
-  `a_link` varchar(255) NOT NULL
+  `attachments` varchar(255) DEFAULT NULL,
+  `a_link` varchar(255) DEFAULT NULL,
+  `status` int(11) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_extension_activity_links`
+--
+
+CREATE TABLE `tbl_extension_activity_links` (
+  `id` int(11) NOT NULL,
+  `extension_activity_id` int(11) NOT NULL,
+  `extension_project_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_extension_files`
+--
+
+CREATE TABLE `tbl_extension_files` (
+  `id` int(11) NOT NULL,
+  `extension_id` int(11) NOT NULL,
+  `file_category` enum('Terminal Report','MOA','SO','Financial Report','Other') NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_on` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -75,7 +103,9 @@ CREATE TABLE `tbl_extension_project_conducted` (
   `status_exct` varchar(255) NOT NULL,
   `terminal_report` varchar(255) NOT NULL,
   `terminal_report_file` varchar(255) DEFAULT NULL,
-  `moa_file` varchar(255) DEFAULT NULL
+  `moa_file` varchar(255) DEFAULT NULL,
+  `has_files` enum('With','None') NOT NULL DEFAULT 'None',
+  `status` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -93,18 +123,49 @@ CREATE TABLE `tbl_extension_research_links` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `tbl_ip_collaborators`
+--
+
+CREATE TABLE `tbl_ip_collaborators` (
+  `id` int(11) NOT NULL,
+  `ip_id` int(11) NOT NULL,
+  `researcher_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_ip_files`
+--
+
+CREATE TABLE `tbl_ip_files` (
+  `id` int(11) NOT NULL,
+  `ip_id` int(11) NOT NULL,
+  `file_category` enum('Certificate','Application Document','MOA','Other') NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_on` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tbl_itelectualprop`
 --
 
 CREATE TABLE `tbl_itelectualprop` (
   `id` int(11) NOT NULL,
   `researcherID` varchar(255) NOT NULL,
+  `lead_researcher_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `coauth` varchar(255) NOT NULL,
   `type` varchar(255) NOT NULL,
   `date_applied` varchar(255) NOT NULL,
   `date_granted` varchar(255) NOT NULL,
-  `moa_file` varchar(255) DEFAULT NULL
+  `has_files` enum('With','None') NOT NULL DEFAULT 'None',
+  `moa_file` varchar(255) DEFAULT NULL,
+  `a_link` text DEFAULT NULL,
+  `status` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -138,7 +199,37 @@ CREATE TABLE `tbl_paperpresentation` (
   `date_paper` varchar(255) NOT NULL,
   `type` varchar(255) NOT NULL,
   `discipline` varchar(255) NOT NULL,
-  `moa_file` varchar(255) DEFAULT NULL
+  `moa_file` varchar(255) DEFAULT NULL,
+  `a_link` text DEFAULT NULL,
+  `has_files` enum('With','None') NOT NULL DEFAULT 'None',
+  `status` int(11) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_paper_collaborators`
+--
+
+CREATE TABLE `tbl_paper_collaborators` (
+  `id` int(11) NOT NULL,
+  `paper_id` int(11) DEFAULT NULL,
+  `researcher_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_paper_files`
+--
+
+CREATE TABLE `tbl_paper_files` (
+  `id` int(11) NOT NULL,
+  `paper_id` int(11) NOT NULL,
+  `file_category` enum('Certificate','Program','Presentation Document','MOA','Other') NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_on` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -150,6 +241,7 @@ CREATE TABLE `tbl_paperpresentation` (
 CREATE TABLE `tbl_publication` (
   `id` int(11) NOT NULL,
   `researcherID` varchar(255) NOT NULL,
+  `lead_author_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `start` varchar(255) NOT NULL,
   `end` varchar(255) NOT NULL,
@@ -158,7 +250,36 @@ CREATE TABLE `tbl_publication` (
   `issn_isbn` varchar(255) NOT NULL,
   `indexing` varchar(255) NOT NULL,
   `publication_date` varchar(255) NOT NULL,
-  `moa_file` varchar(255) DEFAULT NULL
+  `has_files` enum('With','None') NOT NULL DEFAULT 'None',
+  `moa_file` varchar(255) DEFAULT NULL,
+  `status` int(11) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_publication_collaborators`
+--
+
+CREATE TABLE `tbl_publication_collaborators` (
+  `id` int(11) NOT NULL,
+  `publication_id` int(11) DEFAULT NULL,
+  `researcher_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_publication_files`
+--
+
+CREATE TABLE `tbl_publication_files` (
+  `id` int(11) NOT NULL,
+  `publication_id` int(11) NOT NULL,
+  `file_category` enum('Journal Document','MOA','Other') NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_on` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -181,6 +302,7 @@ CREATE TABLE `tbl_rde_agenda` (
 CREATE TABLE `tbl_researchconducted` (
   `id` int(11) NOT NULL,
   `researcherID` int(11) DEFAULT NULL,
+  `lead_researcher_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `research_agenda_cluster` varchar(255) NOT NULL,
   `sdgs` varchar(255) NOT NULL,
@@ -189,8 +311,10 @@ CREATE TABLE `tbl_researchconducted` (
   `funding_source` varchar(255) NOT NULL,
   `approved_budget` varchar(255) NOT NULL,
   `stat` varchar(255) NOT NULL,
+  `has_files` enum('With','None') NOT NULL DEFAULT 'None',
   `terminal_report` varchar(255) NOT NULL,
-  `moa_file` varchar(255) DEFAULT NULL
+  `moa_file` varchar(255) DEFAULT NULL,
+  `status` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -223,7 +347,8 @@ CREATE TABLE `tbl_researchdata` (
   `status` int(11) NOT NULL,
   `user` varchar(255) NOT NULL,
   `user_created_on` datetime NOT NULL DEFAULT current_timestamp(),
-  `so_file` varchar(255) DEFAULT NULL
+  `so_file` varchar(255) DEFAULT NULL,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -236,6 +361,21 @@ CREATE TABLE `tbl_research_collaborators` (
   `id` int(11) NOT NULL,
   `research_id` int(11) NOT NULL,
   `researcher_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_research_files`
+--
+
+CREATE TABLE `tbl_research_files` (
+  `id` int(11) NOT NULL,
+  `research_id` int(11) NOT NULL,
+  `file_category` enum('SO','MOA','Terminal Report','PSE-PES','Financial Report','Other') NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_on` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -280,7 +420,25 @@ CREATE TABLE `tbl_trainingsattended` (
   `type_learning_dev` varchar(255) NOT NULL,
   `sponsor_org` varchar(255) NOT NULL,
   `totnh` varchar(255) NOT NULL,
-  `moa_file` varchar(255) DEFAULT NULL
+  `moa_file` varchar(255) DEFAULT NULL,
+  `a_link` text DEFAULT NULL,
+  `has_files` enum('With','None') NOT NULL DEFAULT 'None',
+  `status` int(11) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_training_files`
+--
+
+CREATE TABLE `tbl_training_files` (
+  `id` int(11) NOT NULL,
+  `training_id` int(11) NOT NULL,
+  `file_category` enum('Certificate','Program','MOA','Other') NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_on` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -318,6 +476,19 @@ ALTER TABLE `tbl_ext`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `tbl_extension_activity_links`
+--
+ALTER TABLE `tbl_extension_activity_links`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tbl_extension_files`
+--
+ALTER TABLE `tbl_extension_files`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `extension_id` (`extension_id`);
+
+--
 -- Indexes for table `tbl_extension_project_conducted`
 --
 ALTER TABLE `tbl_extension_project_conducted`
@@ -329,6 +500,19 @@ ALTER TABLE `tbl_extension_project_conducted`
 ALTER TABLE `tbl_extension_research_links`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_extension_research` (`extension_id`,`research_id`);
+
+--
+-- Indexes for table `tbl_ip_collaborators`
+--
+ALTER TABLE `tbl_ip_collaborators`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tbl_ip_files`
+--
+ALTER TABLE `tbl_ip_files`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `ip_id` (`ip_id`);
 
 --
 -- Indexes for table `tbl_itelectualprop`
@@ -349,10 +533,36 @@ ALTER TABLE `tbl_paperpresentation`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `tbl_paper_collaborators`
+--
+ALTER TABLE `tbl_paper_collaborators`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tbl_paper_files`
+--
+ALTER TABLE `tbl_paper_files`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `paper_id` (`paper_id`);
+
+--
 -- Indexes for table `tbl_publication`
 --
 ALTER TABLE `tbl_publication`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tbl_publication_collaborators`
+--
+ALTER TABLE `tbl_publication_collaborators`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tbl_publication_files`
+--
+ALTER TABLE `tbl_publication_files`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `publication_id` (`publication_id`);
 
 --
 -- Indexes for table `tbl_rde_agenda`
@@ -379,6 +589,13 @@ ALTER TABLE `tbl_research_collaborators`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `tbl_research_files`
+--
+ALTER TABLE `tbl_research_files`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `research_id` (`research_id`);
+
+--
 -- Indexes for table `tbl_research_researchers`
 --
 ALTER TABLE `tbl_research_researchers`
@@ -396,6 +613,13 @@ ALTER TABLE `tbl_sdgs`
 --
 ALTER TABLE `tbl_trainingsattended`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tbl_training_files`
+--
+ALTER TABLE `tbl_training_files`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `training_id` (`training_id`);
 
 --
 -- Indexes for table `user_table`
@@ -420,6 +644,18 @@ ALTER TABLE `tbl_ext`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `tbl_extension_activity_links`
+--
+ALTER TABLE `tbl_extension_activity_links`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_extension_files`
+--
+ALTER TABLE `tbl_extension_files`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `tbl_extension_project_conducted`
 --
 ALTER TABLE `tbl_extension_project_conducted`
@@ -429,6 +665,18 @@ ALTER TABLE `tbl_extension_project_conducted`
 -- AUTO_INCREMENT for table `tbl_extension_research_links`
 --
 ALTER TABLE `tbl_extension_research_links`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_ip_collaborators`
+--
+ALTER TABLE `tbl_ip_collaborators`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_ip_files`
+--
+ALTER TABLE `tbl_ip_files`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -450,9 +698,33 @@ ALTER TABLE `tbl_paperpresentation`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `tbl_paper_collaborators`
+--
+ALTER TABLE `tbl_paper_collaborators`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_paper_files`
+--
+ALTER TABLE `tbl_paper_files`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `tbl_publication`
 --
 ALTER TABLE `tbl_publication`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_publication_collaborators`
+--
+ALTER TABLE `tbl_publication_collaborators`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_publication_files`
+--
+ALTER TABLE `tbl_publication_files`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -480,6 +752,12 @@ ALTER TABLE `tbl_research_collaborators`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `tbl_research_files`
+--
+ALTER TABLE `tbl_research_files`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `tbl_research_researchers`
 --
 ALTER TABLE `tbl_research_researchers`
@@ -495,6 +773,12 @@ ALTER TABLE `tbl_sdgs`
 -- AUTO_INCREMENT for table `tbl_trainingsattended`
 --
 ALTER TABLE `tbl_trainingsattended`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_training_files`
+--
+ALTER TABLE `tbl_training_files`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --

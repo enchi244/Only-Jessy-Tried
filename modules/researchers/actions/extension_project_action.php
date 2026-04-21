@@ -51,7 +51,7 @@ if (isset($_POST["action_extension"])) {
 
     if ($_POST["action_extension"] == 'fetch_all') {
         $order_column = array('tbl_researchdata.familyName', 'tbl_extension_project_conducted.title', 'tbl_extension_project_conducted.funding_source', 'tbl_extension_project_conducted.target_beneficiaries_communities', 'tbl_extension_project_conducted.status_exct');
-        $main_query = "SELECT tbl_extension_project_conducted.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix, tbl_researchdata.academic_rank, tbl_researchdata.program AS primary_discipline FROM tbl_extension_project_conducted LEFT JOIN tbl_researchdata ON tbl_extension_project_conducted.researcherID = tbl_researchdata.id";        
+        $main_query = "SELECT tbl_extension_project_conducted.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix, tbl_researchdata.academic_rank, tbl_researchdata.program AS primary_discipline, (SELECT COUNT(id) FROM tbl_extension_activity_links WHERE extension_project_id = tbl_extension_project_conducted.id) AS ext_count FROM tbl_extension_project_conducted LEFT JOIN tbl_researchdata ON tbl_extension_project_conducted.researcherID = tbl_researchdata.id";        
         $search_query = " WHERE tbl_extension_project_conducted.status = 1 "; // HIDE TRASH
         
         if (isset($_POST["search"]["value"])) {
@@ -81,7 +81,14 @@ if (isset($_POST["action_extension"])) {
             $sub_array[] = $row["funding_source"];
             $sub_array[] = $row["target_beneficiaries_communities"];
             $sub_array[] = $row["status_exct"];
-            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_extension_project" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=epc" class="btn d-none"></a></div>';
+            
+            $has_extensions = ($row['ext_count'] > 0);
+            $btn_class = $has_extensions ? 'btn-info view_associated_extensions text-white' : 'btn-secondary text-white';
+            $btn_attr = $has_extensions ? 'title="View Associated Extensions"' : 'disabled title="No extensions linked to this project"';
+            
+            $sub_array[] = '<div align="center">
+                <button type="button" class="btn ' . $btn_class . ' btn-sm mr-1" data-id="' . $row["id"] . '" ' . $btn_attr . '><i class="fas fa-hands-helping"></i></button>
+                <button type="button" class="btn btn-danger btn-sm delete_master_extension_project" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=epc" class="btn d-none"></a></div>';
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
@@ -90,7 +97,7 @@ if (isset($_POST["action_extension"])) {
     
     if ($_POST["action_extension"] == 'fetch') {
         $order_column = array('title', 'start_date', 'completed_date', 'funding_source', 'approved_budget', 'target_beneficiaries_communities', 'partners', 'status_exct', 'has_files');
-        $main_query = "SELECT * FROM tbl_extension_project_conducted";
+        $main_query = "SELECT tbl_extension_project_conducted.*, (SELECT COUNT(id) FROM tbl_extension_activity_links WHERE extension_project_id = tbl_extension_project_conducted.id) AS ext_count FROM tbl_extension_project_conducted";
         
         $search_query = " WHERE researcherID = '" . $_POST["rid"] . "' AND status = 1 "; // HIDE TRASH
 
@@ -123,8 +130,12 @@ if (isset($_POST["action_extension"])) {
             $sub_array[] = $row["partners"];
             $sub_array[] = $row["status_exct"];
             $sub_array[] = '<div align="center">' . $file_badge . '</div>';
+            $has_extensions = ($row['ext_count'] > 0);
+            $btn_class = $has_extensions ? 'btn-info view_associated_extensions text-white' : 'btn-secondary text-white';
+            $btn_attr = $has_extensions ? 'title="View Associated Extensions"' : 'disabled title="No extensions linked to this project"';
+
             $sub_array[] = '<div align="center">
-                <button type="button" class="btn btn-info btn-sm view_associated_extensions text-white mr-1" data-id="' . $row["id"] . '" title="View Associated Extensions"><i class="fas fa-hands-helping"></i></button>
+                <button type="button" class="btn ' . $btn_class . ' btn-sm mr-1" data-id="' . $row["id"] . '" ' . $btn_attr . '><i class="fas fa-hands-helping"></i></button>
                 <button type="button" class="btn btn-primary btn-sm edit_button_extension_project mr-1" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button> 
                 <button type="button" class="btn btn-danger btn-sm delete_button_extension_project" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button>
             </div>';

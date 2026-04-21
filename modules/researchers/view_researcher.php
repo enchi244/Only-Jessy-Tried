@@ -78,6 +78,26 @@ include('../../includes/header.php');
     .nav-pills .nav-link:hover { background-color: #eaecf4; }
     .nav-pills .nav-link.active, .nav-pills .show>.nav-link { background-color: #f23e5d; color: white; box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2); }
 
+    /* Clean Inner Nav Tabs styling */
+    #epcInnerTabs .nav-link {
+        color: #5a5c69;
+        border: none;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    #epcInnerTabs .nav-link:hover {
+        color: #f23e5d;
+    }
+    #epcInnerTabs .nav-link.active {
+        color: #f23e5d !important;
+        background-color: transparent;
+        border-bottom: 3px solid #f23e5d;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+    }
+
     /* --- NEW CSS FOR CLICKABLE CARDS & FAB --- */
     .clickable-card {
         cursor: pointer;
@@ -173,7 +193,6 @@ include('../../includes/header.php');
                     <a class="nav-link custom-tab-btn" id="tab-pp" href="#pp" role="tab"><i class="fas fa-file-alt mr-2"></i> Paper Presentation</a>
                     <a class="nav-link custom-tab-btn" id="tab-tra" href="#tra" role="tab"><i class="fas fa-chalkboard-teacher mr-2"></i> Trainings</a>
                     <a class="nav-link custom-tab-btn" id="tab-epc" href="#epc" role="tab"><i class="fas fa-project-diagram mr-2"></i> Extension Projects</a>
-                    <a class="nav-link custom-tab-btn" id="tab-ext" href="#ext" role="tab"><i class="fas fa-hands-helping mr-2"></i> Extension</a>
                 </div>
             </div>
         </div>
@@ -421,118 +440,134 @@ include('../../includes/header.php');
                     </div>
 
                     <div class="tab-pane custom-tab-pane" id="epc" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Extension Projects Conducted</h4>
-                        </div>
+                        
+                        <ul class="nav nav-tabs mb-4 border-bottom-danger" id="epcInnerTabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="inner-epc-tab" data-toggle="tab" href="#inner-epc" role="tab"><i class="fas fa-project-diagram mr-2"></i>Extension Projects Conducted</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="inner-ext-tab" data-toggle="tab" href="#inner-ext" role="tab"><i class="fas fa-hands-helping mr-2"></i>Extension Activities</a>
+                            </li>
+                        </ul>
 
-                        <?php if(count($ext_projects) > 0): ?>
-                            <div class="timeline mt-4">
-                                <?php foreach($ext_projects as $ep): ?>
-                                    <div class="timeline-item">
-                                        <div class="timeline-date"><?php echo htmlspecialchars($ep['start_date']); ?> to <?php echo htmlspecialchars($ep['completed_date']); ?></div>
-                                        <div class="card shadow-sm border-0 bg-light clickable-card edit_button_extension_project" data-id="<?php echo $ep['id']; ?>">
-                                            <div class="card-body py-3">
-                                                <div class="float-right isolate-click">
-                                                    <button class="btn btn-sm btn-link text-danger delete_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-trash"></i></button>
-                                                </div>
-                                                <h6 class="font-weight-bold text-gray-800 mb-3 pr-4"><?php echo htmlspecialchars($ep['title']); ?></h6>
-                                                
-                                                <div class="row text-muted small mb-2">
-                                                    <div class="col-md-6 mb-2">
-                                                        <div class="mb-1"><i class="fas fa-users mr-2 text-primary"></i> <b>Beneficiaries:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['target_beneficiaries_communities']); ?></span></div>
-                                                        <div class="mt-2"><i class="fas fa-handshake mr-2 text-primary"></i> <b>Partners:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['partners']); ?></span></div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-2 border-left">
-                                                        <div class="mb-1"><i class="fas fa-wallet mr-2 text-success"></i> <b>Funding Source:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['funding_source']); ?></span></div>
-                                                        <div class="mt-2"><i class="fas fa-money-bill-wave mr-2 text-success"></i> <b>Approved Budget:</b> <br><span class="ml-4 font-weight-bold">₱<?php echo number_format((float)$ep['approved_budget'], 2); ?></span></div>
-                                                    </div>
-                                                </div>
+                        <div class="tab-content" id="epcInnerTabsContent">
+                            
+                            <div class="tab-pane fade show active" id="inner-epc" role="tabpanel">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h4 class="font-weight-bold text-gray-800 m-0">Extension Projects Conducted</h4>
+                                </div>
 
-                                                <div class="mt-2">
-                                                    <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-info-circle mr-1"></i><?php echo htmlspecialchars($ep['status_exct']); ?></span>
-                                                    
-                                                    <?php if(!empty($ep['terminal_report_file'])): ?>
-                                                        <a href="../../uploads/documents/<?php echo htmlspecialchars($ep['terminal_report_file']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-2 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-file-download mr-1"></i> Download Report</a>
-                                                    <?php else: ?>
-                                                        <span class="badge badge-light border px-2 py-1 mr-2"><i class="fas fa-file-alt mr-1 text-muted"></i>Report: <?php echo !empty($ep['terminal_report']) ? htmlspecialchars($ep['terminal_report']) : 'N/A'; ?></span>
-                                                    <?php endif; ?>
-                                                </div>
-
-                                                <?php
-                                                // Fetch linked research projects for this extension
-                                                $object->query = "
-                                                    SELECT r.title, 
-                                                           pd.familyName AS lead_familyName, pd.firstName AS lead_firstName,
-                                                           (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') 
-                                                            FROM tbl_research_collaborators col 
-                                                            JOIN tbl_researchdata d ON col.researcher_id = d.id 
-                                                            WHERE col.research_id = r.id) AS co_authors
-                                                    FROM tbl_extension_research_links l 
-                                                    JOIN tbl_researchconducted r ON l.research_id = r.id 
-                                                    LEFT JOIN tbl_researchdata pd ON (pd.id = r.lead_researcher_id OR pd.id = r.researcherID OR pd.researcherID = r.researcherID)
-                                                    WHERE l.extension_id = '".$ep['id']."'
-                                                ";
-                                                $object->execute();
-                                                $linked_res = $object->statement_result();
-                                                if(count($linked_res) > 0):
-                                                ?>
-                                                    <div class="mt-3 pt-2 border-top">
-                                                        <small class="text-muted d-block mb-2"><i class="fas fa-link mr-1 text-primary"></i> <b>Based on Research:</b></small>
-                                                        <?php foreach($linked_res as $lr): 
-                                                            $lead = $lr['lead_familyName'] ? htmlspecialchars($lr['lead_familyName'] . ', ' . $lr['lead_firstName']) : 'Unknown Lead';
-                                                            $co = $lr['co_authors'] ? htmlspecialchars($lr['co_authors']) : 'None';
-                                                        ?>
-                                                            <div class="mb-2 p-2 bg-white border rounded shadow-sm">
-                                                                <div class="font-weight-bold text-dark mb-1" style="font-size: 0.9rem;"><i class="fas fa-flask mr-1 text-danger pink"></i> <?php echo htmlspecialchars($lr['title']); ?></div>
-                                                                <div class="ml-3 small"><span class="badge badge-primary px-2 py-0 mr-1">Lead</span> <?php echo $lead; ?></div>
-                                                                <div class="ml-3 mt-1 small text-muted"><i class="fas fa-users mr-1"></i> <?php echo $co; ?></div>
+                                <?php if(count($ext_projects) > 0): ?>
+                                    <div class="timeline mt-4">
+                                        <?php foreach($ext_projects as $ep): ?>
+                                            <div class="timeline-item">
+                                                <div class="timeline-date"><?php echo htmlspecialchars($ep['start_date']); ?> to <?php echo htmlspecialchars($ep['completed_date']); ?></div>
+                                                <div class="card shadow-sm border-0 bg-light clickable-card edit_button_extension_project" data-id="<?php echo $ep['id']; ?>">
+                                                    <div class="card-body py-3">
+                                                        <div class="float-right isolate-click">
+                                                            <button class="btn btn-sm btn-link text-danger delete_button_extension_project" data-id="<?php echo $ep['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                        <h6 class="font-weight-bold text-gray-800 mb-3 pr-4"><?php echo htmlspecialchars($ep['title']); ?></h6>
+                                                        
+                                                        <div class="row text-muted small mb-2">
+                                                            <div class="col-md-6 mb-2">
+                                                                <div class="mb-1"><i class="fas fa-users mr-2 text-primary"></i> <b>Beneficiaries:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['target_beneficiaries_communities']); ?></span></div>
+                                                                <div class="mt-2"><i class="fas fa-handshake mr-2 text-primary"></i> <b>Partners:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['partners']); ?></span></div>
                                                             </div>
-                                                        <?php endforeach; ?>
-                                                    </div>
-                                                <?php endif; ?>
+                                                            <div class="col-md-6 mb-2 border-left">
+                                                                <div class="mb-1"><i class="fas fa-wallet mr-2 text-success"></i> <b>Funding Source:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['funding_source']); ?></span></div>
+                                                                <div class="mt-2"><i class="fas fa-money-bill-wave mr-2 text-success"></i> <b>Approved Budget:</b> <br><span class="ml-4 font-weight-bold">₱<?php echo number_format((float)$ep['approved_budget'], 2); ?></span></div>
+                                                            </div>
+                                                        </div>
 
+                                                        <div class="mt-2">
+                                                            <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-info-circle mr-1"></i><?php echo htmlspecialchars($ep['status_exct']); ?></span>
+                                                            
+                                                            <?php if(!empty($ep['terminal_report_file'])): ?>
+                                                                <a href="../../uploads/documents/<?php echo htmlspecialchars($ep['terminal_report_file']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-2 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-file-download mr-1"></i> Download Report</a>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-light border px-2 py-1 mr-2"><i class="fas fa-file-alt mr-1 text-muted"></i>Report: <?php echo !empty($ep['terminal_report']) ? htmlspecialchars($ep['terminal_report']) : 'N/A'; ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+
+                                                        <?php
+                                                        // Fetch linked research projects for this extension
+                                                        $object->query = "
+                                                            SELECT r.title, 
+                                                                   pd.familyName AS lead_familyName, pd.firstName AS lead_firstName,
+                                                                   (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') 
+                                                                    FROM tbl_research_collaborators col 
+                                                                    JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                                                                    WHERE col.research_id = r.id) AS co_authors
+                                                            FROM tbl_extension_research_links l 
+                                                            JOIN tbl_researchconducted r ON l.research_id = r.id 
+                                                            LEFT JOIN tbl_researchdata pd ON (pd.id = r.lead_researcher_id OR pd.id = r.researcherID OR pd.researcherID = r.researcherID)
+                                                            WHERE l.extension_id = '".$ep['id']."'
+                                                        ";
+                                                        $object->execute();
+                                                        $linked_res = $object->statement_result();
+                                                        if(count($linked_res) > 0):
+                                                        ?>
+                                                            <div class="mt-3 pt-2 border-top">
+                                                                <small class="text-muted d-block mb-2"><i class="fas fa-link mr-1 text-primary"></i> <b>Based on Research:</b></small>
+                                                                <?php foreach($linked_res as $lr): 
+                                                                    $lead = $lr['lead_familyName'] ? htmlspecialchars($lr['lead_familyName'] . ', ' . $lr['lead_firstName']) : 'Unknown Lead';
+                                                                    $co = $lr['co_authors'] ? htmlspecialchars($lr['co_authors']) : 'None';
+                                                                ?>
+                                                                    <div class="mb-2 p-2 bg-white border rounded shadow-sm">
+                                                                        <div class="font-weight-bold text-dark mb-1" style="font-size: 0.9rem;"><i class="fas fa-flask mr-1 text-danger pink"></i> <?php echo htmlspecialchars($lr['title']); ?></div>
+                                                                        <div class="ml-3 small"><span class="badge badge-primary px-2 py-0 mr-1">Lead</span> <?php echo $lead; ?></div>
+                                                                        <div class="ml-3 mt-1 small text-muted"><i class="fas fa-users mr-1"></i> <?php echo $co; ?></div>
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        <?php endif; ?>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="alert alert-light text-center py-4 border">No extension projects found.</div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="tab-pane fade" id="inner-ext" role="tabpanel">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h4 class="font-weight-bold text-gray-800 m-0">Extension Activities</h4>
+                                </div>
+
+                                <?php if(count($extensions) > 0): ?>
+                                    <?php foreach($extensions as $ext): ?>
+                                        <div class="card shadow-sm mb-3 border-left-success position-relative clickable-card edit_button_ext" data-id="<?php echo $ext['id']; ?>">
+                                            <div class="card-body py-3">
+                                                <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
+                                                    <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                                <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($ext['title']); ?></h5>
+                                                <p class="text-muted mb-2 font-size-sm">
+                                                    <i class="fas fa-user-tie mr-1"></i> Lead: <?php echo htmlspecialchars($ext['proj_lead']); ?> | Assist: <?php echo htmlspecialchars($ext['assist_coordinators']); ?>
+                                                </p>
+                                                <p class="mb-2 text-dark small"><?php echo htmlspecialchars($ext['description']); ?></p>
+                                                
+                                                <div class="mt-2 bg-light p-2 rounded small">
+                                                    <b><i class="far fa-calendar-alt mr-1"></i> Period:</b> <?php echo htmlspecialchars($ext['period_implement']); ?> | 
+                                                    <b><i class="fas fa-users ml-2 mr-1"></i> Beneficiaries:</b> <?php echo htmlspecialchars($ext['target_beneficiaries']); ?> |
+                                                    <b><i class="fas fa-money-bill-wave ml-2 mr-1"></i> Budget:</b> ₱<?php echo number_format((float)$ext['budget'], 2); ?>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <span class="badge badge-success px-2 py-1"><i class="fas fa-info-circle mr-1"></i> <?php echo htmlspecialchars($ext['stat']); ?></span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                <?php endforeach; ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="alert alert-light text-center py-4 border">No extension activities found.</div>
+                                <?php endif; ?>
                             </div>
-                        <?php else: ?>
-                            <div class="alert alert-light text-center py-4 border">No extension projects found.</div>
-                        <?php endif; ?>
-                    </div>
 
-                    <div class="tab-pane custom-tab-pane" id="ext" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Extension Activities</h4>
                         </div>
-
-                        <?php if(count($extensions) > 0): ?>
-                            <?php foreach($extensions as $ext): ?>
-                                <div class="card shadow-sm mb-3 border-left-success position-relative clickable-card edit_button_ext" data-id="<?php echo $ext['id']; ?>">
-                                    <div class="card-body py-3">
-                                        <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
-                                            <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-trash"></i></button>
-                                        </div>
-                                        <h5 class="font-weight-bold text-gray-800 mb-1 pr-5"><?php echo htmlspecialchars($ext['title']); ?></h5>
-                                        <p class="text-muted mb-2 font-size-sm">
-                                            <i class="fas fa-user-tie mr-1"></i> Lead: <?php echo htmlspecialchars($ext['proj_lead']); ?> | Assist: <?php echo htmlspecialchars($ext['assist_coordinators']); ?>
-                                        </p>
-                                        <p class="mb-2 text-dark small"><?php echo htmlspecialchars($ext['description']); ?></p>
-                                        
-                                        <div class="mt-2 bg-light p-2 rounded small">
-                                            <b><i class="far fa-calendar-alt mr-1"></i> Period:</b> <?php echo htmlspecialchars($ext['period_implement']); ?> | 
-                                            <b><i class="fas fa-users ml-2 mr-1"></i> Beneficiaries:</b> <?php echo htmlspecialchars($ext['target_beneficiaries']); ?> |
-                                            <b><i class="fas fa-money-bill-wave ml-2 mr-1"></i> Budget:</b> ₱<?php echo number_format((float)$ext['budget'], 2); ?>
-                                        </div>
-                                        <div class="mt-2">
-                                            <span class="badge badge-success px-2 py-1"><i class="fas fa-info-circle mr-1"></i> <?php echo htmlspecialchars($ext['stat']); ?></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <div class="alert alert-light text-center py-4 border">No extension activities found.</div>
-                        <?php endif; ?>
                     </div>
 
                 </div>
@@ -691,7 +726,7 @@ include('../../includes/header.php');
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     
-    // 1. MODAL OVERLAP FIX (Preserved)
+    // 1. MODAL OVERLAP FIX
     if (typeof $ !== 'undefined') {
         $('.modal').appendTo('body');
         $(document).on('show.bs.modal', '.modal', function () {
@@ -701,6 +736,16 @@ document.addEventListener("DOMContentLoaded", function() {
                 $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
             }, 0);
         });
+        
+        // Listen to changes on the newly added Inner Tabs to swap out the FAB action
+        $('#epcInnerTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr("href"); // newly activated inner tab
+            if (target === '#inner-epc') {
+                document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_extension_project');
+            } else if (target === '#inner-ext') {
+                document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_extension');
+            }
+        });
     }
 
     // 2. ISOLATED VANILLA JS TAB & FAB CONTROLLER
@@ -708,29 +753,18 @@ document.addEventListener("DOMContentLoaded", function() {
     const tabPanes = document.querySelectorAll('.custom-tab-pane');
     const fabContainer = document.getElementById('fab-container');
     const backBtn = document.getElementById('back_to_directory');
-
-    // Update the "Back" link whenever a tab is clicked
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tabId = this.getAttribute('id');
-            // Mapping view_researcher tabs to researcher.php master button IDs
-            const backMapping = {
-                'tab-personal-info': 'btn_view_researchers',
-                'tab-education': 'btn_view_conducted',
-                'tab-degree': 'btn_view_publications',
-                'tab-ip': 'btn_view_ip',
-                'tab-pp': 'btn_view_pp',
-                'tab-tra': 'btn_view_tra',
-                'tab-epc': 'btn_view_epc',
-                'tab-ext': 'btn_view_ext'
-            };
-            
-            if (backBtn && backMapping[tabId]) {
-                backBtn.href = "researcher.php?tab=" + backMapping[tabId];
-            }
-        });
-    });
     const dynamicFabBtn = document.getElementById('dynamic-fab-btn');
+
+    // Mapping view_researcher tabs to researcher.php master button IDs
+    const backMapping = {
+        'tab-personal-info': 'btn_view_researchers',
+        'tab-education': 'btn_view_conducted',
+        'tab-degree': 'btn_view_publications',
+        'tab-ip': 'btn_view_ip',
+        'tab-pp': 'btn_view_pp',
+        'tab-tra': 'btn_view_tra',
+        'tab-epc': 'btn_view_epc' // Extension is now covered under EPC
+    };
 
     // Mapping tab IDs to the "Add" button IDs expected by your jQuery scripts
     const fabMapping = {
@@ -738,14 +772,19 @@ document.addEventListener("DOMContentLoaded", function() {
         'tab-degree': 'add_publication',
         'tab-ip': 'add_intellectualprop',
         'tab-pp': 'add_paper_presentation',
-        'tab-tra': 'add_training_attended',
-        'tab-epc': 'add_extension_project',
-        'tab-ext': 'add_extension'
+        'tab-tra': 'add_training_attended'
+        // epc is handled dynamically
     };
 
     tabBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
+
+            // Update Back Link
+            const tabId = this.getAttribute('id');
+            if (backBtn && backMapping[tabId]) {
+                backBtn.href = "researcher.php?tab=" + backMapping[tabId];
+            }
 
             // Remove active states from all buttons
             tabBtns.forEach(b => b.classList.remove('active'));
@@ -767,12 +806,18 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             // --- Context-Aware FAB Logic ---
-            const tabId = this.getAttribute('id');
             if (tabId === 'tab-personal-info') {
-                // Hide FAB on Profile Overview
                 fabContainer.style.display = 'none';
+            } else if (tabId === 'tab-epc') {
+                fabContainer.style.display = 'block';
+                // Find out which inner tab is currently visible
+                const activeInnerTab = document.querySelector('#epcInnerTabs .nav-link.active');
+                if(activeInnerTab && activeInnerTab.getAttribute('href') === '#inner-ext') {
+                    dynamicFabBtn.setAttribute('data-target-id', 'add_extension');
+                } else {
+                    dynamicFabBtn.setAttribute('data-target-id', 'add_extension_project');
+                }
             } else {
-// Show FAB and store the target proxy ID in a data attribute
                 fabContainer.style.display = 'block';
                 dynamicFabBtn.setAttribute('data-target-id', fabMapping[tabId]);
             }
@@ -785,16 +830,15 @@ document.addEventListener("DOMContentLoaded", function() {
         if (targetId) {
             const hiddenProxyButton = document.getElementById(targetId);
             if (hiddenProxyButton) {
-                hiddenProxyButton.click(); // This perfectly triggers your old jQuery scripts
+                hiddenProxyButton.click(); 
             }
         }
     });
 
     // 3. Prevent Delete Button Clicks from Opening Edit Modals
     $('.isolate-click').on('click', function(e) {
-        e.stopPropagation(); // Stops the Edit Modal from opening
+        e.stopPropagation(); 
         
-        // Forward the click directly to the background Delete script
         var btn = $(this).find('button');
         if (btn.length > 0) {
             var simulatedEvent = $.Event('click');
@@ -816,21 +860,31 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Check the URL for a 'tab' parameter (e.g., &tab=degree)
+    // Check the URL for a 'tab' parameter
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab');
     
     if (activeTab) {
-        // Find your new custom vertical tab button
-        let tabLink = document.querySelector('.custom-tab-btn[href="#' + activeTab + '"]');
-        if (tabLink) {
-            // Click it so your Vanilla JS handles the panes and the FAB button!
-            tabLink.click();
+        if (activeTab === 'ext') {
+            // If URL requested the old 'ext' tab, redirect the click to the new parent EPC tab
+            let mainLink = document.querySelector('.custom-tab-btn[href="#epc"]');
+            if (mainLink) mainLink.click();
             
-            // Smooth scroll down to the tabs so the user sees it immediately
+            // Then manually select the inner Extension tab via Bootstrap
             setTimeout(function() {
-                tabLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if(typeof $ !== 'undefined') {
+                    $('#inner-ext-tab').tab('show');
+                }
+                mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 300);
+        } else {
+            let tabLink = document.querySelector('.custom-tab-btn[href="#' + activeTab + '"]');
+            if (tabLink) {
+                tabLink.click();
+                setTimeout(function() {
+                    tabLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+            }
         }
     }
 });
