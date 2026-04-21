@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 15, 2026 at 08:04 PM
+-- Generation Time: Apr 21, 2026 at 04:19 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -42,6 +42,7 @@ CREATE TABLE `product_category_table` (
 CREATE TABLE `tbl_ext` (
   `id` int(11) NOT NULL,
   `researcherID` varchar(255) NOT NULL,
+  `extension_project_id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
   `description` varchar(255) NOT NULL,
   `proj_lead` varchar(255) NOT NULL,
@@ -52,8 +53,8 @@ CREATE TABLE `tbl_ext` (
   `target_beneficiaries` varchar(255) NOT NULL,
   `partners` varchar(255) NOT NULL,
   `stat` varchar(255) NOT NULL,
-  `attachments` varchar(255) DEFAULT NULL,
-  `a_link` varchar(255) DEFAULT NULL,
+  `attachments` varchar(255) NOT NULL,
+  `a_link` varchar(255) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -331,6 +332,7 @@ CREATE TABLE `tbl_researchdata` (
   `middleName` varchar(255) NOT NULL,
   `Suffix` varchar(255) NOT NULL,
   `department` varchar(255) NOT NULL,
+  `academic_rank` varchar(255) DEFAULT NULL,
   `program` varchar(255) NOT NULL,
   `bachelor_degree` varchar(255) NOT NULL,
   `bachelor_institution` varchar(255) NOT NULL,
@@ -473,7 +475,8 @@ ALTER TABLE `product_category_table`
 -- Indexes for table `tbl_ext`
 --
 ALTER TABLE `tbl_ext`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `extension_project_id` (`extension_project_id`);
 
 --
 -- Indexes for table `tbl_extension_activity_links`
@@ -786,6 +789,16 @@ ALTER TABLE `tbl_training_files`
 --
 ALTER TABLE `user_table`
   MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `tbl_ext`
+--
+ALTER TABLE `tbl_ext`
+  ADD CONSTRAINT `fk_activity_belongs_to_project` FOREIGN KEY (`extension_project_id`) REFERENCES `tbl_extension_project_conducted` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
