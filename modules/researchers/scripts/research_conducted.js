@@ -1,5 +1,4 @@
 $(document).ready(function() {
-    // Initialize Select2 for Collaborators inside the Modal
     if ($('#collaborators').length) {
         $('#collaborators').select2({
             placeholder: "Select Co-Researchers / Collaborators",
@@ -7,7 +6,7 @@ $(document).ready(function() {
             dropdownParent: $('#researchconductedModal')
         });
     }
-// Prevent Lead Researcher from being selected as a Co-Researcher
+
     $(document).on('change', '#lead_researcher_id', function() {
         var selectedLead = $(this).val();
         
@@ -26,7 +25,6 @@ $(document).ready(function() {
     });
 });
 
-// 1. Function to Load Research Conducted Tab Data using the Main Researcher ID
 function loadResearchConductedTab(researcherID) {
     $('#researchconducted_form').parsley();
     if ($.fn.dataTable.isDataTable('#researcherconducted_table')) {
@@ -52,13 +50,11 @@ function loadResearchConductedTab(researcherID) {
     return rcdataTable;
 }
 
-// 2. Handle Tab Switching for Dynamic Content
 $('#researchconductedTab').on('shown.bs.tab', function() {
     var id = $('#hidden_id_rd').val(); 
     loadResearchConductedTab(id);  
 });
 
-// 3. Handle Form Submission (Using FormData for Files)
 $('#researchconducted_form').on('submit', function(event) {
     event.preventDefault();
     if ($('#researchconducted_form').parsley().isValid()) {
@@ -77,10 +73,12 @@ $('#researchconducted_form').on('submit', function(event) {
             },
             success: function(data) {
                 $('#submit_button_researchedconducted').attr('disabled', false);
-                if(data.error != '') {
-                    $('#form_message').html(data.error);
+                
+                // Check if our PHP caught an exception and sent it back
+                if(data.error && data.error != '') {
+                    $('#form_message').html('<div class="alert alert-danger">' + data.error + '</div>');
                     $('#submit_button_researchedconducted').val($('#action_researchedconducted').val());
-                } else {
+                } else if(data.success) {
                     $('#researchconductedModal').modal('hide');
                     $('#message').html(data.success);
 
@@ -94,7 +92,6 @@ $('#researchconducted_form').on('submit', function(event) {
                         customClass: { confirmButton: 'btn-success' }
                     });
 
-                    // Background Refresh for saves/edits
                     $('.dataTable').each(function() {
                         if ($.fn.dataTable.isDataTable(this)) {
                             $(this).DataTable().ajax.reload(null, false);
@@ -104,13 +101,24 @@ $('#researchconducted_form').on('submit', function(event) {
                     setTimeout(function(){
                         $('#message').html('');
                     }, 5000);
+                } else {
+                    Swal.fire('Error', 'Unexpected server response.', 'error');
+                    $('#submit_button_researchedconducted').val($('#action_researchedconducted').val());
                 }
+            },
+            error: function(xhr, status, error) {
+                $('#submit_button_researchedconducted').attr('disabled', false).val($('#action_researchedconducted').val());
+                Swal.fire({
+                    title: 'Server Error (500)',
+                    text: 'A fatal PHP error occurred. Check your network tab.',
+                    icon: 'error'
+                });
+                console.error("Submission Error:", xhr.responseText);
             }
         });
     }
 });
 
-// 4. Global Modal Fix
 $('#researchconductedModal').on('hidden.bs.modal', function() {
     if ($('.modal.show').length > 0) {
         $('body').addClass('modal-open');
@@ -118,20 +126,16 @@ $('#researchconductedModal').on('hidden.bs.modal', function() {
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
-// 5. Handle Add Button for Research Conducted Tab
 $('#add_researcherconducted').click(function() {
     $('#researchconducted_form')[0].reset();
     $('#researchconducted_form').parsley().reset();
     
-    // Reset SDGs
     $('#sdgs').val([]).trigger('change');  
     if($.fn.selectpicker) { $('#sdgs').selectpicker('refresh'); }
     
-    // Reset Collaborators
     if ($('#collaborators').length) {
         $('#collaborators').val(null).trigger('change');
     }
-
 
     $('#new_files_container').html('');
     $('#existing_files_container').html('');
@@ -143,14 +147,12 @@ $('#add_researcherconducted').click(function() {
     var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');  
     $('#hiddeny').val(rid);
     
-    // Auto-select lead researcher if adding from a profile
     if(rid) { $('#lead_researcher_id').val(rid); }
 
     $('#researchconductedModal').modal('show');
     $('#form_message').html('');
 });
 
-// 6. Handle Edit Button (Populating the Modal)
 $(document).on('click', '.edit_button_researchconducted', function(e){
     e.preventDefault();
     var rcid = $(this).data('id');
@@ -173,14 +175,13 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
             $('#title').val(data.title);
             $('#research_agenda_cluster').val(data.research_agenda_cluster);
             $('#lead_researcher_id').val(data.lead_researcher_id).trigger('change');
-            // Handle SDGs array
+            
             if(data.sdgs) {
                 var sdgsArray = data.sdgs.split(", ");  
                 $('#sdgs').val(sdgsArray).trigger('change');  
                 if($.fn.selectpicker) { $('#sdgs').selectpicker('refresh'); }
             }
             
-            // Handle Collaborators Array via Select2
             if(data.collaborators && $('#collaborators').length) {
                 var filteredCollabs = data.collaborators.filter(function(id) {
                     return id != data.lead_researcher_id;
@@ -188,14 +189,12 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
                 $('#collaborators').val(filteredCollabs).trigger('change');
             }
             
-            // Trigger change to ensure the Lead is disabled visually
             $('#lead_researcher_id').trigger('change');
             
             $('#funding_source').val(data.funding_source);
             $('#approved_budget').val(data.approved_budget);
             $('#stat').val(data.stat);
             
-            // Handle Files
             $('#has_files').val(data.has_files).trigger('change');
             
             if(data.existing_files && data.existing_files.length > 0) {
@@ -223,12 +222,11 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
     });
 });
 
-// 7. Handle Delete Button (INSTANT UI REMOVAL)
 $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .delete_master_researchconducted', function(e) {
     e.preventDefault();
     var btn = $(this);
     var xid = btn.data('id');
-    var targetRow = btn.closest('tr'); // Capture the exact row to hide
+    var targetRow = btn.closest('tr');
 
     Swal.fire({
         title: 'Are you sure?',
@@ -256,7 +254,6 @@ $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .de
                             showConfirmButton: false, 
                         });
 
-                        // SILENTLY HIDE THE ROW INSTANTLY
                         targetRow.fadeOut(400, function() {
                             $(this).remove();
                         });
@@ -274,7 +271,6 @@ $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .de
     });
 });
 
-// Add New File Row
 $(document).on('click', '#add_file_btn', function() {
     var fileRow = `
         <div class="row align-items-center mb-2 new-file-row">
@@ -290,8 +286,8 @@ $(document).on('click', '#add_file_btn', function() {
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="file" name="research_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>
-                </div>
+                <input type="file" name="research_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
+            </div>
             <div class="col-md-2 text-right">
                 <button type="button" class="btn btn-sm btn-danger remove-new-file"><i class="fas fa-times"></i></button>
             </div>
@@ -300,12 +296,10 @@ $(document).on('click', '#add_file_btn', function() {
     $('#new_files_container').append(fileRow);
 });
 
-// Remove un-uploaded file row
 $(document).on('click', '.remove-new-file', function() {
     $(this).closest('.new-file-row').remove();
 });
 
-// Delete Existing Server File via AJAX
 $(document).on('click', '.delete-existing-file', function(e) {
     e.preventDefault();
     var btn = $(this);
@@ -347,7 +341,6 @@ $(document).on('click', '.delete-existing-file', function(e) {
     });
 });
 
-// 8. Function to Load Publication Tab Data
 function loadPublicationTab(researcherID) {
     $('#publication_form').parsley();
     if ($.fn.dataTable.isDataTable('#publication_table')) {
