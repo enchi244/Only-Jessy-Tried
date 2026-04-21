@@ -49,7 +49,7 @@ if (!function_exists('handle_research_files')) {
 
 if(isset($_POST["action_researchedconducted"])) {
 
-	if($_POST["action_researchedconducted"] == 'fetch_collaborators') {
+    if($_POST["action_researchedconducted"] == 'fetch_collaborators') {
         header('Content-Type: application/json');
         $id = intval($_POST['id']);
         $object->query = "SELECT d.id, d.firstName, d.familyName, d.department FROM tbl_research_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.research_id = '".$id."'";
@@ -91,7 +91,7 @@ if(isset($_POST["action_researchedconducted"])) {
         $data = array();
         foreach($result as $row) {
             $sub_array = array();
-			$author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
+            $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
             $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown Lead</span>";
             $co_authors = $row["all_authors"] ? $row["all_authors"] : "<span class='text-muted'>None</span>";
             $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-1 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
@@ -109,9 +109,9 @@ if(isset($_POST["action_researchedconducted"])) {
         exit;
     }
 
-	if($_POST["action_researchedconducted"] == 'fetch') {
-		$order_column = array('rc.id', 'rc.title', 'rc.research_agenda_cluster', 'rc.sdgs', 'rc.started_date', 'rc.completed_date', 'rc.funding_source', 'rc.approved_budget', 'rc.stat', 'rc.has_files');
-		$main_query = "SELECT rc.* FROM tbl_researchconducted rc JOIN tbl_research_collaborators col ON rc.id = col.research_id";
+    if($_POST["action_researchedconducted"] == 'fetch') {
+        $order_column = array('rc.id', 'rc.title', 'rc.research_agenda_cluster', 'rc.sdgs', 'rc.started_date', 'rc.completed_date', 'rc.funding_source', 'rc.approved_budget', 'rc.stat', 'rc.has_files');
+        $main_query = "SELECT rc.* FROM tbl_researchconducted rc JOIN tbl_research_collaborators col ON rc.id = col.research_id";
         
         $search_query = " WHERE col.researcher_id = '".$_POST["rid"]."' AND rc.status = 1 "; // HIDE TRASH
 
@@ -122,38 +122,38 @@ if(isset($_POST["action_researchedconducted"])) {
         $order_query = isset($_POST["order"]) ? " ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : " ORDER BY rc.id DESC ";
         $limit_query = ($_POST["length"] != -1) ? ' LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
 
-		$object->query = $main_query . $search_query . $order_query;
-		$object->execute();
-		$filtered_rows = $object->row_count();
-		$object->query .= $limit_query;
-		$result = $object->get_result();
-		$object->query = $main_query . $search_query;
-		$object->execute();
-		$total_rows = $object->row_count();
+        $object->query = $main_query . $search_query . $order_query;
+        $object->execute();
+        $filtered_rows = $object->row_count();
+        $object->query .= $limit_query;
+        $result = $object->get_result();
+        $object->query = $main_query . $search_query;
+        $object->execute();
+        $total_rows = $object->row_count();
 
-		$data = array();
-		foreach($result as $row) {
+        $data = array();
+        foreach($result as $row) {
             $file_badge = ($row["has_files"] == 'With') ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
-			$sub_array = array();
-			$sub_array[] = $row["title"];
-			$sub_array[] = $row["research_agenda_cluster"];
-			$sub_array[] = $row["sdgs"];
-			$sub_array[] = parse_legacy_date_php($row["started_date"]);
-			$sub_array[] = parse_legacy_date_php($row["completed_date"]);
-			$sub_array[] = $row["funding_source"];
-			$sub_array[] = $row["approved_budget"];
-			$sub_array[] = $row["stat"];
-			$sub_array[] = '<div align="center">' . $file_badge . '</div>';
-			$sub_array[] = '<div align="center"><button type="button" class="btn btn-primary btn-sm edit_buttonrc edit_button_researchconducted" data-id="'.$row["id"].'"><i class="fas fa-pencil-alt"></i></button> <button type="button" class="btn btn-danger btn-sm delete_buttonrc" data-id="'.$row["id"].'"><i class="far fa-trash-alt"></i></button></div>';
-			$data[] = $sub_array;
-		}
-		echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
-	}
+            $sub_array = array();
+            $sub_array[] = $row["title"];
+            $sub_array[] = $row["research_agenda_cluster"];
+            $sub_array[] = $row["sdgs"];
+            $sub_array[] = parse_legacy_date_php($row["started_date"]);
+            $sub_array[] = parse_legacy_date_php($row["completed_date"]);
+            $sub_array[] = $row["funding_source"];
+            $sub_array[] = $row["approved_budget"];
+            $sub_array[] = $row["stat"];
+            $sub_array[] = '<div align="center">' . $file_badge . '</div>';
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-primary btn-sm edit_buttonrc edit_button_researchconducted" data-id="'.$row["id"].'"><i class="fas fa-pencil-alt"></i></button> <button type="button" class="btn btn-danger btn-sm delete_buttonrc" data-id="'.$row["id"].'"><i class="far fa-trash-alt"></i></button></div>';
+            $data[] = $sub_array;
+        }
+        echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
+    }
 
-	if($_POST["action_researchedconducted"] == 'Add') {
-		$error = ''; $success = '';
-		$from_date = date("Y-m-d", strtotime($_POST['started_date']));
-		$to_date = date("Y-m-d", strtotime($_POST['completed_date']));
+    if($_POST["action_researchedconducted"] == 'Add') {
+        $error = ''; $success = '';
+        $from_date = date("Y-m-d", strtotime($_POST['started_date']));
+        $to_date = date("Y-m-d", strtotime($_POST['completed_date']));
         $lead_researcher_id = $_POST['lead_researcher_id'];
         $has_files = $_POST['has_files'];
 
@@ -163,11 +163,11 @@ if(isset($_POST["action_researchedconducted"])) {
                 ':title'                       => $_POST['title'],
                 ':research_agenda_cluster'     => $_POST['research_agenda_cluster'],
                 ':sdgs'                        => implode(", ", $_POST['sdgs']), 
-                ':started_date'            	   => $from_date,
+                ':started_date'                => $from_date,
                 ':completed_date'              => $to_date,
                 ':funding_source'              => $_POST['funding_source'],
                 ':approved_budget'             => $_POST['approved_budget'],
-                ':stat'           			   => $_POST['stat'],
+                ':stat'                        => $_POST['stat'],
                 ':has_files'                   => $has_files,
                 ':terminal_report'             => 'Legacy Replaced' 
         );
@@ -189,25 +189,25 @@ if(isset($_POST["action_researchedconducted"])) {
         }
 
         $success = '<div class="alert alert-success">Project and Files Added Successfully</div>';
-		echo json_encode(array('error' => $error, 'success' => $success));
-	}
+        echo json_encode(array('error' => $error, 'success' => $success));
+    }
 
-	if($_POST["action_researchedconducted"] == 'fetch_single') {
-		$object->query = "SELECT * FROM tbl_researchconducted WHERE id = '".$_POST["rcid"]."'";
-		$result = $object->get_result();
-		$data = array();
-		foreach($result as $row) {
-			$data['title'] = $row["title"];
-			$data['research_agenda_cluster'] = $row["research_agenda_cluster"];
-			$data['sdgs'] = $row["sdgs"];
-			$data['started_date'] = parse_legacy_date_php($row["started_date"]);
-			$data['completed_date'] = parse_legacy_date_php($row["completed_date"]);
-			$data['funding_source'] = $row["funding_source"];
-			$data['approved_budget'] = $row["approved_budget"];
-			$data['stat'] = $row["stat"];
-			$data['has_files'] = $row["has_files"];
+    if($_POST["action_researchedconducted"] == 'fetch_single') {
+        $object->query = "SELECT * FROM tbl_researchconducted WHERE id = '".$_POST["rcid"]."'";
+        $result = $object->get_result();
+        $data = array();
+        foreach($result as $row) {
+            $data['title'] = $row["title"];
+            $data['research_agenda_cluster'] = $row["research_agenda_cluster"];
+            $data['sdgs'] = $row["sdgs"];
+            $data['started_date'] = parse_legacy_date_php($row["started_date"]);
+            $data['completed_date'] = parse_legacy_date_php($row["completed_date"]);
+            $data['funding_source'] = $row["funding_source"];
+            $data['approved_budget'] = $row["approved_budget"];
+            $data['stat'] = $row["stat"];
+            $data['has_files'] = $row["has_files"];
             $data['lead_researcher_id'] = $row["lead_researcher_id"];
-		}
+        }
 
         $object->query = "SELECT researcher_id FROM tbl_research_collaborators WHERE research_id = '".$_POST["rcid"]."'";
         $collab_result = $object->get_result();
@@ -222,13 +222,13 @@ if(isset($_POST["action_researchedconducted"])) {
             $files_array[] = array('id' => $f['id'], 'category' => $f['file_category'], 'name' => $f['file_name'], 'path' => '../../' . $f['file_path']);
         }
         $data['existing_files'] = $files_array;
-		echo json_encode($data);
-	}
+        echo json_encode($data);
+    }
 
-	if ($_POST["action_researchedconducted"] == 'Edit') {
-		$from_dateu = date("Y-m-d", strtotime($_POST['started_date']));  
-		$to_dateu = date("Y-m-d", strtotime($_POST['completed_date'])); 
-		$error = ''; $success = '';
+    if ($_POST["action_researchedconducted"] == 'Edit') {
+        $from_dateu = date("Y-m-d", strtotime($_POST['started_date']));  
+        $to_dateu = date("Y-m-d", strtotime($_POST['completed_date'])); 
+        $error = ''; $success = '';
         $research_id = $_POST['hidden_id_researchedconducted'];
         $lead_researcher_id = $_POST['lead_researcher_id'];
         $has_files = $_POST['has_files'];
@@ -278,8 +278,8 @@ if(isset($_POST["action_researchedconducted"])) {
         }
 
         $success = '<div class="alert alert-success">Project & Collaborators Updated Successfully</div>';
-		echo json_encode(array('error' => $error, 'success' => $success));
-	}
+        echo json_encode(array('error' => $error, 'success' => $success));
+    }
 
     if($_POST["action_researchedconducted"] == 'delete_file') {
         $file_id = intval($_POST['file_id']);
@@ -301,12 +301,15 @@ if(isset($_POST["action_researchedconducted"])) {
         exit;
     }
 
-    // SOFT DELETE FIX
-	if($_POST["action_researchedconducted"] == 'delete') {
+    // STRICT ERROR HANDLING DELETE FIX
+    if($_POST["action_researchedconducted"] == 'delete') {
         $xid = intval($_POST["xid"]);
-		$object->query = "UPDATE tbl_researchconducted SET status = 0 WHERE id = '".$xid."'";
-		$object->execute();
-		echo '<div class="alert alert-success">Project moved to Recycle Bin.</div>';
-	}
+        $object->query = "UPDATE tbl_researchconducted SET status = 0 WHERE id = '".$xid."'";
+        $object->execute();
+        
+        // Only return this if the execute() doesn't die from a database error
+        echo json_encode(['status' => 'success']);
+        exit;
+    }
 }
 ?>

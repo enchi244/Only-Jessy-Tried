@@ -94,12 +94,12 @@ $('#researchconducted_form').on('submit', function(event) {
                         customClass: { confirmButton: 'btn-success' }
                     });
 
-                    var researcherID = $('#researcherModala').data('id'); 
-                    if(researcherID) {
-                        window.location.href = "view_researcher.php?id=" + researcherID + "&tab=education";
-                    } else {
-                        loadResearchConductedTab(researcherID); 
-                    }
+                    // Background Refresh for saves/edits
+                    $('.dataTable').each(function() {
+                        if ($.fn.dataTable.isDataTable(this)) {
+                            $(this).DataTable().ajax.reload(null, false);
+                        }
+                    });
 
                     setTimeout(function(){
                         $('#message').html('');
@@ -224,10 +224,13 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
     });
 });
 
-// 7. Handle Delete Button
+// 7. Handle Delete Button (INSTANT UI REMOVAL)
 $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .delete_master_researchconducted', function(e) {
     e.preventDefault();
-    var xid = $(this).data('id');
+    var btn = $(this);
+    var xid = btn.data('id');
+    var targetRow = btn.closest('tr'); // Capture the exact row to hide
+
     Swal.fire({
         title: 'Are you sure?',
         text: 'This will delete the project, its collaborators, and all attached files!',
@@ -243,23 +246,29 @@ $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .de
                 url: "actions/researchconducted_action.php",
                 method: "POST",
                 data: { xid: xid, action_researchedconducted: 'delete' },
+                dataType: "json", 
                 success: function(data) {
-                    Swal.fire({
-                        title: 'Deleted!',
-                        text: 'The record has been successfully deleted.',
-                        icon: 'success',
-                        timer: 800, 
-                        showConfirmButton: false, 
-                    });
+                    if (data && data.status === 'success') {
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'The record has been successfully deleted.',
+                            icon: 'success',
+                            timer: 800, 
+                            showConfirmButton: false, 
+                        });
 
-                    var researcherID = $('#researcherModala').data('id');
-                    if(researcherID) {
-                        setTimeout(function() {
-                            window.location.href = "view_researcher.php?id=" + researcherID + "&tab=education";
-                        }, 800);
-                    } else {
-                        location.reload();
+                        // SILENTLY HIDE THE ROW INSTANTLY
+                        targetRow.fadeOut(400, function() {
+                            $(this).remove();
+                        });
                     }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        title: 'Database Error!',
+                        text: xhr.responseText,
+                        icon: 'error'
+                    });
                 }
             });
         }

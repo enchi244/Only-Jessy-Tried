@@ -1,4 +1,7 @@
 <?php
+// Hide minor PHP 8 warnings and notices so they don't break JSON responses
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING & ~E_DEPRECATED);
+ini_set('display_errors', 0);
 
 //rms.php
 
@@ -56,134 +59,134 @@ class rms
         return $this->statement->fetchAll();
     }
 
-	function get_result()
-	{
-		return $this->connect->query($this->query, PDO::FETCH_ASSOC);
-	}
+    function get_result()
+    {
+        return $this->connect->query($this->query, PDO::FETCH_ASSOC);
+    }
 
-	function is_login()
-	{
-		if(isset($_SESSION['user_id']))
-		{
-			return true;
-		}
-		return false;
-	}
+    function is_login()
+    {
+        if(isset($_SESSION['user_id']))
+        {
+            return true;
+        }
+        return false;
+    }
 
-	function is_master_user()
-	{
-		if(isset($_SESSION['user_type']))
-		{
-			if($_SESSION["user_type"] == 'Master')
-			{
-				return true;
-			}
-			return false;
-		}
-		return false;
-	}
+    function is_master_user()
+    {
+        if(isset($_SESSION['user_type']))
+        {
+            if($_SESSION["user_type"] == 'Master')
+            {
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
 
-	function clean_input($string)
-	{
-	  	$string = trim($string);
-	  	$string = stripslashes($string);
-	  	$string = htmlspecialchars($string);
-	  	return $string;
-	}
+    function clean_input($string)
+    {
+        $string = trim($string);
+        $string = stripslashes($string);
+        $string = htmlspecialchars($string);
+        return $string;
+    }
 
-	function get_datetime()
-	{
-		return date("Y-m-d H:i:s",  STRTOTIME(date('h:i:sa')));
-	}
+    function get_datetime()
+    {
+        return date("Y-m-d H:i:s",  STRTOTIME(date('h:i:sa')));
+    }
 
-	function make_avatar($character)
-	{
-	    $path = "images/". time() . ".png";
-		$image = imagecreate(200, 200);
-		$red = rand(0, 255);
-		$green = rand(0, 255);
-		$blue = rand(0, 255);
-	    imagecolorallocate($image, 230, 230, 230);  
-	    $textcolor = imagecolorallocate($image, $red, $green, $blue);
-	    imagettftext($image, 100, 0, 55, 150, $textcolor, 'font/arial.ttf', $character);
-	    imagepng($image, $path);
-	    imagedestroy($image);
-	    return $path;
-	}
+    function make_avatar($character)
+    {
+        $path = "images/". time() . ".png";
+        $image = imagecreate(200, 200);
+        $red = rand(0, 255);
+        $green = rand(0, 255);
+        $blue = rand(0, 255);
+        imagecolorallocate($image, 230, 230, 230);  
+        $textcolor = imagecolorallocate($image, $red, $green, $blue);
+        imagettftext($image, 100, 0, 55, 150, $textcolor, 'font/arial.ttf', $character);
+        imagepng($image, $path);
+        imagedestroy($image);
+        return $path;
+    }
 
-	function Get_user_name($user_id)
-	{
-		$this->query = "
-		SELECT * FROM user_table 
-		WHERE user_id = '".$user_id."'
-		";
-		$result = $this->get_result();
-		foreach($result as $row)
-		{
+    function Get_user_name($user_id)
+    {
+        $this->query = "
+        SELECT * FROM user_table 
+        WHERE user_id = '".$user_id."'
+        ";
+        $result = $this->get_result();
+        foreach($result as $row)
+        {
             return $row["user_name"];
-		}
-	}
+        }
+    }
 
 
-	public function Get_total_departments()
-	{
-		$this->query = "
-			SELECT COUNT(DISTINCT department) AS total_departments
-			FROM `tbl_researchdata`
-			WHERE `status` = 1
-		";
-	
-		$result = $this->get_result(); 
-	
-		foreach ($result as $row)
-		{
-			if (!is_null($row["total_departments"]))
-			{
-				return number_format($row["total_departments"]);
-			}
-			else
-			{
-				return '0';
-			}
-		}
-	}
-	
-	public function Get_department_program_count()
-	{
-		$this->query = "
-			SELECT department, COUNT(department) AS programcount
-			FROM `tbl_researchdata`
-			WHERE `status` = 1
-			GROUP BY department
-			ORDER BY department
-		";
-	
-		$result = $this->get_result();
-	
-		$departments = [];
-	
-		foreach ($result as $row)
-		{
-			if (!is_null($row["programcount"]))
-			{
-				$departments[] = [
-					'department' => $row['department'],
-					'programcount' => number_format($row['programcount'])
-				];
-			}
-			else
-			{
-				$departments[] = [
-					'department' => $row['department'],
-					'programcount' => '0'
-				];
-			}
-		}
-	
-		return $departments;
-	}
+    public function Get_total_departments()
+    {
+        $this->query = "
+            SELECT COUNT(DISTINCT department) AS total_departments
+            FROM `tbl_researchdata`
+            WHERE `status` = 1
+        ";
+    
+        $result = $this->get_result(); 
+    
+        foreach ($result as $row)
+        {
+            if (!is_null($row["total_departments"]))
+            {
+                return number_format($row["total_departments"]);
+            }
+            else
+            {
+                return '0';
+            }
+        }
+    }
+    
+    public function Get_department_program_count()
+    {
+        $this->query = "
+            SELECT department, COUNT(department) AS programcount
+            FROM `tbl_researchdata`
+            WHERE `status` = 1
+            GROUP BY department
+            ORDER BY department
+        ";
+    
+        $result = $this->get_result();
+    
+        $departments = [];
+    
+        foreach ($result as $row)
+        {
+            if (!is_null($row["programcount"]))
+            {
+                $departments[] = [
+                    'department' => $row['department'],
+                    'programcount' => number_format($row['programcount'])
+                ];
+            }
+            else
+            {
+                $departments[] = [
+                    'department' => $row['department'],
+                    'programcount' => '0'
+                ];
+            }
+        }
+    
+        return $departments;
+    }
 
-	public function Get_total_department_count()
+    public function Get_total_department_count()
     {
         $this->query = "
             SELECT COUNT(tbl_researchdata.department) AS countt
@@ -615,5 +618,3 @@ if (mysqli_num_rows($resultpaper) > 0) {
 } else {
     $papertotal = 0;
 }
-
-?>

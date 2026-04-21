@@ -59,11 +59,11 @@
                         <div class="col-md-4 form-group mb-4">
                         <label><i class="far fa-calendar-alt mr-2 text-primary"></i>Period of Impl.</label>
                         <div class="input-group">
-                            <input type="date" id="period_start" class="form-control" data-parsley-required="true" />
+                            <input type="date" name="period_start" id="period_start" class="form-control" data-parsley-required="true" />
                             <div class="input-group-append input-group-prepend">
                                 <span class="input-group-text">to</span>
                             </div>
-                            <input type="date" id="period_end" class="form-control" data-parsley-required="true" />
+                            <input type="date" name="period_end" id="period_end" class="form-control" data-parsley-required="true" />
                         </div>
                         <input type="hidden" name="period_implement" id="period_implement" />
                     </div>
@@ -89,7 +89,7 @@
                             <label for="budget"><i class="fas fa-money-bill-wave mr-2 text-primary"></i>Budget</label>
                             <div class="input-group">
                                 <div class="input-group-prepend"><span class="input-group-text bg-light">₱</span></div>
-                                <input type="number" name="budget" id="budget" class="form-control" placeholder="0.00" required />
+                                <input type="number" step="0.01" name="budget" id="budget" class="form-control" placeholder="0.00" required />
                             </div>
                         </div>
                     </div>
@@ -136,3 +136,30 @@
         </form>
     </div>
 </div>
+<script>
+    // Auto-fill Project Leader and Assistant Coordinators
+    $(document).off('change', '#linked_extension_project').on('change', '#linked_extension_project', function() {
+        var projectID = $(this).val();
+        if(projectID) {
+            $.ajax({
+                url: "actions/extension_action.php",
+                method: "POST",
+                data: { project_id: projectID, action_ext: 'fetch_project_info' },
+                dataType: "json",
+                success: function(data) {
+                    if(data.proj_lead !== undefined) {
+                        $('#proj_lead').val(data.proj_lead);
+                        if ($('#proj_lead').parsley()) { $('#proj_lead').parsley().validate(); }
+                    }
+                    if(data.assist_coordinators !== undefined) {
+                        $('#assist_coordinators').val(data.assist_coordinators);
+                        if ($('#assist_coordinators').parsley()) { $('#assist_coordinators').parsley().validate(); }
+                    }
+                }
+            });
+        } else {
+            $('#proj_lead').val('');
+            $('#assist_coordinators').val('');
+        }
+    });
+</script>

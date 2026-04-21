@@ -75,6 +75,28 @@ $('#ext_project_form').on('submit', function (event) {
 
 // Add New Extension
 $('#add_extension').click(function () {
+    // Auto-fill Project Leader when a Base Extension Project is selected
+$(document).on('change', '#linked_extension_project', function() {
+    var projectID = $(this).val();
+    if(projectID) {
+        $.ajax({
+            url: "actions/extension_action.php",
+            method: "POST",
+            data: { project_id: projectID, action_ext: 'fetch_project_info' },
+            dataType: "json",
+            success: function(data) {
+                if(data.proj_lead) {
+                    $('#proj_lead').val(data.proj_lead);
+                    // Tell Parsley to re-validate the field since we injected text
+                    if ($('#proj_lead').parsley()) { $('#proj_lead').parsley().validate(); }
+                }
+            }
+        });
+    } else {
+        // Clear if they deselect the project
+        $('#proj_lead').val('');
+    }
+});
     $('#ext_project_form')[0].reset();
     
     // Clear custom date fields

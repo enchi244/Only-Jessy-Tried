@@ -7,6 +7,70 @@ $object = new rms();
 if (isset($_POST["action_ext"])) {
 
     if ($_POST["action_ext"] == 'fetch_all') {
+        if ($_POST["action_ext"] == 'fetch_project_info') {
+        $proj_id = intval($_POST['project_id']);
+        $data = array('proj_lead' => '', 'assist_coordinators' => '');
+
+        // 1. Fetch the main leader from the Extension Project
+        $object->query = "
+            SELECT r.firstName, r.familyName, ep.researcherID 
+            FROM tbl_extension_project_conducted ep
+            LEFT JOIN tbl_researchdata r ON ep.researcherID = r.id
+            WHERE ep.id = '".$proj_id."'
+        ";
+        $result = $object->get_result();
+        $lead_id = 0;
+        foreach($result as $row) {
+            $data['proj_lead'] = trim($row['firstName'] . ' ' . $row['familyName']);
+            $lead_id = $row['researcherID'];
+        }
+
+        // 2. Fetch the Assistant Coordinators via the linked Research Projects
+        $object->query = "SELECT research_id FROM tbl_extension_research_links WHERE extension_id = '".$proj_id."'";
+        $links = $object->get_result();
+        $coordinators = array();
+        
+        if (count($links) > 0) {
+            $research_ids = [];
+            foreach($links as $l) { $research_ids[] = $l['research_id']; }
+            $in_clause = implode(',', $research_ids);
+            
+            // Join with collaborators, excluding the main lead
+            $object->query = "
+                SELECT DISTINCT r.firstName, r.familyName 
+                FROM tbl_research_collaborators rc
+                JOIN tbl_researchdata r ON rc.researcher_id = r.id
+                WHERE rc.research_id IN (".$in_clause.") AND rc.researcher_id != '".$lead_id."'
+            ";
+            $collabs = $object->get_result();
+            foreach($collabs as $c) {
+                $coordinators[] = trim($c['firstName'] . ' ' . $c['familyName']);
+            }
+        }
+        
+        $data['assist_coordinators'] = implode(', ', $coordinators);
+        echo json_encode($data);
+        exit;
+    }
+        if ($_POST["action_ext"] == 'fetch_project_info') {
+        $proj_id = intval($_POST['project_id']);
+        $data = array('proj_lead' => '', 'assist_coordinators' => '');
+
+        // Fetch the main researcher/leader of the parent project
+        $object->query = "
+            SELECT r.firstName, r.familyName 
+            FROM tbl_extension_project_conducted ep
+            LEFT JOIN tbl_researchdata r ON ep.researcherID = r.id
+            WHERE ep.id = '".$proj_id."'
+        ";
+        $result = $object->get_result();
+        foreach($result as $row) {
+            $data['proj_lead'] = trim($row['firstName'] . ' ' . $row['familyName']);
+        }
+        
+        echo json_encode($data);
+        exit;
+    }
         $order_column = array('tbl_researchdata.familyName', 'tbl_ext.title', 'tbl_ext.proj_lead', 'tbl_ext.period_implement', 'tbl_ext.budget');
         $main_query = "SELECT tbl_ext.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix, tbl_researchdata.academic_rank, tbl_researchdata.program AS primary_discipline FROM tbl_ext LEFT JOIN tbl_researchdata ON tbl_ext.researcherID = tbl_researchdata.id";
         $search_query = " WHERE tbl_ext.status = 1 "; 
