@@ -1,5 +1,5 @@
 <div id="researcherModal" class="modal fade" data-backdrop="static" tabindex="-1" aria-labelledby="researcherModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 1250px;">
         <form method="post" id="researcher_form" class="w-100">
             <div class="modal-content">
                 <div class="modal-header">
@@ -13,7 +13,8 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
+                
+                <div class="modal-body px-4" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
                     <span id="form_message_rm"></span>
 
                     <div class="form-group mb-4">
@@ -29,19 +30,19 @@
 
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-user mr-2 text-secondary"></i>Personal Information</h6>
                     <div class="form-group row mb-4">
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <label for="familyName">Family Name</label>
                             <input type="text" name="familyName" id="familyName" class="form-control" required placeholder="Last Name" maxlength="100" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <label for="firstName">First Name</label>
                             <input type="text" name="firstName" id="firstName" class="form-control" required placeholder="First Name" maxlength="100" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <label for="middleName">Middle Name</label>
                             <input type="text" name="middleName" id="middleName" class="form-control" placeholder="Middle Name" maxlength="100" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <label for="Suffix">Suffix</label>
                             <input type="text" name="Suffix" id="Suffix" class="form-control" placeholder="E.g. Jr, Sr, III" maxlength="10" />
                         </div>
@@ -49,7 +50,7 @@
 
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-building mr-2 text-secondary"></i>Academic Assignment</h6>
                     <div class="form-group row mb-4">
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label for="department">Select Department</label>
                             <select name="department" id="department" class="form-control" required data-parsley-trigger="change">
                                 <option value="">Select Department</option>
@@ -62,10 +63,10 @@
                                 ?>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="program">Major Discipline/Program</label>
+                        <div class="col-md-4 mb-2">
+                            <label for="program">Major Discipline</label>
                             <select name="program" id="program" class="form-control" required data-parsley-trigger="change">
-                                <option value="">Select Major Discipline or Program</option>
+                                <option value="">Select Program</option>
                                 <?php
                                 $object->query = "SELECT * FROM tbl_majordiscipline";
                                 $program_result = $object->get_result();
@@ -75,10 +76,10 @@
                                 ?>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label for="academic_rank">Academic Rank</label>
                             <select name="academic_rank" id="academic_rank" class="form-control" required data-parsley-trigger="change">
-                                <option value="">Select Academic Rank</option>
+                                <option value="">Select Rank</option>
                                 <option value="Instructor I">Instructor I</option>
                                 <option value="Instructor II">Instructor II</option>
                                 <option value="Instructor III">Instructor III</option>
@@ -106,60 +107,60 @@
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-graduation-cap mr-2 text-secondary"></i>Educational Background</h6>
                     
                     <div class="form-group row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Bachelor's Degree</label>
                             <input type="text" name="bachelor_degree" id="bachelor_degree" class="form-control" placeholder="Degree Name" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Institution</label>
                             <input type="text" name="bachelor_institution" id="bachelor_institution" class="form-control" placeholder="University/College" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Year Graduated</label>
                             <input type="text" name="bachelor_YearGraduated" id="bachelor_YearGraduated" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
 
                     <div class="form-group row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Master's Degree</label>
                             <input type="text" name="masterDegree" id="masterDegree" class="form-control" placeholder="Degree Name" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Institution</label>
                             <input type="text" name="masterInstitution" id="masterInstitution" class="form-control" placeholder="University/College" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Year Graduated</label>
                             <input type="text" name="masterYearGraduated" id="masterYearGraduated" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
 
                     <div class="form-group row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Doctorate Degree</label>
                             <input type="text" name="doctorateDegree" id="doctorateDegree" class="form-control" placeholder="Degree Name" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Institution</label>
                             <input type="text" name="doctorateInstitution" id="doctorateInstitution" class="form-control" placeholder="University/College" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Year Graduated</label>
                             <input type="text" name="doctorateYearGraduate" id="doctorateYearGraduate" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
 
                     <div class="form-group row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Post-Doctorate</label>
                             <input type="text" name="postDegree" id="postDegree" class="form-control" placeholder="Degree Name" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Institution</label>
                             <input type="text" name="postInstitution" id="postInstitution" class="form-control" placeholder="University/College" maxlength="100" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-2">
                             <label>Year Graduated</label>
                             <input type="text" name="postYearGraduate" id="postYearGraduate" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
@@ -167,11 +168,11 @@
 
                 </div> 
                 
-                <div class="modal-footer">
+                <div class="modal-footer border-top-0 pt-3">
                     <input type="hidden" name="hidden_id" id="hidden_id" />
                     <input type="hidden" name="action" id="action" value="Add" />
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <input type="submit" name="submit_button" id="submit_button" class="btn btn-danger pink px-4" value="Save Researcher" />
+                    <button type="button" class="btn btn-outline-secondary font-weight-bold" data-dismiss="modal">Cancel</button>
+                    <input type="submit" name="submit_button" id="submit_button" class="btn btn-danger pink px-4 font-weight-bold shadow-sm" value="Save Researcher" />
                 </div>
             </div>
         </form>

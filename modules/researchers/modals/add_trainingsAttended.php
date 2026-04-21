@@ -13,12 +13,12 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
+                
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
                     <span id="form_message"></span>
 
                     <div class="row">
-                        <!-- Left Column: Training Details -->
-                        <div class="col-lg-7 pr-lg-4">
+                        <div class="col-lg-6 pr-lg-4">
                             <div class="form-group mb-3">
                                 <label for="title_training"><i class="fas fa-heading mr-2 text-primary"></i>Title</label>
                                 <input type="text" name="title_training" id="title_training" class="form-control" placeholder="Enter the title of the training" required />
@@ -57,6 +57,16 @@
                                 </select>
                             </div>
 
+                            <div class="form-group mb-3 pb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="m-0" for="a_link_training"><i class="fas fa-link mr-2 text-primary"></i>External Links (Optional)</label>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="add_new_link_btn_training"><i class="fas fa-plus"></i> Add Link</button>
+                                </div>
+                                <div id="dynamic_links_container_training"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 border-left pl-lg-4">
                             <div class="form-group mb-3">
                                 <label for="venue_training"><i class="fas fa-map-marker-alt mr-2 text-primary"></i>Venue</label>
                                 <input type="text" name="venue_training" id="venue_training" class="form-control" placeholder="Enter the venue" required />
@@ -66,10 +76,7 @@
                                 <label for="sponsor_org"><i class="fas fa-building mr-2 text-primary"></i>Sponsor Organization</label>
                                 <input type="text" name="sponsor_org" id="sponsor_org" class="form-control" placeholder="Enter the sponsor organization" required />
                             </div>
-                        </div>
 
-                        <!-- Right Column: Timeline, Metrics, Links & Files -->
-                        <div class="col-lg-5 border-left pl-lg-4">
                             <div class="row">
                                 <div class="col-md-6 form-group mb-3">
                                     <label for="date_training"><i class="far fa-calendar-alt mr-2 text-primary"></i>Date</label>
@@ -82,15 +89,7 @@
                                 </div>
                             </div>
 
-                            <div class="form-group mb-3 border-bottom pb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="m-0" for="a_link_training"><i class="fas fa-link mr-2 text-primary"></i>External Links (Optional)</label>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="add_new_link_btn_training"><i class="fas fa-plus"></i> Add Link</button>
-                                </div>
-                                <div id="dynamic_links_container_training"></div>
-                            </div>
-
-                            <div class="dynamic-files-section" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <div class="dynamic-files-section mt-4" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
                                 <style>
                                     /* Fix for long file names causing overflow */
                                     .dynamic-files-section .existing-files-container .d-flex > div:first-child,

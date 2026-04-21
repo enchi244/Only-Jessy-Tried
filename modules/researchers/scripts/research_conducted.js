@@ -129,14 +129,18 @@ $('#add_researcherconducted').click(function() {
     $('#researchconducted_form')[0].reset();
     $('#researchconducted_form').parsley().reset();
     
+    // FIX: Properly reset Select2 UIs visually on Add
     $('#sdgs').val([]).trigger('change');  
-    if($.fn.selectpicker) { $('#sdgs').selectpicker('refresh'); }
+    $('#research_agenda_cluster').val('').trigger('change'); 
+    if($.fn.selectpicker) { 
+        $('#sdgs').selectpicker('refresh'); 
+        $('#research_agenda_cluster').selectpicker('refresh');
+    }
     
     if ($('#collaborators').length) {
         $('#collaborators').val(null).trigger('change');
     }
 
-    // UPDATED to use classes for the universal widget
     $('#researchconductedModal .new-files-container').html('');
     $('#researchconductedModal .existing-files-container').html('');
 
@@ -147,7 +151,9 @@ $('#add_researcherconducted').click(function() {
     var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');  
     $('#hiddeny').val(rid);
     
-    if(rid) { $('#lead_researcher_id').val(rid); }
+    if(rid) { 
+        $('#lead_researcher_id').val(rid).trigger('change'); 
+    }
 
     $('#researchconductedModal').modal('show');
     $('#form_message').html('');
@@ -161,7 +167,6 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
     $('#researchconducted_form').parsley().reset();
     $('#form_message').html('');
     
-    // UPDATED to use classes for the universal widget
     $('#researchconductedModal .new-files-container').html('');
     $('#researchconductedModal .existing-files-container').html('');
 
@@ -175,7 +180,11 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
             $('#started_date').val(data.started_date);
             $('#completed_date').val(data.completed_date);
             $('#title').val(data.title);
-            $('#research_agenda_cluster').val(data.research_agenda_cluster);
+            
+            // FIX: Force the UI to update with .trigger('change')
+            $('#research_agenda_cluster').val(data.research_agenda_cluster).trigger('change');
+            if($.fn.selectpicker) { $('#research_agenda_cluster').selectpicker('refresh'); }
+
             $('#lead_researcher_id').val(data.lead_researcher_id).trigger('change');
             
             if(data.sdgs) {
@@ -212,13 +221,12 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
                         </div>
                     `;
                 });
-                // UPDATED to use classes for the universal widget
                 $('#researchconductedModal .existing-files-container').html(filesHtml);
             }
 
-            $('#modal_title').text('Edit Project & Collaborators');
+            $('#modal_title').html('<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;"><i class="fas fa-pencil-alt"></i></div>Edit Project & Collaborators');
             $('#action_researchedconducted').val('Edit');
-            $('#submit_button_researchedconducted').val('Edit');
+            $('#submit_button_researchedconducted').val('Save Changes');
             $('#researchconductedModal').modal('show');
             $('#hidden_id_researchedconducted').val(rcid);
         }
@@ -313,34 +321,4 @@ $(document).on('click', '.delete-existing-file', function(e) {
             });
         }
     });
-});
-
-function loadPublicationTab(researcherID) {
-    $('#publication_form').parsley();
-    if ($.fn.dataTable.isDataTable('#publication_table')) {
-        $('#publication_table').DataTable().clear().destroy();
-    }
-
-    var publicationTable = $('#publication_table').DataTable({
-        "processing": true,
-        "serverSide": true,
-        "order": [],
-        "ajax": {
-            url: "actions/publication_action.php",
-            type: "POST",
-            data: {rid: researcherID, action_publication: 'fetch'}
-        },
-        "columnDefs": [
-            {
-                "targets": [0],
-                "orderable": false,
-            },
-        ],
-    });
-    return publicationTable;
-}
-
-$('#publicationModal').on('shown.bs.tab', function() {
-    var id = $('#hidden_id_rd').val(); 
-    loadPublicationTab(id); 
 });

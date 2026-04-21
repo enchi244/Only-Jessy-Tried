@@ -13,45 +13,15 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
+                
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
                     <span id="form_message"></span>
 
                     <div class="row">
-                        <!-- Left Column: Paper Identity & Details -->
-                        <div class="col-lg-7 pr-lg-4">
+                        <div class="col-lg-6 pr-lg-4">
                             <div class="form-group mb-3">
                                 <label for="title_pp"><i class="fas fa-heading mr-2 text-primary"></i>Title</label>
                                 <input type="text" name="title_pp" id="title_pp" class="form-control" placeholder="Enter the title of the paper presentation" required />
-                            </div>
-
-                            <div class="form-group mb-3">
-                                <label for="conference_title"><i class="fas fa-users mr-2 text-primary"></i>Conference Level</label>
-                                <select name="conference_title" id="conference_title" class="form-control" required>
-                                    <option value="">Select Conference Level</option>
-                                    <option value="Local">Local</option>
-                                    <option value="Regional">Regional</option>
-                                    <option value="National">National</option>
-                                    <option value="International">International</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group mb-3">
-                                <label for="conference_venue"><i class="fas fa-map-marker-alt mr-2 text-primary"></i>Conference Venue</label>
-                                <input type="text" name="conference_venue" id="conference_venue" class="form-control" placeholder="Enter the conference venue" required />
-                            </div>
-
-                            <div class="form-group mb-3">
-                                <label for="conference_organizer"><i class="fas fa-building mr-2 text-primary"></i>Conference Organizer</label>
-                                <input type="text" name="conference_organizer" id="conference_organizer" class="form-control" placeholder="Enter the conference organizer" required />
-                            </div>
-
-                            <div class="form-group mb-3">
-                                <label for="type_pp"><i class="fas fa-file-alt mr-2 text-primary"></i>Type of Paper</label>
-                                <select name="type_pp" id="type_pp" class="form-control" required>
-                                    <option value="">Select Type of Paper</option>
-                                    <option value="Oral">Oral</option>
-                                    <option value="Poster">Poster</option>
-                                </select>
                             </div>
 
                             <div class="form-group mb-3">
@@ -67,24 +37,53 @@
                                     ?>
                                 </select>
                             </div>
-                        </div>
-
-                        <!-- Right Column: Timeline, Links & Files -->
-                        <div class="col-lg-5 border-left pl-lg-4">
+                            
                             <div class="form-group mb-3">
-                                <label for="date_paper"><i class="far fa-calendar-alt mr-2 text-primary"></i>Date of Presentation</label>
-                                <input type="date" name="date_paper" id="date_paper" class="form-control" required />
+                                <label for="type_pp"><i class="fas fa-file-alt mr-2 text-primary"></i>Type of Paper</label>
+                                <select name="type_pp" id="type_pp" class="form-control" required>
+                                    <option value="">Select Type of Paper</option>
+                                    <option value="Oral">Oral</option>
+                                    <option value="Poster">Poster</option>
+                                </select>
                             </div>
 
-                            <div class="form-group mb-3 border-bottom pb-3">
+                            <div class="form-group mb-3">
+                                <label for="conference_title"><i class="fas fa-users mr-2 text-primary"></i>Conference Level</label>
+                                <select name="conference_title" id="conference_title" class="form-control" required>
+                                    <option value="">Select Conference Level</option>
+                                    <option value="Local">Local</option>
+                                    <option value="Regional">Regional</option>
+                                    <option value="National">National</option>
+                                    <option value="International">International</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-3 pb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="m-0" for="a_link"><i class="fas fa-link mr-2 text-primary"></i>External Links (Optional)</label>
                                     <button type="button" class="btn btn-sm btn-outline-primary" id="add_new_link_btn"><i class="fas fa-plus"></i> Add Link</button>
                                 </div>
                                 <div id="dynamic_links_container"></div>
                             </div>
+                        </div>
 
-                            <div class="dynamic-files-section" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div class="col-lg-6 border-left pl-lg-4">
+                            <div class="form-group mb-3">
+                                <label for="conference_venue"><i class="fas fa-map-marker-alt mr-2 text-primary"></i>Conference Venue</label>
+                                <input type="text" name="conference_venue" id="conference_venue" class="form-control" placeholder="Enter the conference venue" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="conference_organizer"><i class="fas fa-building mr-2 text-primary"></i>Conference Organizer</label>
+                                <input type="text" name="conference_organizer" id="conference_organizer" class="form-control" placeholder="Enter the conference organizer" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="date_paper"><i class="far fa-calendar-alt mr-2 text-primary"></i>Date of Presentation</label>
+                                <input type="date" name="date_paper" id="date_paper" class="form-control" required />
+                            </div>
+
+                            <div class="dynamic-files-section mt-4" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
                                 <style>
                                     /* Fix for long file names causing overflow */
                                     .dynamic-files-section .existing-files-container .d-flex > div:first-child,
