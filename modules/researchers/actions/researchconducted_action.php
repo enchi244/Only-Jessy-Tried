@@ -67,6 +67,23 @@ if (!function_exists('handle_research_files')) {
     }
 }
 
+// --- NEW FUNCTION MOVED OUTSIDE THE IF STATEMENT ---
+if (!function_exists('update_has_files_status')) {
+    function update_has_files_status($object, $research_id) {
+        // Count how many files actually exist for this research
+        $object->query = "SELECT COUNT(*) as file_count FROM tbl_research_files WHERE research_id = :rid";
+        $object->execute([':rid' => $research_id]);
+        $result = $object->get_result();
+        
+        $status = ($result[0]['file_count'] > 0) ? 'With' : 'None';
+        
+        // Force the main table to update its status
+        $object->query = "UPDATE tbl_researchconducted SET has_files = :status WHERE id = :rid";
+        $object->execute([':status' => $status, ':rid' => $research_id]);
+    }
+}
+// --- END OF NEW FUNCTION ---
+
 if(isset($_POST["action_researchedconducted"])) {
 
     if($_POST["action_researchedconducted"] == 'fetch_collaborators') {
@@ -251,7 +268,6 @@ if(isset($_POST["action_researchedconducted"])) {
         $error = ''; $success = '';
         $research_id = $_POST['hidden_id_researchedconducted'];
         $lead_researcher_id = $_POST['lead_researcher_id'];
-        $has_files = $_POST['has_files'];
 
         $data = array(
             ':lead_researcher_id' => $lead_researcher_id,
@@ -263,13 +279,14 @@ if(isset($_POST["action_researchedconducted"])) {
             ':funding_source' => $_POST['funding_source'],
             ':approved_budget' => $_POST['approved_budget'],
             ':stat' => $_POST['stat'],
-            ':has_files' => $has_files,
             ':hidden_id_researchedconducted' => $research_id
         );
 
-        $object->query = "UPDATE tbl_researchconducted SET lead_researcher_id = :lead_researcher_id, title = :title, research_agenda_cluster = :research_agenda_cluster, sdgs = :sdgs, started_date = :started_date, completed_date = :completed_date, funding_source = :funding_source, approved_budget = :approved_budget, stat = :stat, has_files = :has_files WHERE id = :hidden_id_researchedconducted";
+        // 1. Update main data (excluding has_files for now)
+        $object->query = "UPDATE tbl_researchconducted SET lead_researcher_id = :lead_researcher_id, title = :title, research_agenda_cluster = :research_agenda_cluster, sdgs = :sdgs, started_date = :started_date, completed_date = :completed_date, funding_source = :funding_source, approved_budget = :approved_budget, stat = :stat WHERE id = :hidden_id_researchedconducted";
         $object->execute($data);
 
+        // 2. Handle Collaborators
         $object->query = "DELETE FROM tbl_research_collaborators WHERE research_id = :rid";
         $object->execute([':rid' => $research_id]);
 
@@ -280,22 +297,14 @@ if(isset($_POST["action_researchedconducted"])) {
             $object->execute([':rid' => $research_id, ':uid' => $res_id]);
         }
 
-        if($has_files == 'With' && isset($_FILES['research_files'])) {
+        // 3. Handle newly added files (this was failing before because it relied on $_POST['has_files'])
+        if(isset($_FILES['research_files']) && !empty($_FILES['research_files']['name'][0])) {
             $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
             handle_research_files($object, $research_id, $categories, $_FILES['research_files']);
         }
 
-        if($has_files == 'None') {
-            $clean_id = intval($research_id);
-            $object->query = "SELECT file_path FROM tbl_research_files WHERE research_id = '".$clean_id."'";
-            $files_to_delete = $object->get_result();
-            foreach($files_to_delete as $file) {
-                $physical_path = '../../../' . $file['file_path'];
-                if(file_exists($physical_path)) { unlink($physical_path); }
-            }
-            $object->query = "DELETE FROM tbl_research_files WHERE research_id = '".$clean_id."'";
-            $object->execute();
-        }
+        // 4. AUTOMATICALLY sync the 'has_files' status based on actual DB records
+        update_has_files_status($object, $research_id);
 
         $success = '<div class="alert alert-success">Project & Collaborators Updated Successfully</div>';
         echo json_encode(array('error' => $error, 'success' => $success));
@@ -303,17 +312,31 @@ if(isset($_POST["action_researchedconducted"])) {
 
     if($_POST["action_researchedconducted"] == 'delete_file') {
         $file_id = intval($_POST['file_id']);
-        $object->query = "SELECT file_path FROM tbl_research_files WHERE id = '".$file_id."'";
+        
+        // 1. Grab the research_id before deleting so we can update the parent table later
+        $object->query = "SELECT research_id, file_path FROM tbl_research_files WHERE id = '".$file_id."'";
         $file_data = $object->get_result();
+        
         $file_deleted = false;
+        $research_id = null;
+        
         foreach($file_data as $row) {
             $file_deleted = true;
+            $research_id = $row['research_id'];
             $physical_path = '../../../' . $row['file_path'];
             if(file_exists($physical_path)) { unlink($physical_path); }
         }
+        
         if($file_deleted) {
+            // 2. Delete the file record from the database
             $object->query = "DELETE FROM tbl_research_files WHERE id = '".$file_id."'";
             $object->execute();
+            
+            // 3. AUTOMATICALLY sync the 'has_files' status (if that was the last file, it becomes 'None')
+            if ($research_id) {
+                update_has_files_status($object, $research_id);
+            }
+            
             echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'File not found.']);
