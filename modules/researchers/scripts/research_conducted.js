@@ -74,7 +74,6 @@ $('#researchconducted_form').on('submit', function(event) {
             success: function(data) {
                 $('#submit_button_researchedconducted').attr('disabled', false);
                 
-                // Check if our PHP caught an exception and sent it back
                 if(data.error && data.error != '') {
                     $('#form_message').html('<div class="alert alert-danger">' + data.error + '</div>');
                     $('#submit_button_researchedconducted').val($('#action_researchedconducted').val());
@@ -137,8 +136,9 @@ $('#add_researcherconducted').click(function() {
         $('#collaborators').val(null).trigger('change');
     }
 
-    $('#new_files_container').html('');
-    $('#existing_files_container').html('');
+    // UPDATED to use classes for the universal widget
+    $('#researchconductedModal .new-files-container').html('');
+    $('#researchconductedModal .existing-files-container').html('');
 
     $('#modal_title').text('Add Research Conducted');
     $('#action_researchedconducted').val('Add');
@@ -160,8 +160,10 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
     $('#researchconducted_form')[0].reset();
     $('#researchconducted_form').parsley().reset();
     $('#form_message').html('');
-    $('#new_files_container').html('');
-    $('#existing_files_container').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#researchconductedModal .new-files-container').html('');
+    $('#researchconductedModal .existing-files-container').html('');
 
     $.ajax({
         url:"actions/researchconducted_action.php",
@@ -210,7 +212,8 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
                         </div>
                     `;
                 });
-                $('#existing_files_container').html(filesHtml);
+                // UPDATED to use classes for the universal widget
+                $('#researchconductedModal .existing-files-container').html(filesHtml);
             }
 
             $('#modal_title').text('Edit Project & Collaborators');
@@ -269,35 +272,6 @@ $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .de
             });
         }
     });
-});
-
-$(document).on('click', '#add_file_btn', function() {
-    var fileRow = `
-        <div class="row align-items-center mb-2 new-file-row">
-            <div class="col-md-4">
-                <select name="file_categories[]" class="form-control form-control-sm" required>
-                    <option value="">Select Category</option>
-                    <option value="SO">SO</option>
-                    <option value="MOA">MOA</option>
-                    <option value="Terminal Report">Terminal Report</option>
-                    <option value="PSE-PES">PSE-PES</option>
-                    <option value="Financial Report">Financial Report</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-                <input type="file" name="research_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
-            </div>
-            <div class="col-md-2 text-right">
-                <button type="button" class="btn btn-sm btn-danger remove-new-file"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-    `;
-    $('#new_files_container').append(fileRow);
-});
-
-$(document).on('click', '.remove-new-file', function() {
-    $(this).closest('.new-file-row').remove();
 });
 
 $(document).on('click', '.delete-existing-file', function(e) {

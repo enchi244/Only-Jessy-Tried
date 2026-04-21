@@ -74,7 +74,7 @@ $('#extension_project_form').on('submit', function (event) {
             },
             success: function (data) {
                 $('#submit_button_extension').attr('disabled', false).html('Save Data');
-                if (data.error != '') {
+                if (data.error && data.error != '') {
                     $('#form_message').html(data.error);
                 } else {
                     $('#extensionProjectModal').modal('hide');
@@ -100,6 +100,11 @@ $('#extension_project_form').on('submit', function (event) {
                         $('#message').html('');
                     }, 5000);
                 }
+            },
+            error: function(xhr) {
+                $('#submit_button_extension').attr('disabled', false).html('Save Data');
+                Swal.fire('Error', 'An error occurred while saving the data. Check the console.', 'error');
+                console.error(xhr.responseText);
             }
         });
     }
@@ -120,8 +125,10 @@ $('#add_extension_project').click(function () {
     if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
     
     $('#linked_research_projects').val(null).trigger('change'); 
-    $('#new_files_container_extp').html('');
-    $('#existing_files_container_extp').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#extensionProjectModal .new-files-container').html('');
+    $('#extensionProjectModal .existing-files-container').html('');
 
     $('#modal_title').text('Add Extension Project');  
     $('#action_extension').val('Add');
@@ -141,8 +148,10 @@ $(document).on('click', '.edit_button_extension_project', function () {
     
     $('#linked_research_projects').val(null).trigger('change');
     $('#form_message').html('');
-    $('#new_files_container_extp').html('');
-    $('#existing_files_container_extp').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#extensionProjectModal .new-files-container').html('');
+    $('#extensionProjectModal .existing-files-container').html('');
 
     $.ajax({
         url: "actions/extension_project_action.php",
@@ -165,7 +174,7 @@ $(document).on('click', '.edit_button_extension_project', function () {
                 }
                 return ''; 
             }
-           
+            
             $('#title_extp').val(data.title);
             $('#start_date_extc').val(parseLegacyDate(data.start_date));
             $('#completion_date_extc').val(parseLegacyDate(data.completed_date));
@@ -178,24 +187,21 @@ $(document).on('click', '.edit_button_extension_project', function () {
             if(data.linked_projects && data.linked_projects.length > 0) {
                 $('#linked_research_projects').val(data.linked_projects).trigger('change');
             }
-
-            // Handle Files
-            $('#has_files_extp').val(data.has_files).trigger('change');
             
             if(data.existing_files && data.existing_files.length > 0) {
                 var filesHtml = '';
                 data.existing_files.forEach(function(f) {
                     filesHtml += `
-                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="extp_file_row_${f.id}">
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="file_row_${f.id}">
                             <div>
                                 <span class="badge badge-info mr-2">${f.category}</span>
                                 <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-extp-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                 });
-                $('#existing_files_container_extp').html(filesHtml);
+                $('#extensionProjectModal .existing-files-container').html(filesHtml);
             }
 
             $('#modal_title').text('Edit Extension Project');
@@ -243,67 +249,45 @@ $(document).on('click', '.delete_button_extension_project, .delete_master_extens
     });
 });
 
-$(document).on('click', '#add_file_btn_extp', function() {
-    var fileRow = `
-        <div class="row align-items-center mb-2 new-file-row">
-            <div class="col-md-4">
-                <select name="extp_file_categories[]" class="form-control form-control-sm" required>
-                    <option value="">Select Category</option>
-                    <option value="Terminal Report">Terminal Report</option>
-                    <option value="MOA">MOA</option>
-                    <option value="SO">SO</option>
-                    <option value="Financial Report">Financial Report</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-<input type="file" name="extp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
-            <div class="col-md-2 text-right">
-                <button type="button" class="btn btn-sm btn-danger remove-new-extp-file"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-    `;
-    $('#new_files_container_extp').append(fileRow);
-});
-
-$(document).on('click', '.remove-new-extp-file', function() {
-    $(this).closest('.new-file-row').remove();
-});
-
-$(document).on('click', '.delete-existing-extp-file', function(e) {
+// Delete Existing Server File via AJAX
+$(document).on('click', '.delete-existing-file', function(e) {
     e.preventDefault();
     var btn = $(this);
     var fileId = btn.attr('data-file-id');
-    var row = $('#extp_file_row_' + fileId);
+    var row = $('#file_row_' + fileId);
     
-    Swal.fire({
-        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-            $.ajax({
-                url: "actions/extension_project_action.php",
-                method: "POST",
-                data: { action_extension: 'delete_file', file_id: fileId },
-                dataType: "json",
-                success: function(data) {
-                    if(data.status === 'success') {
-                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
-                        row.fadeOut(300, function() { $(this).remove(); });
-                    } else {
+    // Check if we're inside the Extension Project modal
+    if(btn.closest('#extensionProjectModal').length > 0) {
+        Swal.fire({
+            title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                $.ajax({
+                    url: "actions/extension_project_action.php",
+                    method: "POST",
+                    data: { action_extension: 'delete_file', file_id: fileId },
+                    dataType: "json",
+                    success: function(data) {
+                        if(data.status === 'success') {
+                            Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                            row.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
                         btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                        Swal.fire('Error', data.message, 'error');
+                        console.error("Delete Error:", xhr.responseText);
+                        Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
                     }
-                },
-                error: function(xhr) {
-                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                    console.error("Delete Error:", xhr.responseText);
-                    Swal.fire('Server Error', 'Failed to delete.', 'error');
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 });
+
 // --- VIEW ASSOCIATED EXTENSIONS MODAL TRIGGER ---
 $(document).on('click', '.view_associated_extensions', function (e) {
     e.preventDefault();

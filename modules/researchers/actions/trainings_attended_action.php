@@ -22,31 +22,6 @@ if (!function_exists('parse_legacy_date_php')) {
     }
 }
 
-if (!function_exists('handle_training_files')) {
-    function handle_training_files($object, $training_id, $categories, $files) {
-        if(isset($files['name']) && is_array($files['name'])) {
-            $upload_dir = '../../../uploads/research_files/';
-            if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
-            
-            for($i = 0; $i < count($files['name']); $i++) {
-                if($files['error'][$i] == 0) {
-                    $category = isset($categories[$i]) ? $categories[$i] : 'Other';
-                    $original_name = basename($files['name'][$i]);
-                    $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
-                    $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo($original_name, PATHINFO_FILENAME));
-                    $new_name = 'TRAIN_' . $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
-                    $target_file = $upload_dir . $new_name;
-                    $db_path = 'uploads/research_files/' . $new_name; 
-                    if(move_uploaded_file($files['tmp_name'][$i], $target_file)) {
-                        $object->query = "INSERT INTO tbl_training_files (training_id, file_category, file_name, file_path) VALUES (:tid, :cat, :fname, :fpath)";
-                        $object->execute([':tid' => $training_id, ':cat' => $category, ':fname' => $original_name, ':fpath' => $db_path]);
-                    }
-                }
-            }
-        }
-    }
-}
-
 if (isset($_POST["action_training"])) {
 
     if ($_POST["action_training"] == 'fetch_all') {
@@ -55,11 +30,11 @@ if (isset($_POST["action_training"])) {
         $search_query = " WHERE tbl_trainingsattended.status = 1 "; // HIDE TRASH
         
         if (isset($_POST["search"]["value"])) {
-            $search_value = $_POST["search"]["value"];
+            $search_value = addslashes($_POST["search"]["value"]);
             $search_query .= "AND (tbl_trainingsattended.title LIKE '%" . $search_value . "%' OR tbl_researchdata.familyName LIKE '%" . $search_value . "%') ";
         }
         $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY tbl_trainingsattended.id DESC ";
-        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . intval($_POST['start']) . ', ' . intval($_POST['length']) : "";
 
         $object->query = $main_query . $search_query . $order_query;
         $object->execute();
@@ -77,11 +52,11 @@ if (isset($_POST["action_training"])) {
             $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-1 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
             $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
             $sub_array[] = '<div class="mb-1"><span class="font-weight-bold text-gray-800">'.$author_name.'</span>'.$rank_badge.'</div>'.$discipline_badge;
-            $sub_array[] = $row["title"];
-            $sub_array[] = $row["venue"]; // Matches header 3
-            $sub_array[] = parse_legacy_date_php($row["date_train"]); // Matches header 4
-            $sub_array[] = $row["lvl"]; // Matches header 5
-            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_training" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=tra" class="btn view_button d-none"></a></div>'; // Matches header 6
+            $sub_array[] = htmlspecialchars($row["title"]);
+            $sub_array[] = htmlspecialchars($row["venue"]); 
+            $sub_array[] = parse_legacy_date_php($row["date_train"]); 
+            $sub_array[] = htmlspecialchars($row["lvl"]); 
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_training" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=tra" class="btn view_button d-none"></a></div>';
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
@@ -92,14 +67,14 @@ if (isset($_POST["action_training"])) {
         $order_column = array('title', 'type', 'venue', 'date_train', 'lvl', 'type_learning_dev', 'sponsor_org', 'totnh', 'has_files');
         $main_query = "SELECT * FROM tbl_trainingsattended";
         
-        $search_query = " WHERE researcherID = '" . $_POST["rid"] . "' AND status = 1 "; // HIDE TRASH
+        $search_query = " WHERE researcherID = '" . intval($_POST["rid"]) . "' AND status = 1 "; 
 
         if (isset($_POST["search"]["value"])) {
-            $search_value = $_POST["search"]["value"];
+            $search_value = addslashes($_POST["search"]["value"]);
             $search_query .= "AND (title LIKE '%" . $search_value . "%' OR type LIKE '%" . $search_value . "%') ";
         }
         $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY id ASC ";  
-        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . intval($_POST['start']) . ', ' . intval($_POST['length']) : "";
 
         $object->query = $main_query . $search_query . $order_query;
         $object->execute();
@@ -114,14 +89,14 @@ if (isset($_POST["action_training"])) {
         foreach ($result as $row) {
             $file_badge = ($row["has_files"] == 'With') ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
             $sub_array = array();
-            $sub_array[] = $row["title"];
-            $sub_array[] = $row["type"];
-            $sub_array[] = $row["venue"];
+            $sub_array[] = htmlspecialchars($row["title"]);
+            $sub_array[] = htmlspecialchars($row["type"]);
+            $sub_array[] = htmlspecialchars($row["venue"]);
             $sub_array[] = parse_legacy_date_php($row["date_train"]);
-            $sub_array[] = $row["lvl"];
-            $sub_array[] = $row["type_learning_dev"];
-            $sub_array[] = $row["sponsor_org"];
-            $sub_array[] = $row["totnh"];
+            $sub_array[] = htmlspecialchars($row["lvl"]);
+            $sub_array[] = htmlspecialchars($row["type_learning_dev"]);
+            $sub_array[] = htmlspecialchars($row["sponsor_org"]);
+            $sub_array[] = htmlspecialchars($row["totnh"]);
             $sub_array[] = '<div align="center">' . $file_badge . '</div>';
             $sub_array[] = '<div align="center"><button type="button" class="btn btn-primary btn-sm edit_button_training" data-id="' . $row["id"] . '"><i class="fas fa-pencil-alt"></i></button> <button type="button" class="btn btn-danger btn-sm delete_button_training" data-id="' . $row["id"] . '"><i class="far fa-trash-alt"></i></button></div>';
             $data[] = $sub_array;
@@ -132,7 +107,8 @@ if (isset($_POST["action_training"])) {
 
     if ($_POST["action_training"] == 'Add') {
         $error = ''; $success = '';
-        $date_train = date("m-d-Y", strtotime($_POST['date_training'])); 
+        $date_train = date("Y-m-d", strtotime($_POST['date_training'])); 
+        $has_files = (isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) ? 'With' : 'None';
 
         $a_link_str = '';
         if(isset($_POST['a_link_training']) && is_array($_POST['a_link_training'])) {
@@ -155,11 +131,12 @@ if (isset($_POST["action_training"])) {
         );
         $object->query = "INSERT INTO tbl_trainingsattended (researcherID, title, type, venue, date_train, lvl, type_learning_dev, sponsor_org, totnh, has_files, a_link, status) VALUES (:researcherID, :title, :type, :venue, :date_train, :lvl, :type_learning_dev, :sponsor_org, :totnh, :has_files, :a_link, 1)";
         $object->execute($data);
-        $new_training_id = $object->connect->lastInsertId();
+        $new_training_id = intval($object->connect->lastInsertId());
 
-        if($has_files == 'With' && isset($_FILES['training_files'])) {
-            $categories = isset($_POST['training_file_categories']) ? $_POST['training_file_categories'] : [];
-            handle_training_files($object, $new_training_id, $categories, $_FILES['training_files']);
+        // PHASE 3: Universal Engine
+        if($has_files == 'With') {
+            $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
+            $object->handle_generic_files($_FILES['research_files'], $categories, $new_training_id, '../../../uploads/research_files/', 'uploads/research_files/', 'tbl_training_files', 'training_id');
         }
 
         $success = '<div class="alert alert-success">Training Added</div>';
@@ -168,17 +145,17 @@ if (isset($_POST["action_training"])) {
     }
 
     if ($_POST["action_training"] == 'fetch_single') {
-        $object->query = "SELECT * FROM tbl_trainingsattended WHERE id = '" . $_POST["trainingID"] . "'";
+        $object->query = "SELECT * FROM tbl_trainingsattended WHERE id = '" . intval($_POST["trainingID"]) . "'";
         $result = $object->get_result();
         $data = array();
         foreach ($result as $row) {
-            $data['title'] = $row["title"];
-            $data['type'] = $row["type"];
-            $data['venue'] = $row["venue"];
-            $data['date_train'] = $row["date_train"]; 
+            $data['title'] = htmlspecialchars_decode($row["title"]);
+            $data['type'] = htmlspecialchars_decode($row["type"]);
+            $data['venue'] = htmlspecialchars_decode($row["venue"]);
+            $data['date_train'] = parse_legacy_date_php($row["date_train"]); 
             $data['lvl'] = $row["lvl"];
-            $data['type_learning_dev'] = $row["type_learning_dev"];
-            $data['sponsor_org'] = $row["sponsor_org"];
+            $data['type_learning_dev'] = htmlspecialchars_decode($row["type_learning_dev"]);
+            $data['sponsor_org'] = htmlspecialchars_decode($row["sponsor_org"]);
             $data['totnh'] = $row["totnh"];
             $data['has_files'] = $row["has_files"];
             $data['a_link'] = $row["a_link"];
@@ -188,7 +165,7 @@ if (isset($_POST["action_training"])) {
         $file_result = $object->get_result();
         $files_array = [];
         foreach($file_result as $f) {
-            $files_array[] = array('id' => $f['id'], 'category' => $f['file_category'], 'name' => $f['file_name'], 'path' => '../../' . $f['file_path']);
+            $files_array[] = array('id' => $f['id'], 'category' => htmlspecialchars_decode($f['file_category']), 'name' => htmlspecialchars_decode($f['file_name']), 'path' => '../../' . $f['file_path']);
         }
         $data['existing_files'] = $files_array;
         echo json_encode($data);
@@ -197,9 +174,8 @@ if (isset($_POST["action_training"])) {
 
     if ($_POST["action_training"] == 'Edit') {
         $error = ''; $success = '';
-        $date_trainu = date("m-d-Y", strtotime($_POST['date_training'])); 
-        $tid = $_POST['hidden_trainingID'];
-        $has_files = (isset($_FILES['training_files']) && !empty($_FILES['training_files']['name'][0])) ? 'With' : 'None';
+        $date_trainu = date("Y-m-d", strtotime($_POST['date_training'])); 
+        $tid = intval($_POST['hidden_trainingID']);
 
         $a_link_str = '';
         if(isset($_POST['a_link_training']) && is_array($_POST['a_link_training'])) {
@@ -207,6 +183,7 @@ if (isset($_POST["action_training"])) {
             $a_link_str = implode("\n", $valid_links);
         }
 
+        // BUG FIXED: Removed manual :has_files variable from Edit to prevent overwriting
         $data = array(
             ':title' => $_POST['title_training'],
             ':type' => $_POST['type_training'],
@@ -216,30 +193,21 @@ if (isset($_POST["action_training"])) {
             ':type_learning_dev' => $_POST['type_learning_dev'],
             ':sponsor_org' => $_POST['sponsor_org'],
             ':totnh' => $_POST['total_hours_training'],
-            ':has_files' => $has_files,
             ':a_link' => $a_link_str,
             ':hidden_trainingID' => $tid
         );
 
-        $object->query = "UPDATE tbl_trainingsattended SET title = :title, type = :type, venue = :venue, date_train = :date_train, lvl = :lvl, type_learning_dev = :type_learning_dev, sponsor_org = :sponsor_org, totnh = :totnh, has_files = :has_files, a_link = :a_link WHERE id = :hidden_trainingID";
+        $object->query = "UPDATE tbl_trainingsattended SET title = :title, type = :type, venue = :venue, date_train = :date_train, lvl = :lvl, type_learning_dev = :type_learning_dev, sponsor_org = :sponsor_org, totnh = :totnh, a_link = :a_link WHERE id = :hidden_trainingID";
         $object->execute($data);
 
-        if($has_files == 'With' && isset($_FILES['training_files'])) {
-            $categories = isset($_POST['training_file_categories']) ? $_POST['training_file_categories'] : [];
-            handle_training_files($object, $tid, $categories, $_FILES['training_files']);
+        // PHASE 3: Universal Engine
+        if(isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) {
+            $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
+            $object->handle_generic_files($_FILES['research_files'], $categories, $tid, '../../../uploads/research_files/', 'uploads/research_files/', 'tbl_training_files', 'training_id');
         }
 
-        if($has_files == 'None') {
-            $clean_id = intval($tid);
-            $object->query = "SELECT file_path FROM tbl_training_files WHERE training_id = '".$clean_id."'";
-            $files_to_delete = $object->get_result();
-            foreach($files_to_delete as $file) {
-                $physical_path = '../../../' . $file['file_path'];
-                if(file_exists($physical_path)) { unlink($physical_path); }
-            }
-            $object->query = "DELETE FROM tbl_training_files WHERE training_id = '".$clean_id."'";
-            $object->execute();
-        }
+        // Sync Status Dynamically 
+        $object->update_generic_has_files($tid, 'tbl_trainingsattended', 'tbl_training_files', 'training_id');
 
         $success = '<div class="alert alert-success">Training Updated</div>';
         echo json_encode(array('error' => $error, 'success' => $success));
@@ -247,18 +215,9 @@ if (isset($_POST["action_training"])) {
     }
 
     if($_POST["action_training"] == 'delete_file') {
-        $file_id = intval($_POST['file_id']);
-        $object->query = "SELECT file_path FROM tbl_training_files WHERE id = '".$file_id."'";
-        $file_data = $object->get_result();
-        $file_deleted = false;
-        foreach($file_data as $row) {
-            $file_deleted = true;
-            $physical_path = '../../../' . $row['file_path'];
-            if(file_exists($physical_path)) { unlink($physical_path); }
-        }
-        if($file_deleted) {
-            $object->query = "DELETE FROM tbl_training_files WHERE id = '".$file_id."'";
-            $object->execute();
+        // PHASE 3: One-liner delete
+        $success = $object->delete_generic_file($_POST['file_id'], 'tbl_training_files', 'tbl_trainingsattended', 'training_id', '../../../');
+        if($success) {
             echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'File not found.']);
@@ -266,12 +225,11 @@ if (isset($_POST["action_training"])) {
         exit;
     }
 
-    // SOFT DELETE FIX
     if ($_POST["action_training"] == 'delete') {
         $tid = intval($_POST["trainingID"]);
         $object->query = "UPDATE tbl_trainingsattended SET status = 0 WHERE id = '".$tid."'";
         $object->execute();
-        echo '<div class="alert alert-success">Training moved to Recycle Bin</div>';
+        echo json_encode(['status' => 'success', 'message' => 'Training moved to Recycle Bin']);
         exit;
     }
 }

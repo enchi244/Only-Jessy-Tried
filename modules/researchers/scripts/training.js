@@ -40,7 +40,7 @@ $('#trainings_attended_form').on('submit', function (event) {
             },
             success: function (data) {
                 $('#submit_button_training').attr('disabled', false);
-                if (data.error != '') {
+                if (data.error && data.error != '') {
                     $('#form_message').html(data.error);
                     $('#submit_button_training').val($('#action_training').val());
                 } else {
@@ -57,7 +57,6 @@ $('#trainings_attended_form').on('submit', function (event) {
                         customClass: { confirmButton: 'btn-success' }
                     });
 
-                    // Check if we are on the profile page, if so, force a hard refresh
                     if (window.location.href.indexOf("view_researcher.php") > -1) {
                         setTimeout(function(){ location.reload(); }, 800);
                     } else {
@@ -67,6 +66,15 @@ $('#trainings_attended_form').on('submit', function (event) {
 
                     setTimeout(function () { $('#message').html(''); }, 5000);
                 }
+            },
+            error: function(xhr, status, error) {
+                $('#submit_button_training').attr('disabled', false).val($('#action_training').val());
+                Swal.fire({
+                    title: 'Server Error',
+                    text: 'An error occurred while saving. Check the console.',
+                    icon: 'error'
+                });
+                console.error(xhr.responseText);
             }
         });
     }
@@ -81,8 +89,9 @@ $('#add_training_attended').click(function () {
     $('#trainings_attended_form')[0].reset();  
     $('#trainings_attended_form').parsley().reset();  
 
-    $('#new_files_container_training').html('');
-    $('#existing_files_container_training').html('');
+    // UPDATED to use classes for the universal widget
+    $('#trainingsAttendedModal .new-files-container').html('');
+    $('#trainingsAttendedModal .existing-files-container').html('');
     $('#dynamic_links_container_training').html('');
 
     $('#modal_title').text('Add Trainings Attended');  
@@ -99,8 +108,10 @@ $(document).on('click', '.edit_button_training', function () {
     $('#trainings_attended_form')[0].reset();
     $('#trainings_attended_form').parsley().reset();
     $('#form_message').html('');
-    $('#new_files_container_training').html('');
-    $('#existing_files_container_training').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#trainingsAttendedModal .new-files-container').html('');
+    $('#trainingsAttendedModal .existing-files-container').html('');
     $('#dynamic_links_container_training').html('');
 
     $.ajax({
@@ -149,23 +160,21 @@ $(document).on('click', '.edit_button_training', function () {
                     }
                 });
             }
-
-            $('#has_files_training').val(data.has_files).trigger('change');
             
             if(data.existing_files && data.existing_files.length > 0) {
                 var filesHtml = '';
                 data.existing_files.forEach(function(f) {
                     filesHtml += `
-                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="training_file_row_${f.id}">
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="file_row_${f.id}">
                             <div>
                                 <span class="badge badge-info mr-2">${f.category}</span>
                                 <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-training-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                 });
-                $('#existing_files_container_training').html(filesHtml);
+                $('#trainingsAttendedModal .existing-files-container').html(filesHtml);
             }
 
             $('#modal_title').text('Edit Trainings Attended');
@@ -205,7 +214,6 @@ $(document).on('click', '.delete_button_training, .delete_master_training', func
                         showConfirmButton: false,
                     });
 
-                    // Check if we are on the profile page, if so, force a hard refresh
                     if (window.location.href.indexOf("view_researcher.php") > -1) {
                         setTimeout(function(){ location.reload(); }, 800);
                     } else {
@@ -233,64 +241,41 @@ $(document).on('click', '.remove-link-btn-training', function() {
     $(this).closest('.link-row-training').remove();
 });
 
-$(document).on('click', '#add_file_btn_training', function() {
-    var fileRow = `
-        <div class="row align-items-center mb-2 new-file-row">
-            <div class="col-md-4">
-                <select name="training_file_categories[]" class="form-control form-control-sm" required>
-                    <option value="">Select Category</option>
-                    <option value="Certificate">Certificate</option>
-                    <option value="Program">Program</option>
-                    <option value="MOA">MOA</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-<input type="file" name="training_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
-            <div class="col-md-2 text-right">
-                <button type="button" class="btn btn-sm btn-danger remove-new-training-file"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-    `;
-    $('#new_files_container_training').append(fileRow);
-});
-
-$(document).on('click', '.remove-new-training-file', function() {
-    $(this).closest('.new-file-row').remove();
-});
-
 // Delete Existing Server File via AJAX
-$(document).on('click', '.delete-existing-training-file', function(e) {
+$(document).on('click', '.delete-existing-file', function(e) {
     e.preventDefault();
     var btn = $(this);
     var fileId = btn.attr('data-file-id');
-    var row = $('#training_file_row_' + fileId);
+    var row = $('#file_row_' + fileId);
     
-    Swal.fire({
-        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-            $.ajax({
-                url: "actions/trainings_attended_action.php",
-                method: "POST",
-                data: { action_training: 'delete_file', file_id: fileId },
-                dataType: "json",
-                success: function(data) {
-                    if(data.status === 'success') {
-                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
-                        row.fadeOut(300, function() { $(this).remove(); });
-                    } else {
+    // Scoped specifically to the Trainings Modal to avoid crossover
+    if(btn.closest('#trainingsAttendedModal').length > 0) {
+        Swal.fire({
+            title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                $.ajax({
+                    url: "actions/trainings_attended_action.php",
+                    method: "POST",
+                    data: { action_training: 'delete_file', file_id: fileId },
+                    dataType: "json",
+                    success: function(data) {
+                        if(data.status === 'success') {
+                            Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                            row.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
                         btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                        Swal.fire('Error', data.message, 'error');
+                        console.error("Delete Error:", xhr.responseText);
+                        Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
                     }
-                },
-                error: function(xhr) {
-                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                    console.error("Delete Error:", xhr.responseText);
-                    Swal.fire('Server Error', 'Failed to delete.', 'error');
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 });

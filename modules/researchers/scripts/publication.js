@@ -92,8 +92,10 @@ $('#add_publication').click(function () {
     $('#publication_form').parsley().reset();  
     
     if ($('#collaborators_pub').length) { $('#collaborators_pub').val(null).trigger('change'); }
-    $('#new_files_container_pub').html('');
-    $('#existing_files_container_pub').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#publicationModal .new-files-container').html('');
+    $('#publicationModal .existing-files-container').html('');
 
     $('#modal_title').text('Add Publication');  
     $('#action_publication').val('Add');
@@ -112,8 +114,10 @@ $(document).on('click', '.edit_button_publication', function(){
     $('#publication_form')[0].reset();
     $('#publication_form').parsley().reset();
     $('#form_message').html('');
-    $('#new_files_container_pub').html('');
-    $('#existing_files_container_pub').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#publicationModal .new-files-container').html('');
+    $('#publicationModal .existing-files-container').html('');
 
     $.ajax({
         url:"actions/publication_action.php",
@@ -151,23 +155,21 @@ $(document).on('click', '.edit_button_publication', function(){
                 var filteredCollabs = data.collaborators.filter(function(id) { return id != data.lead_author_id; });
                 $('#collaborators_pub').val(filteredCollabs).trigger('change');
             }
-
-            $('#has_files_pub').val(data.has_files).trigger('change');
             
             if(data.existing_files && data.existing_files.length > 0) {
                 var filesHtml = '';
                 data.existing_files.forEach(function(f) {
                     filesHtml += `
-                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="pub_file_row_${f.id}">
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="file_row_${f.id}">
                             <div>
                                 <span class="badge badge-info mr-2">${f.category}</span>
                                 <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-pub-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                 });
-                $('#existing_files_container_pub').html(filesHtml);
+                $('#publicationModal .existing-files-container').html(filesHtml);
             }
 
             $('#modal_title').text('Edit Publication');
@@ -201,65 +203,41 @@ $(document).on('click', '.delete_button_publication', function(e) {
     });
 });
 
-
-
-$(document).on('click', '#add_file_btn_pub', function() {
-    var fileRow = `
-        <div class="row align-items-center mb-2 new-file-row">
-            <div class="col-md-4">
-                <select name="pub_file_categories[]" class="form-control form-control-sm" required>
-                    <option value="">Select Category</option>
-                    <option value="Journal Document">Journal Document</option>
-                    <option value="MOA">MOA</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-            <input type="file" name="pub_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
-            <div class="col-md-2 text-right">
-                <button type="button" class="btn btn-sm btn-danger remove-new-pub-file"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-    `;
-    $('#new_files_container_pub').append(fileRow);
-});
-
-$(document).on('click', '.remove-new-pub-file', function() {
-    $(this).closest('.new-file-row').remove();
-});
-
 // Delete Existing Server File via AJAX
-$(document).on('click', '.delete-existing-pub-file', function(e) {
+$(document).on('click', '.delete-existing-file', function(e) {
     e.preventDefault();
     var btn = $(this);
     var fileId = btn.attr('data-file-id');
-    var row = $('#pub_file_row_' + fileId);
+    var row = $('#file_row_' + fileId);
     
-    Swal.fire({
-        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-            $.ajax({
-                url: "actions/publication_action.php",
-                method: "POST",
-                data: { action_publication: 'delete_file', file_id: fileId },
-                dataType: "json",
-                success: function(data) {
-                    if(data.status === 'success') {
-                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
-                        row.fadeOut(300, function() { $(this).remove(); });
-                    } else {
+    // Check if we're inside the Publication modal
+    if(btn.closest('#publicationModal').length > 0) {
+        Swal.fire({
+            title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                $.ajax({
+                    url: "actions/publication_action.php",
+                    method: "POST",
+                    data: { action_publication: 'delete_file', file_id: fileId },
+                    dataType: "json",
+                    success: function(data) {
+                        if(data.status === 'success') {
+                            Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                            row.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
                         btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                        Swal.fire('Error', data.message, 'error');
+                        console.error("Delete Error:", xhr.responseText);
+                        Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
                     }
-                },
-                error: function(xhr) {
-                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                    console.error("Delete Error:", xhr.responseText);
-                    Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 });

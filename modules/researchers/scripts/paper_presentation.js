@@ -94,8 +94,9 @@ $('#add_paper_presentation').click(function () {
     $('#paper_presentation_form')[0].reset();  
     $('#paper_presentation_form').parsley().reset();  
     
-    $('#new_files_container_pp').html('');
-    $('#existing_files_container_pp').html('');
+    // UPDATED to use classes for universal widget
+    $('#paperPresentationModal .new-files-container').html('');
+    $('#paperPresentationModal .existing-files-container').html('');
     $('#dynamic_links_container').html('');
 
     $('#modal_title').text('Add Paper Presentation');  
@@ -114,8 +115,10 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
     $('#paper_presentation_form')[0].reset();
     $('#paper_presentation_form').parsley().reset();
     $('#form_message').html('');
-    $('#new_files_container_pp').html('');
-    $('#existing_files_container_pp').html('');
+    
+    // UPDATED to use classes for universal widget
+    $('#paperPresentationModal .new-files-container').html('');
+    $('#paperPresentationModal .existing-files-container').html('');
     $('#dynamic_links_container').html('');
 
     $.ajax({
@@ -164,23 +167,20 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
                 });
             }
 
-            // Handle Files
-            $('#has_files_pp').val(data.has_files).trigger('change');
-            
             if(data.existing_files && data.existing_files.length > 0) {
                 var filesHtml = '';
                 data.existing_files.forEach(function(f) {
                     filesHtml += `
-                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="pp_file_row_${f.id}">
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="file_row_${f.id}">
                             <div>
                                 <span class="badge badge-info mr-2">${f.category}</span>
                                 <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-pp-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                 });
-                $('#existing_files_container_pp').html(filesHtml);
+                $('#paperPresentationModal .existing-files-container').html(filesHtml);
             }
 
             $('#modal_title').text('Edit Paper Presentation');
@@ -247,65 +247,41 @@ $(document).on('click', '.remove-link-btn', function() {
     $(this).closest('.link-row').remove();
 });
 
-$(document).on('click', '#add_file_btn_pp', function() {
-    var fileRow = `
-        <div class="row align-items-center mb-2 new-file-row">
-            <div class="col-md-4">
-                <select name="pp_file_categories[]" class="form-control form-control-sm" required>
-                    <option value="">Select Category</option>
-                    <option value="Certificate">Certificate</option>
-                    <option value="Program">Program</option>
-                    <option value="Presentation Document">Presentation Document</option>
-                    <option value="MOA">MOA</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-<input type="file" name="pp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
-            <div class="col-md-2 text-right">
-                <button type="button" class="btn btn-sm btn-danger remove-new-pp-file"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-    `;
-    $('#new_files_container_pp').append(fileRow);
-});
-
-$(document).on('click', '.remove-new-pp-file', function() {
-    $(this).closest('.new-file-row').remove();
-});
-
 // Delete Existing Server File via AJAX
-$(document).on('click', '.delete-existing-pp-file', function(e) {
+$(document).on('click', '.delete-existing-file', function(e) {
     e.preventDefault();
     var btn = $(this);
     var fileId = btn.attr('data-file-id');
-    var row = $('#pp_file_row_' + fileId);
+    var row = $('#file_row_' + fileId);
     
-    Swal.fire({
-        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-            $.ajax({
-                url: "actions/paper_presentation_action.php",
-                method: "POST",
-                data: { action_paper_presentation: 'delete_file', file_id: fileId },
-                dataType: "json",
-                success: function(data) {
-                    if(data.status === 'success') {
-                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
-                        row.fadeOut(300, function() { $(this).remove(); });
-                    } else {
+    // Check if we're inside the PP modal to prevent interfering with other modules
+    if(btn.closest('#paperPresentationModal').length > 0) {
+        Swal.fire({
+            title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                $.ajax({
+                    url: "actions/paper_presentation_action.php",
+                    method: "POST",
+                    data: { action_paper_presentation: 'delete_file', file_id: fileId },
+                    dataType: "json",
+                    success: function(data) {
+                        if(data.status === 'success') {
+                            Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                            row.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
                         btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                        Swal.fire('Error', data.message, 'error');
+                        console.error("Delete Error:", xhr.responseText);
+                        Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
                     }
-                },
-                error: function(xhr) {
-                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                    console.error("Delete Error:", xhr.responseText);
-                    Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 });

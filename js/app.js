@@ -266,3 +266,68 @@ $(document).ready(function($) {
 		});
 	}
 });
+
+// =========================================================
+// UNIVERSAL MULTI-FILE UPLOADER WIDGET
+// =========================================================
+
+// 1. Click the dummy button to trigger the hidden file input inside the SAME container
+$(document).on('click', '.add-file-btn', function() {
+    $(this).siblings('.hidden-multi-file').click();
+});
+
+// 2. When files are selected
+$(document).on('change', '.hidden-multi-file', function() {
+    var files = this.files;
+    if(files.length === 0) return;
+
+    // Find the specific container for THIS modal
+    var section = $(this).closest('.dynamic-files-section');
+    var newFilesContainer = section.find('.new-files-container');
+    
+    // Dynamically generate the category dropdown based on the HTML attribute
+    var categoriesRaw = $(this).attr('data-categories') || 'Other';
+    var categories = categoriesRaw.split(',');
+    var optionsHtml = '<option value="">Select Category</option>';
+    categories.forEach(function(cat) {
+        var trimmedCat = cat.trim();
+        optionsHtml += `<option value="${trimmedCat}" ${trimmedCat === 'Other' ? 'selected' : ''}>${trimmedCat}</option>`;
+    });
+
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var dt = new DataTransfer();
+        dt.items.add(file);
+
+        var fileRow = `
+            <div class="row align-items-center mb-2 new-file-row">
+                <div class="col-md-4">
+                    <select name="file_categories[]" class="form-control form-control-sm" required>
+                        ${optionsHtml}
+                    </select>
+                </div>
+                <div class="col-md-7">
+                    <input type="file" name="research_files[]" class="d-none dynamic-file-input" required>
+                    <div class="form-control form-control-sm bg-light text-truncate border" title="${file.name}">
+                        <i class="fas fa-file-alt text-secondary mr-2"></i>${file.name}
+                    </div>
+                </div>
+                <div class="col-md-1 text-right">
+                    <button type="button" class="btn btn-sm btn-danger remove-new-file"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+        `;
+        
+        var $row = $(fileRow);
+        $row.find('.dynamic-file-input')[0].files = dt.files;
+        newFilesContainer.append($row);
+    }
+    
+    // Clear the input
+    $(this).val('');
+});
+
+// Remove a row
+$(document).on('click', '.remove-new-file', function() {
+    $(this).closest('.new-file-row').remove();
+});

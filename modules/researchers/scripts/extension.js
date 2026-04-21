@@ -1,5 +1,3 @@
-// modules/researchers/scripts/extension.js
-
 // Function to Load Extension Data
 function loadextprotab(projectID) {
     if ($.fn.dataTable.isDataTable('#ext_project_table')) {
@@ -74,7 +72,7 @@ $(document).on('change', '#linked_extension_project', function() {
                     $('#assist_coordinators').trigger('change');
                 }
                 
-                // Populating Partners (Using new unique ID) and other fields
+                // Populating Partners and other fields
                 $('#partners_ext').val(data.partners); 
                 $('#fund_source').val(data.fund_source);
                 $('#budget').val(data.budget);
@@ -130,7 +128,7 @@ $('#ext_project_form').on('submit', function (event) {
             },
             success: function (data) {
                 $('#submit_button_ext').attr('disabled', false);
-                if (data.error != '') {
+                if (data.error && data.error != '') {
                     $('#form_message').html(data.error);
                     $('#submit_button_ext').val($('#action_ext').val());
                 } else {
@@ -154,13 +152,15 @@ $('#add_extension').click(function () {
     $('#period_start').val('');
     $('#period_end').val('');
     $('#period_implement').val('');
-    $('#new_files_container_ext').html('');
-    $('#existing_files_container_ext').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#extModal .new-files-container').html('');
+    $('#extModal .existing-files-container').html('');
     
     $('#linked_extension_project').val(null).trigger('change');
     $('#proj_lead').empty().trigger('change');
     $('#assist_coordinators').empty().trigger('change');
-    $('#partners_ext').val(''); // Explicitly clear unique ID field
+    $('#partners_ext').val(''); 
     
     initResearcherSelects();
     
@@ -184,8 +184,11 @@ $('#add_extension').click(function () {
 $(document).on('click', '.edit_button_ext', function () {
     var extID = $(this).data('id');
     $('#ext_project_form')[0].reset();
-    $('#new_files_container_ext').html('');
-    $('#existing_files_container_ext').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#extModal .new-files-container').html('');
+    $('#extModal .existing-files-container').html('');
+    
     initResearcherSelects();
 
     $.ajax({
@@ -201,7 +204,6 @@ $(document).on('click', '.edit_button_ext', function () {
             $('#title_ext').val(data.title);
             $('#description_ext').val(data.description);
             
-            // Setting the project ID first to avoid triggering Add auto-fill
             $('#linked_extension_project').val(data.extension_project_id).trigger('change');
             
             if(data.proj_lead) {
@@ -222,7 +224,7 @@ $(document).on('click', '.edit_button_ext', function () {
             $('#budget').val(data.budget);
             $('#fund_source').val(data.fund_source);
             $('#target_beneficiaries').val(data.target_beneficiaries);
-            $('#partners_ext').val(data.partners); // Using new unique ID
+            $('#partners_ext').val(data.partners); 
             $('#stat_ext').val(data.stat);
             $('#a_link_ext').val(data.a_link);
 
@@ -237,16 +239,16 @@ $(document).on('click', '.edit_button_ext', function () {
                 var filesHtml = '';
                 data.existing_files.forEach(function(f) {
                     filesHtml += `
-                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="ext_file_row_${f.id}">
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="file_row_${f.id}">
                             <div>
                                 <span class="badge badge-info mr-2">${f.category}</span>
                                 <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-ext-activity-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                 });
-                $('#existing_files_container_ext').html(filesHtml);
+                $('#extModal .existing-files-container').html(filesHtml);
             }
 
             $('#extModal').modal('show');
@@ -255,65 +257,80 @@ $(document).on('click', '.edit_button_ext', function () {
     });
 });
 
-// --- DYNAMIC FILE UPLOAD LOGIC ---
-$(document).on('click', '#add_file_btn_ext', function() {
-    var fileRow = `
-        <div class="row align-items-center mb-2 new-file-row">
-            <div class="col-md-4">
-                <select name="ext_file_categories[]" class="form-control form-control-sm" required>
-                    <option value="">Select Category</option>
-                    <option value="Activity Report">Activity Report</option>
-                    <option value="Attendance">Attendance</option>
-                    <option value="Photos">Photos</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-                <input type="file" name="ext_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>
-            </div>
-            <div class="col-md-2 text-right">
-                <button type="button" class="btn btn-sm btn-danger remove-new-ext-file"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-    `;
-    $('#new_files_container_ext').append(fileRow);
-});
-
-$(document).on('click', '.remove-new-ext-file', function() {
-    $(this).closest('.new-file-row').remove();
-});
-
-$(document).on('click', '.delete-existing-ext-activity-file', function(e) {
+$(document).on('click', '.delete_button_ext', function (e) {
     e.preventDefault();
-    var btn = $(this);
-    var fileId = btn.attr('data-file-id');
-    var row = $('#ext_file_row_' + fileId);
-    
+    var extID = $(this).data('id');  
     Swal.fire({
-        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+        title: 'Are you sure?',
+        text: 'This will delete the record and all attached files!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, keep it',
+        reverseButtons: true,
+        customClass: { confirmButton: 'btn-danger', cancelButton: 'btn-secondary' }
     }).then((result) => {
         if (result.isConfirmed) {
-            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
             $.ajax({
                 url: "actions/extension_action.php",
                 method: "POST",
-                data: { action_ext: 'delete_file', file_id: fileId },
-                dataType: "json",
-                success: function(data) {
-                    if(data.status === 'success') {
-                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
-                        row.fadeOut(300, function() { $(this).remove(); });
+                data: { extID: extID, action_ext: 'delete' },
+                success: function (data) {
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'The extension activity has been successfully deleted.',
+                        icon: 'success',
+                        timer: 800,
+                        showConfirmButton: false,
+                    });
+
+                    var projectID = $('#viewExtensionsModal').data('project-id');
+                    if(projectID) {
+                        loadextprotab(projectID);
                     } else {
-                        btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                        Swal.fire('Error', data.message, 'error');
+                        setTimeout(function(){ location.reload(); }, 800);
                     }
-                },
-                error: function(xhr) {
-                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                    console.error("Delete Error:", xhr.responseText);
-                    Swal.fire('Server Error', 'Failed to delete.', 'error');
                 }
             });
         }
     });
+});
+
+// Delete Existing Server File via AJAX
+$(document).on('click', '.delete-existing-file', function(e) {
+    e.preventDefault();
+    var btn = $(this);
+    var fileId = btn.attr('data-file-id');
+    var row = $('#file_row_' + fileId);
+    
+    // Check if we're inside the Extension Activity modal
+    if(btn.closest('#extModal').length > 0) {
+        Swal.fire({
+            title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                $.ajax({
+                    url: "actions/extension_action.php",
+                    method: "POST",
+                    data: { action_ext: 'delete_file', file_id: fileId },
+                    dataType: "json",
+                    success: function(data) {
+                        if(data.status === 'success') {
+                            Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                            row.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                        console.error("Delete Error:", xhr.responseText);
+                        Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
+                    }
+                });
+            }
+        });
+    }
 });

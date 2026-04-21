@@ -127,6 +127,98 @@ class rms
         }
     }
 
+    // =========================================================================
+    // UNIVERSAL FILE UPLOAD & MANAGEMENT SYSTEM
+    // =========================================================================
+
+    /**
+     * Uploads multiple files and inserts them into a specified database table.
+     */
+    public function handle_generic_files($files, $categories, $record_id, $upload_dir, $db_path_prefix, $file_table, $fk_column) {
+        if(isset($files['name']) && is_array($files['name'])) {
+            // Create directory if it doesn't exist
+            if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
+            
+            foreach($files['name'] as $index => $original_name) {
+                if(isset($files['error'][$index]) && $files['error'][$index] == 0 && !empty($original_name)) {
+                    $category = isset($categories[$index]) ? addslashes($categories[$index]) : 'Other';
+                    
+                    // Sanitize filename
+                    $ext = strtolower(pathinfo(basename($original_name), PATHINFO_EXTENSION));
+                    $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo(basename($original_name), PATHINFO_FILENAME));
+                    $new_name = $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                    
+                    $target_file = $upload_dir . $new_name;
+                    $db_path = addslashes($db_path_prefix . $new_name); 
+                    
+                    // Upload and Insert into DB
+                    if(move_uploaded_file($files['tmp_name'][$index], $target_file)) {
+                        $fname = addslashes(basename($original_name));
+                        $rid = intval($record_id);
+                        
+                        $this->query = "INSERT INTO $file_table ($fk_column, file_category, file_name, file_path) 
+                                        VALUES ('$rid', '$category', '$fname', '$db_path')";
+                        $this->execute();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Dynamically counts files for a record and updates the parent table's 'has_files' status.
+     */
+    public function update_generic_has_files($record_id, $parent_table, $file_table, $fk_column) {
+        $rid = intval($record_id);
+        
+        $this->query = "SELECT COUNT(*) as file_count FROM $file_table WHERE $fk_column = '$rid'";
+        $this->execute();
+        $result = $this->get_result();
+        
+        $file_count = 0;
+        foreach($result as $row) { $file_count = $row['file_count']; }
+        
+        $status = ($file_count > 0) ? 'With' : 'None';
+        
+        $this->query = "UPDATE $parent_table SET has_files = '$status' WHERE id = '$rid'";
+        $this->execute();
+    }
+
+    /**
+     * Safely deletes a file physically and from the database, then updates the status.
+     */
+    public function delete_generic_file($file_id, $file_table, $parent_table, $fk_column, $physical_path_prefix) {
+        $fid = intval($file_id);
+        $this->query = "SELECT $fk_column, file_path FROM $file_table WHERE id = '$fid'";
+        $file_data = $this->get_result();
+        
+        $file_deleted = false;
+        $record_id = null;
+        
+        foreach($file_data as $row) {
+            $file_deleted = true;
+            $record_id = $row[$fk_column];
+            
+            // Delete physical file
+            $physical_path = $physical_path_prefix . $row['file_path'];
+            if(file_exists($physical_path)) { unlink($physical_path); }
+        }
+        
+        if($file_deleted) {
+            // Delete from DB
+            $this->query = "DELETE FROM $file_table WHERE id = '$fid'";
+            $this->execute();
+            
+            // Update parent status
+            if ($record_id) {
+                $this->update_generic_has_files($record_id, $parent_table, $file_table, $fk_column);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // =========================================================================
 
     public function Get_total_departments()
     {
@@ -618,3 +710,4 @@ if (mysqli_num_rows($resultpaper) > 0) {
 } else {
     $papertotal = 0;
 }
+?>

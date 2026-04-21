@@ -150,20 +150,22 @@
                                 <option value="Completed">Completed</option>
                             </select>
                         </div>
-
-                        </div>
-
-                    <div id="dynamic_files_section" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
-                            <button type="button" class="btn btn-sm btn-primary" id="add_file_btn"><i class="fas fa-plus mr-1"></i> Add File</button>
-                        </div>
-
-                        <div id="existing_files_container" class="mb-3"></div>
-                        <div id="new_files_container"></div>
                     </div>
 
-                </div>
+                    <div class="dynamic-files-section" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
+                            
+                            <input type="file" class="hidden-multi-file" multiple style="display: none;" accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" 
+                                   data-categories="SO, MOA, Terminal Report, PSE-PES, Financial Report, Other">
+                            
+                            <button type="button" class="btn btn-sm btn-primary add-file-btn"><i class="fas fa-plus mr-1"></i> Browse Files</button>
+                        </div>
+
+                        <div class="existing-files-container mb-3"></div>
+                        <div class="new-files-container"></div>
+                    </div>
+                    </div>
                 <div class="modal-footer">
                     <input type="hidden" name="hidden_id_researchedconducted" id="hidden_id_researchedconducted" />
                     <input type="hidden" name="hiddeny" id="hiddeny" />

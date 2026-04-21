@@ -87,14 +87,18 @@
                         </div>
                     </div>
 
-                    <div id="dynamic_files_section_pp" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="dynamic-files-section" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
-                            <button type="button" class="btn btn-sm btn-primary" id="add_file_btn_pp"><i class="fas fa-plus mr-1"></i> Add File</button>
+                            
+                            <input type="file" class="hidden-multi-file" multiple style="display: none;" accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" 
+                                   data-categories="Certificate, Program, Presentation Document, MOA, Other">
+                            
+                            <button type="button" class="btn btn-sm btn-primary add-file-btn"><i class="fas fa-plus mr-1"></i> Browse Files</button>
                         </div>
 
-                        <div id="existing_files_container_pp" class="mb-3"></div>
-                        <div id="new_files_container_pp"></div>
+                        <div class="existing-files-container mb-3"></div>
+                        <div class="new-files-container"></div>
                     </div>
 
                 </div>

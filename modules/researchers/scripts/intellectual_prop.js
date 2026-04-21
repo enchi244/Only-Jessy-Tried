@@ -92,8 +92,10 @@ $('#add_intellectualprop').click(function () {
     $('#intellectualprop_form').parsley().reset();  
 
     if ($('#collaborators_ip').length) { $('#collaborators_ip').val(null).trigger('change'); }
-    $('#new_files_container_ip').html('');
-    $('#existing_files_container_ip').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#intellectualpropModal .new-files-container').html('');
+    $('#intellectualpropModal .existing-files-container').html('');
     $('#dynamic_links_container_ip').html('');
 
     $('#modal_title').text('Add Intellectual Property');  
@@ -112,8 +114,10 @@ $(document).on('click', '.edit_button_intellectualprop', function () {
     $('#intellectualprop_form')[0].reset();
     $('#intellectualprop_form').parsley().reset();
     $('#form_message').html('');
-    $('#new_files_container_ip').html('');
-    $('#existing_files_container_ip').html('');
+    
+    // UPDATED to use classes for the universal widget
+    $('#intellectualpropModal .new-files-container').html('');
+    $('#intellectualpropModal .existing-files-container').html('');
     $('#dynamic_links_container_ip').html('');
 
     $.ajax({
@@ -164,23 +168,22 @@ $(document).on('click', '.edit_button_intellectualprop', function () {
                     }
                 });
             }
-
-            $('#has_files_ip').val(data.has_files).trigger('change');
             
             if(data.existing_files && data.existing_files.length > 0) {
                 var filesHtml = '';
                 data.existing_files.forEach(function(f) {
                     filesHtml += `
-                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="ip_file_row_${f.id}">
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="file_row_${f.id}">
                             <div>
                                 <span class="badge badge-info mr-2">${f.category}</span>
                                 <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-ip-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                 });
-                $('#existing_files_container_ip').html(filesHtml);
+                // UPDATED to use class for the universal widget
+                $('#intellectualpropModal .existing-files-container').html(filesHtml);
             }
 
             $('#modal_title').text('Edit Intellectual Property');
@@ -233,63 +236,41 @@ $(document).on('click', '.remove-link-btn-ip', function() {
     $(this).closest('.link-row-ip').remove();
 });
 
-$(document).on('click', '#add_file_btn_ip', function() {
-    var fileRow = `
-        <div class="row align-items-center mb-2 new-file-row">
-            <div class="col-md-4">
-                <select name="ip_file_categories[]" class="form-control form-control-sm" required>
-                    <option value="">Select Category</option>
-                    <option value="Certificate">Certificate</option>
-                    <option value="Application Document">Application Document</option>
-                    <option value="MOA">MOA</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-<input type="file" name="ip_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
-            <div class="col-md-2 text-right">
-                <button type="button" class="btn btn-sm btn-danger remove-new-ip-file"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-    `;
-    $('#new_files_container_ip').append(fileRow);
-});
-
-$(document).on('click', '.remove-new-ip-file', function() {
-    $(this).closest('.new-file-row').remove();
-});
-
-$(document).on('click', '.delete-existing-ip-file', function(e) {
+// Delete Existing Server File via AJAX
+$(document).on('click', '.delete-existing-file', function(e) {
     e.preventDefault();
     var btn = $(this);
     var fileId = btn.attr('data-file-id');
-    var row = $('#ip_file_row_' + fileId);
+    var row = $('#file_row_' + fileId);
     
-    Swal.fire({
-        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-            $.ajax({
-                url: "actions/intellectualprop_action.php",
-                method: "POST",
-                data: { action_intellectualprop: 'delete_file', file_id: fileId },
-                dataType: "json",
-                success: function(data) {
-                    if(data.status === 'success') {
-                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
-                        row.fadeOut(300, function() { $(this).remove(); });
-                    } else {
+    // Check if we're inside the IP modal to prevent interfering with other modules
+    if(btn.closest('#intellectualpropModal').length > 0) {
+        Swal.fire({
+            title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                $.ajax({
+                    url: "actions/intellectualprop_action.php",
+                    method: "POST",
+                    data: { action_intellectualprop: 'delete_file', file_id: fileId },
+                    dataType: "json",
+                    success: function(data) {
+                        if(data.status === 'success') {
+                            Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                            row.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
                         btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                        Swal.fire('Error', data.message, 'error');
+                        console.error("Delete Error:", xhr.responseText);
+                        Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
                     }
-                },
-                error: function(xhr) {
-                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
-                    console.error("Delete Error:", xhr.responseText);
-                    Swal.fire('Server Error', 'Failed to delete. Please check the console log.', 'error');
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 });

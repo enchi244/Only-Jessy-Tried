@@ -6,6 +6,7 @@ $object = new rms();
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // Hide visual errors so JSON doesn't break
 
+// We keep this because it's specifically for parsing legacy date formats
 if (!function_exists('parse_legacy_date_php')) {
     function parse_legacy_date_php($date_str) {
         if (empty($date_str) || $date_str === 'null' || $date_str === '0000-00-00') return '';
@@ -22,50 +23,6 @@ if (!function_exists('parse_legacy_date_php')) {
         }
         $time = strtotime($date_str);
         return ($time !== false) ? date('Y-m-d', $time) : '';
-    }
-}
-
-// Fixed function: Uses 100% direct strings to bypass the buggy rms.php PDO parser
-if (!function_exists('handle_research_files')) {
-    function handle_research_files($object, $research_id, $categories, $files) {
-        if(isset($files['name']) && is_array($files['name'])) {
-            $upload_dir = '../../../uploads/research_files/';
-            if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
-            
-            foreach($files['name'] as $input_index => $original_name) {
-                if(isset($files['error'][$input_index]) && $files['error'][$input_index] == 0 && !empty($original_name)) {
-                    $category = isset($categories[$input_index]) ? addslashes($categories[$input_index]) : 'Other';
-                    $ext = strtolower(pathinfo(basename($original_name), PATHINFO_EXTENSION));
-                    $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo(basename($original_name), PATHINFO_FILENAME));
-                    $new_name = $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
-                    $target_file = $upload_dir . $new_name;
-                    $db_path = addslashes('uploads/research_files/' . $new_name); 
-                    
-                    if(move_uploaded_file($files['tmp_name'][$input_index], $target_file)) {
-                        $fname = addslashes(basename($original_name));
-                        $rid = intval($research_id);
-                        $object->query = "INSERT INTO tbl_research_files (research_id, file_category, file_name, file_path) VALUES ('$rid', '$category', '$fname', '$db_path')";
-                        $object->execute();
-                    }
-                }
-            }
-        }
-    }
-}
-
-if (!function_exists('update_has_files_status')) {
-    function update_has_files_status($object, $research_id) {
-        $rid = intval($research_id);
-        $object->query = "SELECT COUNT(*) as file_count FROM tbl_research_files WHERE research_id = '$rid'";
-        $object->execute();
-        $result = $object->get_result();
-        $file_count = 0;
-        foreach($result as $row) { $file_count = $row['file_count']; }
-        
-        $status = ($file_count > 0) ? 'With' : 'None';
-        
-        $object->query = "UPDATE tbl_researchconducted SET has_files = '$status' WHERE id = '$rid'";
-        $object->execute();
     }
 }
 
@@ -201,9 +158,18 @@ try {
                 $object->execute();
             }
 
+            // PHASE 2 CHANGE: Using the dynamic core function for Add
             if($has_files == 'With') {
                 $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
-                handle_research_files($object, $new_research_id, $categories, $_FILES['research_files']);
+                $object->handle_generic_files(
+                    $_FILES['research_files'], 
+                    $categories, 
+                    $new_research_id, 
+                    '../../../uploads/research_files/', 
+                    'uploads/research_files/', 
+                    'tbl_research_files', 
+                    'research_id'
+                );
             }
 
             echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Project Added Successfully</div>'));
@@ -275,42 +241,38 @@ try {
                 $object->execute();
             }
 
-            // 3. Handle files safely
+            // PHASE 2 CHANGE: Using dynamic core functions for Edit & Sync Status
             if(isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) {
                 $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
-                handle_research_files($object, $research_id, $categories, $_FILES['research_files']);
+                $object->handle_generic_files(
+                    $_FILES['research_files'], 
+                    $categories, 
+                    $research_id, 
+                    '../../../uploads/research_files/', 
+                    'uploads/research_files/', 
+                    'tbl_research_files', 
+                    'research_id'
+                );
             }
 
-            // 4. Sync status
-            update_has_files_status($object, $research_id);
+            // Sync status using the new core engine
+            $object->update_generic_has_files($research_id, 'tbl_researchconducted', 'tbl_research_files', 'research_id');
 
             echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Project Updated Successfully</div>'));
             exit;
         }
 
         if($_POST["action_researchedconducted"] == 'delete_file') {
-            $file_id = intval($_POST['file_id']);
+            // PHASE 2 CHANGE: Completely replaced with the one-liner dynamic delete
+            $success = $object->delete_generic_file(
+                $_POST['file_id'], 
+                'tbl_research_files', 
+                'tbl_researchconducted', 
+                'research_id', 
+                '../../../'
+            );
             
-            $object->query = "SELECT research_id, file_path FROM tbl_research_files WHERE id = '$file_id'";
-            $file_data = $object->get_result();
-            
-            $file_deleted = false;
-            $research_id = null;
-            
-            foreach($file_data as $row) {
-                $file_deleted = true;
-                $research_id = $row['research_id'];
-                $physical_path = '../../../' . $row['file_path'];
-                if(file_exists($physical_path)) { unlink($physical_path); }
-            }
-            
-            if($file_deleted) {
-                $object->query = "DELETE FROM tbl_research_files WHERE id = '$file_id'";
-                $object->execute();
-                
-                if ($research_id) {
-                    update_has_files_status($object, $research_id);
-                }
+            if($success) {
                 echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
             } else {
                 echo json_encode(['status' => 'error', 'message' => 'File not found.']);
