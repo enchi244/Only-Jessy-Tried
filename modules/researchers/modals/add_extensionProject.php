@@ -147,17 +147,10 @@
                             </select>
                         </div>
 
-                        <div class="col-md-6 form-group mb-0">
-                            <label for="has_files_extp"><i class="fas fa-paperclip mr-2 text-primary"></i>File Attachments</label>
-                            <select name="has_files_extp" id="has_files_extp" class="form-control" required>
-                                <option value="None">None</option>
-                                <option value="With">With Files</option>
-                            </select>
                         </div>
-                    </div>
 
-                    <div id="dynamic_files_section_extp" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div id="dynamic_files_section_extp" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">  
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
                             <button type="button" class="btn btn-sm btn-primary" id="add_file_btn_extp"><i class="fas fa-plus mr-1"></i> Add File</button>
                         </div>

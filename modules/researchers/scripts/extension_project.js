@@ -120,7 +120,6 @@ $('#add_extension_project').click(function () {
     if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
     
     $('#linked_research_projects').val(null).trigger('change'); 
-    $('#has_files_extp').val('None').trigger('change');
     $('#new_files_container_extp').html('');
     $('#existing_files_container_extp').html('');
 
@@ -244,16 +243,6 @@ $(document).on('click', '.delete_button_extension_project, .delete_master_extens
     });
 });
 
-// --- DYNAMIC FILE UPLOAD LOGIC ---
-$(document).on('change', '#has_files_extp', function() {
-    if($(this).val() === 'With') {
-        $('#dynamic_files_section_extp').slideDown(200);
-    } else {
-        $('#dynamic_files_section_extp').slideUp(200);
-        $('#new_files_container_extp').empty();
-    }
-});
-
 $(document).on('click', '#add_file_btn_extp', function() {
     var fileRow = `
         <div class="row align-items-center mb-2 new-file-row">
@@ -268,8 +257,7 @@ $(document).on('click', '#add_file_btn_extp', function() {
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="file" name="extp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
-            </div>
+<input type="file" name="extp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
             <div class="col-md-2 text-right">
                 <button type="button" class="btn btn-sm btn-danger remove-new-extp-file"><i class="fas fa-times"></i></button>
             </div>

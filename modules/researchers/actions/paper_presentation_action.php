@@ -132,7 +132,7 @@ if (isset($_POST["action_paper_presentation"])) {
     if ($_POST["action_paper_presentation"] == 'Add') {
         $error = ''; $success = '';
         $date_applied = date("m-d-Y", strtotime($_POST['date_paper'])); 
-        $has_files = $_POST['has_files_pp'];
+        $has_files = (isset($_FILES['pp_files']) && !empty($_FILES['pp_files']['name'][0])) ? 'With' : 'None';
 
         $a_link_str = '';
         if(isset($_POST['a_link']) && is_array($_POST['a_link'])) {
@@ -197,7 +197,7 @@ if (isset($_POST["action_paper_presentation"])) {
         $error = ''; $success = '';
         $date_paperu = date("m-d-Y", strtotime($_POST['date_paper'])); 
         $pp_id = $_POST['hidden_paperPresentationID'];
-        $has_files = $_POST['has_files_pp'];
+        $has_files = (isset($_FILES['pp_files']) && !empty($_FILES['pp_files']['name'][0])) ? 'With' : 'None';
 
         $a_link_str = '';
         if(isset($_POST['a_link']) && is_array($_POST['a_link'])) {

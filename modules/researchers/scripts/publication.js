@@ -92,7 +92,6 @@ $('#add_publication').click(function () {
     $('#publication_form').parsley().reset();  
     
     if ($('#collaborators_pub').length) { $('#collaborators_pub').val(null).trigger('change'); }
-    $('#has_files_pub').val('None').trigger('change');
     $('#new_files_container_pub').html('');
     $('#existing_files_container_pub').html('');
 
@@ -202,15 +201,7 @@ $(document).on('click', '.delete_button_publication', function(e) {
     });
 });
 
-// --- DYNAMIC FILE UPLOAD LOGIC ---
-$(document).on('change', '#has_files_pub', function() {
-    if($(this).val() === 'With') {
-        $('#dynamic_files_section_pub').slideDown(200);
-    } else {
-        $('#dynamic_files_section_pub').slideUp(200);
-        $('#new_files_container_pub').empty();
-    }
-});
+
 
 $(document).on('click', '#add_file_btn_pub', function() {
     var fileRow = `
@@ -224,8 +215,7 @@ $(document).on('click', '#add_file_btn_pub', function() {
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="file" name="pub_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
-            </div>
+            <input type="file" name="pub_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
             <div class="col-md-2 text-right">
                 <button type="button" class="btn btn-sm btn-danger remove-new-pub-file"><i class="fas fa-times"></i></button>
             </div>

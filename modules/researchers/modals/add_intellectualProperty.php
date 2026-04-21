@@ -88,18 +88,8 @@
                         </div>
                     </div>
 
-                    <div class="row border-bottom pb-3 mb-3">
-                        <div class="col-md-12 form-group mb-0">
-                            <label for="has_files_ip"><i class="fas fa-paperclip mr-2 text-primary"></i>File Attachments</label>
-                            <select name="has_files_ip" id="has_files_ip" class="form-control" required>
-                                <option value="None">None</option>
-                                <option value="With">With Files</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="dynamic_files_section_ip" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div id="dynamic_files_section_ip" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">  
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
                             <button type="button" class="btn btn-sm btn-primary" id="add_file_btn_ip"><i class="fas fa-plus mr-1"></i> Add File</button>
                         </div>

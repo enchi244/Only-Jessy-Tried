@@ -28,18 +28,38 @@ if (!function_exists('handle_research_files')) {
             $upload_dir = '../../../uploads/research_files/';
             if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
             
-            for($i = 0; $i < count($files['name']); $i++) {
-                if($files['error'][$i] == 0) {
-                    $category = isset($categories[$i]) ? $categories[$i] : 'Other';
-                    $original_name = basename($files['name'][$i]);
-                    $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
-                    $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo($original_name, PATHINFO_FILENAME));
-                    $new_name = $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
-                    $target_file = $upload_dir . $new_name;
-                    $db_path = 'uploads/research_files/' . $new_name; 
-                    if(move_uploaded_file($files['tmp_name'][$i], $target_file)) {
-                        $object->query = "INSERT INTO tbl_research_files (research_id, file_category, file_name, file_path) VALUES (:rid, :cat, :fname, :fpath)";
-                        $object->execute([':rid' => $research_id, ':cat' => $category, ':fname' => $original_name, ':fpath' => $db_path]);
+            foreach($files['name'] as $input_index => $name_data) {
+                if(is_array($name_data)) {
+                    // Handled by 'multiple' attribute (3D Array)
+                    foreach($name_data as $file_index => $actual_name) {
+                        if($files['error'][$input_index][$file_index] == 0) {
+                            $category = isset($categories[$input_index]) ? $categories[$input_index] : 'Other';
+                            $original_name = basename($actual_name);
+                            $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+                            $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo($original_name, PATHINFO_FILENAME));
+                            $new_name = $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                            $target_file = $upload_dir . $new_name;
+                            $db_path = 'uploads/research_files/' . $new_name; 
+                            if(move_uploaded_file($files['tmp_name'][$input_index][$file_index], $target_file)) {
+                                $object->query = "INSERT INTO tbl_research_files (research_id, file_category, file_name, file_path) VALUES (:rid, :cat, :fname, :fpath)";
+                                $object->execute([':rid' => $research_id, ':cat' => $category, ':fname' => $original_name, ':fpath' => $db_path]);
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback for single file selection (2D Array)
+                    if($files['error'][$input_index] == 0) {
+                        $category = isset($categories[$input_index]) ? $categories[$input_index] : 'Other';
+                        $original_name = basename($name_data);
+                        $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+                        $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo($original_name, PATHINFO_FILENAME));
+                        $new_name = $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                        $target_file = $upload_dir . $new_name;
+                        $db_path = 'uploads/research_files/' . $new_name; 
+                        if(move_uploaded_file($files['tmp_name'][$input_index], $target_file)) {
+                            $object->query = "INSERT INTO tbl_research_files (research_id, file_category, file_name, file_path) VALUES (:rid, :cat, :fname, :fpath)";
+                            $object->execute([':rid' => $research_id, ':cat' => $category, ':fname' => $original_name, ':fpath' => $db_path]);
+                        }
                     }
                 }
             }
@@ -155,7 +175,7 @@ if(isset($_POST["action_researchedconducted"])) {
         $from_date = date("Y-m-d", strtotime($_POST['started_date']));
         $to_date = date("Y-m-d", strtotime($_POST['completed_date']));
         $lead_researcher_id = $_POST['lead_researcher_id'];
-        $has_files = $_POST['has_files'];
+        $has_files = (isset($_FILES['research_files']) && count($_FILES['research_files']['name']) > 0) ? 'With' : 'None';
 
         $data = array(
                 ':researcherID'                => $lead_researcher_id, 

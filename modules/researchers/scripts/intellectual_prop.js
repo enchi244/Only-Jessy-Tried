@@ -92,7 +92,6 @@ $('#add_intellectualprop').click(function () {
     $('#intellectualprop_form').parsley().reset();  
 
     if ($('#collaborators_ip').length) { $('#collaborators_ip').val(null).trigger('change'); }
-    $('#has_files_ip').val('None').trigger('change');
     $('#new_files_container_ip').html('');
     $('#existing_files_container_ip').html('');
     $('#dynamic_links_container_ip').html('');
@@ -234,16 +233,6 @@ $(document).on('click', '.remove-link-btn-ip', function() {
     $(this).closest('.link-row-ip').remove();
 });
 
-// --- DYNAMIC FILE UPLOAD LOGIC ---
-$(document).on('change', '#has_files_ip', function() {
-    if($(this).val() === 'With') {
-        $('#dynamic_files_section_ip').slideDown(200);
-    } else {
-        $('#dynamic_files_section_ip').slideUp(200);
-        $('#new_files_container_ip').empty();
-    }
-});
-
 $(document).on('click', '#add_file_btn_ip', function() {
     var fileRow = `
         <div class="row align-items-center mb-2 new-file-row">
@@ -257,8 +246,7 @@ $(document).on('click', '#add_file_btn_ip', function() {
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="file" name="ip_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
-            </div>
+<input type="file" name="ip_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
             <div class="col-md-2 text-right">
                 <button type="button" class="btn btn-sm btn-danger remove-new-ip-file"><i class="fas fa-times"></i></button>
             </div>

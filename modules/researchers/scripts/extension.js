@@ -154,8 +154,8 @@ $('#add_extension').click(function () {
     $('#period_start').val('');
     $('#period_end').val('');
     $('#period_implement').val('');
-    $('#existing_attachment_link').html('');
-    $('#hidden_existing_attachment').val('');
+    $('#new_files_container_ext').html('');
+    $('#existing_files_container_ext').html('');
     
     $('#linked_extension_project').val(null).trigger('change');
     $('#proj_lead').empty().trigger('change');
@@ -184,8 +184,8 @@ $('#add_extension').click(function () {
 $(document).on('click', '.edit_button_ext', function () {
     var extID = $(this).data('id');
     $('#ext_project_form')[0].reset();
-    $('#existing_attachment_link').html('');
-    $('#hidden_existing_attachment').val('');
+    $('#new_files_container_ext').html('');
+    $('#existing_files_container_ext').html('');
     initResearcherSelects();
 
     $.ajax({
@@ -233,13 +233,87 @@ $(document).on('click', '.edit_button_ext', function () {
                 $('#period_implement').val(data.period_implement);
             }
 
-            if (data.attachments) {
-                $('#hidden_existing_attachment').val(data.attachments);
-                $('#existing_attachment_link').html('<i class="fas fa-file-alt text-primary mr-1"></i> Current file: <a href="../../uploads/documents/' + data.attachments + '" target="_blank">View File</a>');
+            if(data.existing_files && data.existing_files.length > 0) {
+                var filesHtml = '';
+                data.existing_files.forEach(function(f) {
+                    filesHtml += `
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 border rounded shadow-sm" id="ext_file_row_${f.id}">
+                            <div>
+                                <span class="badge badge-info mr-2">${f.category}</span>
+                                <a href="${f.path}" target="_blank" class="text-gray-800 font-weight-bold">${f.name}</a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-existing-ext-activity-file" data-file-id="${f.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                });
+                $('#existing_files_container_ext').html(filesHtml);
             }
 
             $('#extModal').modal('show');
             $('#hidden_extID').val(extID);
+        }
+    });
+});
+
+// --- DYNAMIC FILE UPLOAD LOGIC ---
+$(document).on('click', '#add_file_btn_ext', function() {
+    var fileRow = `
+        <div class="row align-items-center mb-2 new-file-row">
+            <div class="col-md-4">
+                <select name="ext_file_categories[]" class="form-control form-control-sm" required>
+                    <option value="">Select Category</option>
+                    <option value="Activity Report">Activity Report</option>
+                    <option value="Attendance">Attendance</option>
+                    <option value="Photos">Photos</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <input type="file" name="ext_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>
+            </div>
+            <div class="col-md-2 text-right">
+                <button type="button" class="btn btn-sm btn-danger remove-new-ext-file"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+    `;
+    $('#new_files_container_ext').append(fileRow);
+});
+
+$(document).on('click', '.remove-new-ext-file', function() {
+    $(this).closest('.new-file-row').remove();
+});
+
+$(document).on('click', '.delete-existing-ext-activity-file', function(e) {
+    e.preventDefault();
+    var btn = $(this);
+    var fileId = btn.attr('data-file-id');
+    var row = $('#ext_file_row_' + fileId);
+    
+    Swal.fire({
+        title: 'Delete this file?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74a3b', cancelButtonColor: '#858796', confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+            $.ajax({
+                url: "actions/extension_action.php",
+                method: "POST",
+                data: { action_ext: 'delete_file', file_id: fileId },
+                dataType: "json",
+                success: function(data) {
+                    if(data.status === 'success') {
+                        Swal.fire({title: 'Deleted!', text: 'The file has been deleted.', icon: 'success', timer: 1000, showConfirmButton: false});
+                        row.fadeOut(300, function() { $(this).remove(); });
+                    } else {
+                        btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    btn.html('<i class="fas fa-trash"></i>').prop('disabled', false);
+                    console.error("Delete Error:", xhr.responseText);
+                    Swal.fire('Server Error', 'Failed to delete.', 'error');
+                }
+            });
         }
     });
 });

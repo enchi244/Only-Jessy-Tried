@@ -132,8 +132,7 @@ $('#add_researcherconducted').click(function() {
         $('#collaborators').val(null).trigger('change');
     }
 
-    // Reset Files UI
-    $('#has_files').val('None').trigger('change');
+
     $('#new_files_container').html('');
     $('#existing_files_container').html('');
 
@@ -275,19 +274,6 @@ $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .de
     });
 });
 
-// --- NEW DYNAMIC FILE UPLOAD LOGIC ---
-
-// Toggle File Section visibility
-$(document).on('change', '#has_files', function() {
-    if($(this).val() === 'With') {
-        $('#dynamic_files_section').slideDown(200);
-    } else {
-        $('#dynamic_files_section').slideUp(200);
-        // Clear un-uploaded new files if user switches back to "None"
-        $('#new_files_container').empty();
-    }
-});
-
 // Add New File Row
 $(document).on('click', '#add_file_btn', function() {
     var fileRow = `
@@ -304,8 +290,8 @@ $(document).on('click', '#add_file_btn', function() {
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="file" name="research_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
-            </div>
+                <input type="file" name="research_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>
+                </div>
             <div class="col-md-2 text-right">
                 <button type="button" class="btn btn-sm btn-danger remove-new-file"><i class="fas fa-times"></i></button>
             </div>

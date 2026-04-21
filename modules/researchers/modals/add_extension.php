@@ -105,11 +105,16 @@
                             <label for="a_link_ext"><i class="fas fa-link mr-2 text-primary"></i>External Link</label>
                             <input type="url" name="a_link_ext" id="a_link_ext" class="form-control" placeholder="https://example.com" />
                         </div>
-                        <div class="col-md-6 form-group">
-                            <label for="attachments_ext"><i class="fas fa-paperclip mr-2 text-primary"></i>File Attachment</label>
-                            <input type="file" name="attachments_ext" id="attachments_ext" class="form-control-file border p-1 rounded" />
-                            <div id="existing_attachment_link" class="mt-2 small"></div>
                         </div>
+
+                    <div id="dynamic_files_section_ext" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
+                            <button type="button" class="btn btn-sm btn-primary" id="add_file_btn_ext"><i class="fas fa-plus mr-1"></i> Add File</button>
+                        </div>
+
+                        <div id="existing_files_container_ext" class="mb-3"></div>
+                        <div id="new_files_container_ext"></div>
                     </div>
 
                 </div>

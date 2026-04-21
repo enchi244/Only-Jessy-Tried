@@ -81,7 +81,6 @@ $('#add_training_attended').click(function () {
     $('#trainings_attended_form')[0].reset();  
     $('#trainings_attended_form').parsley().reset();  
 
-    $('#has_files_training').val('None').trigger('change');
     $('#new_files_container_training').html('');
     $('#existing_files_container_training').html('');
     $('#dynamic_links_container_training').html('');
@@ -234,16 +233,6 @@ $(document).on('click', '.remove-link-btn-training', function() {
     $(this).closest('.link-row-training').remove();
 });
 
-// --- DYNAMIC FILE UPLOAD LOGIC ---
-$(document).on('change', '#has_files_training', function() {
-    if($(this).val() === 'With') {
-        $('#dynamic_files_section_training').slideDown(200);
-    } else {
-        $('#dynamic_files_section_training').slideUp(200);
-        $('#new_files_container_training').empty();
-    }
-});
-
 $(document).on('click', '#add_file_btn_training', function() {
     var fileRow = `
         <div class="row align-items-center mb-2 new-file-row">
@@ -257,8 +246,7 @@ $(document).on('click', '#add_file_btn_training', function() {
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="file" name="training_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
-            </div>
+<input type="file" name="training_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
             <div class="col-md-2 text-right">
                 <button type="button" class="btn btn-sm btn-danger remove-new-training-file"><i class="fas fa-times"></i></button>
             </div>

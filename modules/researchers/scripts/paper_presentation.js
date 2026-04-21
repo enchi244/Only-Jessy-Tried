@@ -94,7 +94,6 @@ $('#add_paper_presentation').click(function () {
     $('#paper_presentation_form')[0].reset();  
     $('#paper_presentation_form').parsley().reset();  
     
-    $('#has_files_pp').val('None').trigger('change');
     $('#new_files_container_pp').html('');
     $('#existing_files_container_pp').html('');
     $('#dynamic_links_container').html('');
@@ -248,16 +247,6 @@ $(document).on('click', '.remove-link-btn', function() {
     $(this).closest('.link-row').remove();
 });
 
-// --- DYNAMIC FILE UPLOAD LOGIC ---
-$(document).on('change', '#has_files_pp', function() {
-    if($(this).val() === 'With') {
-        $('#dynamic_files_section_pp').slideDown(200);
-    } else {
-        $('#dynamic_files_section_pp').slideUp(200);
-        $('#new_files_container_pp').empty();
-    }
-});
-
 $(document).on('click', '#add_file_btn_pp', function() {
     var fileRow = `
         <div class="row align-items-center mb-2 new-file-row">
@@ -272,8 +261,7 @@ $(document).on('click', '#add_file_btn_pp', function() {
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="file" name="pp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx">
-            </div>
+<input type="file" name="pp_files[]" class="form-control-file border p-1 rounded bg-white" required accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>            </div>
             <div class="col-md-2 text-right">
                 <button type="button" class="btn btn-sm btn-danger remove-new-pp-file"><i class="fas fa-times"></i></button>
             </div>

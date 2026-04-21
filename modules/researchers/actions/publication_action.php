@@ -95,7 +95,7 @@ if(isset($_POST["action_publication"])) {
 		$error = ''; $success = '';
 		$fpublication_date = date("Y-m-d", strtotime($_POST['publication_date']));
         $lead_author_id = $_POST['lead_author_id'];
-        $has_files = $_POST['has_files_pub'];
+        $has_files = (isset($_FILES['publication_files']) && !empty($_FILES['publication_files']['name'][0])) ? 'With' : 'None';
 
         $data = array(
             ':researcherID'        => $lead_author_id, 

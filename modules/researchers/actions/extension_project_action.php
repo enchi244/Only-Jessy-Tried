@@ -158,7 +158,7 @@ if (isset($_POST["action_extension"])) {
         $error = ''; $success = '';
         $start_date = date("m-d-Y", strtotime($_POST['start_date_extc']));
         $completed_date = date("m-d-Y", strtotime($_POST['completion_date_extc']));
-        $has_files = $_POST['has_files_extp'];
+        $has_files = (isset($_FILES['extp_files']) && !empty($_FILES['extp_files']['name'][0])) ? 'With' : 'None';
 
         $data = array(
             ':researcherID' => $_POST['hidden_researcherID_extension'],
@@ -230,7 +230,7 @@ if (isset($_POST["action_extension"])) {
         $start_dateu = date("m-d-Y", strtotime($_POST['start_date_extc']));
         $completed_dateu = date("m-d-Y", strtotime($_POST['completion_date_extc']));
         $ext_id = $_POST['hidden_extensionID'];
-        $has_files = $_POST['has_files_extp'];
+        $has_files = (isset($_FILES['extp_files']) && !empty($_FILES['extp_files']['name'][0])) ? 'With' : 'None';
 
         $data = array(
             ':title' => $_POST['title_extp'],

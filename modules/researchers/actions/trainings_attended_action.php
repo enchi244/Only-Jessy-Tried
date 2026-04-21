@@ -133,7 +133,6 @@ if (isset($_POST["action_training"])) {
     if ($_POST["action_training"] == 'Add') {
         $error = ''; $success = '';
         $date_train = date("m-d-Y", strtotime($_POST['date_training'])); 
-        $has_files = $_POST['has_files_training'];
 
         $a_link_str = '';
         if(isset($_POST['a_link_training']) && is_array($_POST['a_link_training'])) {
@@ -200,7 +199,7 @@ if (isset($_POST["action_training"])) {
         $error = ''; $success = '';
         $date_trainu = date("m-d-Y", strtotime($_POST['date_training'])); 
         $tid = $_POST['hidden_trainingID'];
-        $has_files = $_POST['has_files_training'];
+        $has_files = (isset($_FILES['training_files']) && !empty($_FILES['training_files']['name'][0])) ? 'With' : 'None';
 
         $a_link_str = '';
         if(isset($_POST['a_link_training']) && is_array($_POST['a_link_training'])) {

@@ -4,6 +4,31 @@ include('../../../core/rms.php');
 
 $object = new rms();
 
+if (!function_exists('handle_ext_activity_files')) {
+    function handle_ext_activity_files($object, $ext_id, $categories, $files) {
+        if(isset($files['name']) && is_array($files['name'])) {
+            $upload_dir = '../../../uploads/research_files/';
+            if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
+            
+            for($i = 0; $i < count($files['name']); $i++) {
+                if($files['error'][$i] == 0) {
+                    $category = isset($categories[$i]) ? $categories[$i] : 'Other';
+                    $original_name = basename($files['name'][$i]);
+                    $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+                    $safe_name = preg_replace('/[^A-Za-z0-9\-]/', '', pathinfo($original_name, PATHINFO_FILENAME));
+                    $new_name = 'EXTACT_' . $safe_name . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                    $target_file = $upload_dir . $new_name;
+                    $db_path = 'uploads/research_files/' . $new_name; 
+                    if(move_uploaded_file($files['tmp_name'][$i], $target_file)) {
+                        $object->query = "INSERT INTO tbl_ext_files (ext_id, file_category, file_name, file_path) VALUES (:eid, :cat, :fname, :fpath)";
+                        $object->execute([':eid' => $ext_id, ':cat' => $category, ':fname' => $original_name, ':fpath' => $db_path]);
+                    }
+                }
+            }
+        }
+    }
+}
+
 if (isset($_POST["action_ext"])) {
 
     // Logic for auto-filling from a Base Extension Project
@@ -67,7 +92,7 @@ if (isset($_POST["action_ext"])) {
         $main_query = "SELECT * FROM tbl_ext ";
         $search_query = " WHERE extension_project_id = '" . intval($_POST["project_id"]) . "' AND (status = 1 OR status IS NULL) ";
         
-        if (isset($_POST["search"]["value"])) {
+        if (isset($_POST["search"]["value"]) && !empty($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
             $search_query .= "AND (title LIKE '%" . $search_value . "%' OR proj_lead LIKE '%" . $search_value . "%') ";
         }
@@ -108,12 +133,6 @@ if (isset($_POST["action_ext"])) {
 
     // Add New Extension Activity
     if ($_POST["action_ext"] == 'Add') {
-        $attachment_name = '';
-        if(isset($_FILES['attachments_ext']) && $_FILES['attachments_ext']['name'] != '') {
-            $attachment_name = 'ext_att_' . time() . '_' . rand(100, 999) . '.' . pathinfo($_FILES['attachments_ext']['name'], PATHINFO_EXTENSION);
-            move_uploaded_file($_FILES['attachments_ext']['tmp_name'], '../../../uploads/documents/' . $attachment_name);
-        }
-
         $researcherID = !empty($_POST['hidden_researcherID_ext']) ? $_POST['hidden_researcherID_ext'] : null;
         $parent_project_id = !empty($_POST['linked_extension_project']) ? $_POST['linked_extension_project'] : null;
 
@@ -138,9 +157,9 @@ if (isset($_POST["action_ext"])) {
             ':budget'               => $object->clean_input($_POST['budget']),
             ':fund_source'          => $object->clean_input($_POST['fund_source']),
             ':target_beneficiaries' => $object->clean_input($_POST['target_beneficiaries']),
-            ':partners'             => $object->clean_input($_POST['partners_ext']), // Updated to unique ID
+            ':partners'             => $object->clean_input($_POST['partners_ext']),
             ':stat'                 => $object->clean_input($_POST['stat_ext']),
-            ':attachments'          => $attachment_name,
+            ':attachments'          => 'Legacy Replaced', 
             ':a_link'               => $object->clean_input($_POST['a_link_ext'] ?? '')
         );
 
@@ -156,6 +175,13 @@ if (isset($_POST["action_ext"])) {
             )
         ";
         $object->execute($data);
+        $new_ext_id = $object->connect->lastInsertId();
+
+        if(isset($_FILES['ext_files']) && !empty($_FILES['ext_files']['name'][0])) {
+            $categories = isset($_POST['ext_file_categories']) ? $_POST['ext_file_categories'] : [];
+            handle_ext_activity_files($object, $new_ext_id, $categories, $_FILES['ext_files']);
+        }
+
         echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Extension Activity Added</div>'));
         exit;
     }
@@ -178,8 +204,16 @@ if (isset($_POST["action_ext"])) {
             $data['partners'] = $row["partners"];
             $data['stat'] = $row["stat"];
             $data['a_link'] = $row["a_link"];
-            $data['attachments'] = $row["attachments"];
         }
+
+        $object->query = "SELECT id, file_category, file_name, file_path FROM tbl_ext_files WHERE ext_id = '".$_POST["extID"]."'";
+        $file_result = $object->get_result();
+        $files_array = [];
+        foreach($file_result as $f) {
+            $files_array[] = array('id' => $f['id'], 'category' => $f['file_category'], 'name' => $f['file_name'], 'path' => '../../' . $f['file_path']);
+        }
+        $data['existing_files'] = $files_array;
+
         echo json_encode($data);
         exit;
     }
@@ -187,17 +221,8 @@ if (isset($_POST["action_ext"])) {
     // Update Extension Activity
     if ($_POST["action_ext"] == 'Edit') {
         $ext_id = intval($_POST['hidden_extID']);
-        $attachment_name = $_POST['hidden_existing_attachment'] ?? '';
-
-        if(isset($_FILES['attachments_ext']) && $_FILES['attachments_ext']['name'] != '') {
-            if(!empty($attachment_name) && file_exists('../../../uploads/documents/' . $attachment_name)) {
-                unlink('../../../uploads/documents/' . $attachment_name);
-            }
-            $attachment_name = 'ext_att_' . time() . '_' . rand(100, 999) . '.' . pathinfo($_FILES['attachments_ext']['name'], PATHINFO_EXTENSION);
-            move_uploaded_file($_FILES['attachments_ext']['tmp_name'], '../../../uploads/documents/' . $attachment_name);
-        }
-
         $assist_coordinators = "";
+        
         if (isset($_POST["assist_coordinators"]) && is_array($_POST["assist_coordinators"])) {
             $assist_coordinators = implode(", ", $_POST["assist_coordinators"]);
         }
@@ -212,9 +237,8 @@ if (isset($_POST["action_ext"])) {
             ':budget'               => $object->clean_input($_POST['budget']),
             ':fund_source'          => $object->clean_input($_POST['fund_source']),
             ':target_beneficiaries' => $object->clean_input($_POST['target_beneficiaries']),
-            ':partners'             => $object->clean_input($_POST['partners_ext']), // Updated to unique ID
+            ':partners'             => $object->clean_input($_POST['partners_ext']), 
             ':stat'                 => $object->clean_input($_POST['stat_ext']),
-            ':attachments'          => $attachment_name,
             ':a_link'               => $object->clean_input($_POST['a_link_ext'] ?? ''),
             ':hidden_extID'         => $ext_id
         );
@@ -225,11 +249,47 @@ if (isset($_POST["action_ext"])) {
                 title = :title, description = :description, proj_lead = :proj_lead, 
                 assist_coordinators = :assist_coordinators, period_implement = :period_implement, 
                 budget = :budget, fund_source = :fund_source, target_beneficiaries = :target_beneficiaries, 
-                partners = :partners, stat = :stat, attachments = :attachments, a_link = :a_link 
+                partners = :partners, stat = :stat, a_link = :a_link 
             WHERE id = :hidden_extID
         ";
         $object->execute($data);
+
+        if(isset($_FILES['ext_files']) && !empty($_FILES['ext_files']['name'][0])) {
+            $categories = isset($_POST['ext_file_categories']) ? $_POST['ext_file_categories'] : [];
+            handle_ext_activity_files($object, $ext_id, $categories, $_FILES['ext_files']);
+        }
+
         echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Extension Activity Updated</div>'));
         exit;
     }
+
+    if($_POST["action_ext"] == 'delete_file') {
+        $file_id = intval($_POST['file_id']);
+        $object->query = "SELECT file_path FROM tbl_ext_files WHERE id = '".$file_id."'";
+        $file_data = $object->get_result();
+        $file_deleted = false;
+        foreach($file_data as $row) {
+            $file_deleted = true;
+            $physical_path = '../../../' . $row['file_path'];
+            if(file_exists($physical_path)) { unlink($physical_path); }
+        }
+        if($file_deleted) {
+            $object->query = "DELETE FROM tbl_ext_files WHERE id = '".$file_id."'";
+            $object->execute();
+            echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'File not found.']);
+        }
+        exit;
+    }
+
+    // Since delete logic for this module isn't in your PHP block, I'll assume it exists elsewhere or we can safely append it here
+    if ($_POST["action_ext"] == 'delete') {
+        $ext_id = intval($_POST["extID"]);
+        $object->query = "UPDATE tbl_ext SET status = 0 WHERE id = '" . $ext_id . "'";
+        $object->execute();
+        echo '<div class="alert alert-success">Extension Activity moved to Recycle Bin</div>';
+        exit;
+    }
 }
+?>

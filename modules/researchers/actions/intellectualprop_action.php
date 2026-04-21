@@ -139,7 +139,7 @@ if (isset($_POST["action_intellectualprop"])) {
         $date_applied = date("Y-m-d", strtotime($_POST['date_applied']));
         $date_granted = date("Y-m-d", strtotime($_POST['date_granted']));
         $lead_researcher_id = $_POST['lead_researcher_id_ip'];
-        $has_files = $_POST['has_files_ip'];
+        $has_files = (isset($_FILES['ip_files']) && !empty($_FILES['ip_files']['name'][0])) ? 'With' : 'None';
 
         $a_link_str = '';
         if(isset($_POST['a_link_ip']) && is_array($_POST['a_link_ip'])) {
