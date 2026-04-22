@@ -167,7 +167,8 @@ $('#add_extension').click(function () {
     $('#modal_title').text('Add Extension');
     $('#action_ext').val('Add');
     
-    var rid = $('#hidden_id_rd').val() || $('.edit_researcher').data('id');
+    // FIX: Safely grab the researcher ID from multiple potential sources
+    var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');  
     $('#hidden_researcherID_ext').val(rid);
 
     var parentProjectID = $('#viewExtensionsModal').data('project-id');

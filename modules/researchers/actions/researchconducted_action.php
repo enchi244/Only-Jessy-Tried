@@ -139,7 +139,7 @@ try {
             
             $title = addslashes($_POST['title']);
             $rac = addslashes($_POST['research_agenda_cluster']);
-            $sdgs = addslashes(implode(", ", $_POST['sdgs']));
+            $sdgs = isset($_POST['sdgs']) ? addslashes(implode(", ", $_POST['sdgs'])) : '';
             $fs = addslashes($_POST['funding_source']);
             $stat = addslashes($_POST['stat']);
             $ab = floatval($_POST['approved_budget']);
@@ -220,13 +220,13 @@ try {
             $to_dateu = addslashes(date("Y-m-d", strtotime($_POST['completed_date']))); 
             $title = addslashes($_POST['title']);
             $rac = addslashes($_POST['research_agenda_cluster']);
-            $sdgs = addslashes(implode(", ", $_POST['sdgs']));
+            $sdgs = isset($_POST['sdgs']) ? addslashes(implode(", ", $_POST['sdgs'])) : '';
             $fs = addslashes($_POST['funding_source']);
             $stat = addslashes($_POST['stat']);
             $ab = floatval($_POST['approved_budget']);
 
             // 1. Update main data
-            $object->query = "UPDATE tbl_researchconducted SET lead_researcher_id = '$lead_researcher_id', title = '$title', research_agenda_cluster = '$rac', sdgs = '$sdgs', started_date = '$from_dateu', completed_date = '$to_dateu', funding_source = '$fs', approved_budget = '$ab', stat = '$stat' WHERE id = '$research_id'";
+            $object->query = "UPDATE tbl_researchconducted SET researcherID = '$lead_researcher_id', lead_researcher_id = '$lead_researcher_id', title = '$title', research_agenda_cluster = '$rac', sdgs = '$sdgs', started_date = '$from_dateu', completed_date = '$to_dateu', funding_source = '$fs', approved_budget = '$ab', stat = '$stat' WHERE id = '$research_id'";
             $object->execute();
 
             // 2. Handle Collaborators

@@ -288,7 +288,7 @@ body.sidebar-toggled #content-wrapper {
                     </button>
 
                     <div class="d-none d-sm-block ml-3">
-                        <h1 class="topbar-title">Research Databse Management System</h1>
+                        <h1 class="topbar-title">Research Database Management System</h1>
                     </div>
 
                     <ul class="navbar-nav ml-auto">

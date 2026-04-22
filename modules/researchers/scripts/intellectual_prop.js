@@ -87,26 +87,32 @@ $('#intellectualpropModal').on('hidden.bs.modal', function () {
     $('#researcherModala .modal-body').scrollTop(0);
 });
 
-$('#add_intellectualprop').click(function () {
-    $('#intellectualprop_form')[0].reset();  
-    $('#intellectualprop_form').parsley().reset();  
-
-    if ($('#collaborators_ip').length) { $('#collaborators_ip').val(null).trigger('change'); }
+$('#add_intellectualprop').click(function(){
+    $('#intellectualprop_form')[0].reset();
     
-    // UPDATED to use classes for the universal widget
-    $('#intellectualpropModal .new-files-container').html('');
-    $('#intellectualpropModal .existing-files-container').html('');
-    $('#dynamic_links_container_ip').html('');
-
-    $('#modal_title').text('Add Intellectual Property');  
+    // (If you use Parsley validation, reset it here)
+    if ($('#intellectualprop_form').parsley) {
+        $('#intellectualprop_form').parsley().reset();
+    }
+    
+    $('#modal_title_ip').html('<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;"><i class="fas fa-lightbulb"></i></div> Add Intellectual Property');
     $('#action_intellectualprop').val('Add');
-    var rid = $('#researcherModala').data('id');  
-    $('#hidden_researcherID_ip').val(rid);  
-    if(rid) { $('#lead_researcher_id_ip').val(rid).trigger('change'); }
+    $('#submit_button_intellectualprop').val('Save Data');
+    $('#form_message_ip').html('');
+
+    // ==========================================
+    // AUTO-FILL CURRENT RESEARCHER
+    // ==========================================
+    var urlParams = new URLSearchParams(window.location.search);
+    var currentResearcherId = urlParams.get('id'); 
     
-    $('#submit_button_intellectualprop').val('Add');
-    $('#intellectualpropModal').modal('show');  
-    $('#form_message').html('');
+    if (currentResearcherId) {
+        // Corrected ID to match your specific PHP modal!
+        $('#lead_researcher_id_ip').val(currentResearcherId).trigger('change');
+    }
+    // ==========================================
+
+    $('#intellectualpropModal').modal('show');
 });
 
 $(document).on('click', '.edit_button_intellectualprop', function () {

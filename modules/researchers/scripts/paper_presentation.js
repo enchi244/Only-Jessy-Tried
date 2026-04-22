@@ -92,18 +92,30 @@ $('#paperPresentationModal').on('hidden.bs.modal', function () {
 // Add New Paper Presentation
 $('#add_paper_presentation').click(function () {
     $('#paper_presentation_form')[0].reset();  
-    $('#paper_presentation_form').parsley().reset();  
+    if ($('#paper_presentation_form').parsley) {
+        $('#paper_presentation_form').parsley().reset();  
+    }
     
-    // UPDATED to use classes for universal widget
+    // Clear dynamic widgets
     $('#paperPresentationModal .new-files-container').html('');
     $('#paperPresentationModal .existing-files-container').html('');
     $('#dynamic_links_container').html('');
 
-    $('#modal_title').text('Add Paper Presentation');  
+    $('#modal_title').html('<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;"><i class="fas fa-microphone-alt"></i></div> Add Paper Presentation');  
     $('#action_paper_presentation').val('Add');
-    var rid = $('#researcherModala').data('id');  
+    
+    // ==========================================
+    // THE FIX: Bulletproof ID Fetcher
+    // ==========================================
+    // 1. Checks the dedicated hidden input on view_researcher.php
+    // 2. Fallback: Checks the URL for ?id=123
+    // 3. Fallback: Checks the Massive Edit Modal
+    var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id') || $('#researcherModala').data('id');
+    
     $('#hidden_researcherID_pp').val(rid);  
-    $('#submit_button_paper_presentation').val('Add');
+    // ==========================================
+
+    $('#submit_button_paper_presentation').val('Save Data');
     $('#paperPresentationModal').modal('show');  
     $('#form_message').html('');
 });

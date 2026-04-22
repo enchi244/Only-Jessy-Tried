@@ -55,16 +55,7 @@
 
                             <div class="form-group mb-3">
                                 <label for="research_agenda_cluster"><i class="fas fa-layer-group mr-2 text-primary"></i>Agenda Cluster</label>
-                                <select name="research_agenda_cluster" id="research_agenda_cluster" class="select form-control" required style="width: 100%;">
-                                    <option value="">Select Agenda Cluster...</option>
-                                    <?php
-                                    $object->query = "SELECT agenda FROM tbl_rde_agenda ORDER BY agenda ASC";
-                                    $agenda_result = $object->get_result();
-                                    foreach($agenda_result as $agenda) {
-                                        echo '<option value="'.htmlspecialchars($agenda["agenda"]).'">'.htmlspecialchars($agenda["agenda"]).'</option>';
-                                    }
-                                    ?>
-                                </select>
+                                <input type="text" name="research_agenda_cluster" id="research_agenda_cluster" class="form-control" placeholder="Enter Agenda Cluster" required />
                             </div>
 
                             <div class="form-group mb-3">

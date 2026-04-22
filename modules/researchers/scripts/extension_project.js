@@ -120,6 +120,7 @@ $('#extensionProjectModal').on('hidden.bs.modal', function () {
 });
 
 // Add New Extension Project
+// Add New Extension Project
 $('#add_extension_project').click(function () {
     var form = $('#extension_project_form');
     if (form.length > 0) { form[0].reset(); var p = form.parsley(); if (p) { p.reset(); } }
@@ -132,8 +133,13 @@ $('#add_extension_project').click(function () {
 
     $('#modal_title').text('Add Extension Project');  
     $('#action_extension').val('Add');
-    var rid = $('#researcherModala').data('id');  
+    
+    // FIX: Safely grab the researcher ID from multiple potential sources
+    // This guarantees the ID is found whether in the Master List or the Profile Page
+    var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');  
+    
     $('#hidden_researcherID_extension').val(rid);  
+    
     $('#submit_button_extension').html('Save Data');
     $('#extensionProjectModal').modal('show');  
     $('#form_message').html('');

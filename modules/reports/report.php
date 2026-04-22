@@ -20,6 +20,22 @@ if (!$object->is_master_user()) {
 if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
     header('Content-Type: application/json');
     
+    // THE FIX: Universal Custom Date Parser for Legacy Formats
+    function safe_strtotime($date_str) {
+        if (empty($date_str) || $date_str === '0000-00-00' || $date_str === 'null') return false;
+        $date_str = trim(str_replace('/', '-', $date_str));
+        $parts = explode('-', $date_str);
+        if (count($parts) === 1 && strlen($parts[0]) === 4) { $date_str = $parts[0] . '-01-01'; }
+        if (count($parts) === 2) {
+            if (strlen($parts[1]) === 4) $date_str = $parts[1] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-01';
+            else if (strlen($parts[0]) === 4) $date_str = $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-01';
+        }
+        if (count($parts) === 3) {
+            if (strlen($parts[2]) === 4) $date_str = $parts[2] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+        }
+        return strtotime($date_str);
+    }
+    
     $allowed_tables = ['tbl_publication', 'tbl_researchconducted', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted'];
     $repp = trim($_POST['repp'] ?? 'all');
     
@@ -101,7 +117,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         'tbl_trainingsattended' => 'date_train'
     ];
 
-    // THE FIX: Strict translation dictionary for perfect grammar formatting
     $friendly_modules = [
         'tbl_researchconducted' => 'Research Conducted',
         'tbl_publication' => 'Publications',
@@ -130,11 +145,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
             if ($current_table == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
             if ($current_table == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
             if ($current_table == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
+            if ($current_table == 'tbl_itelectualprop') { $col_table = 'tbl_ip_collaborators'; $col_fk = 'ip_id'; }
 
             if ($col_table !== '') {
                 $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM $col_table col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.$col_fk = r.id AND col.researcher_id != r.researcherID)";
-            } elseif ($current_table == 'tbl_itelectualprop') {
-                $co_author_subquery = "r.coauth";
             }
 
             $query = "SELECT d.department AS `Department`, 
@@ -201,19 +215,49 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
             
             while ($row = $result->fetch_assoc()) {
                 
+                // =========================================================================
+                // THE FIX: Strict Bounding Date Filter
+                // =========================================================================
                 $date_matched = false;
                 if ($is_all_time) {
                     $date_matched = true;
                 } else {
-                    if (isset($row[$target_date_col]) && !empty($row[$target_date_col])) {
-                        $val_clean = trim((string)$row[$target_date_col]);
-                        if (preg_match('/^\d{2}-\d{4}$/', $val_clean)) { $val_clean = "01-" . $val_clean; }
-                        $ts = strtotime($val_clean);
-                        if ($ts !== false && $ts >= $from_date_ts && $ts <= $to_date_ts) {
+                    $col_start = '';
+                    $col_end = '';
+                    
+                    if ($current_table == 'tbl_researchconducted') {
+                        $col_start = 'started_date'; $col_end = 'completed_date';
+                    } else if ($current_table == 'tbl_extension_project_conducted') {
+                        $col_start = 'start_date'; $col_end = 'completed_date';
+                    } else {
+                        $col_start = $target_date_col; $col_end = $target_date_col;
+                    }
+
+                    $row_start_ts = safe_strtotime($row[$col_start] ?? '');
+                    $row_end_ts = safe_strtotime($row[$col_end] ?? '');
+
+                    if ($col_start === $col_end) {
+                        if ($row_start_ts !== false && $row_start_ts >= $from_date_ts && $row_start_ts <= $to_date_ts) {
                             $date_matched = true;
+                        }
+                    } else {
+                        if ($row_start_ts !== false && $row_end_ts !== false) {
+                            // STRICT BOUNDS: Must start inside AND end inside the selected years
+                            if ($row_start_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) {
+                                $date_matched = true;
+                            }
+                        } else if ($row_start_ts !== false) {
+                            if ($row_start_ts >= $from_date_ts && $row_start_ts <= $to_date_ts) {
+                                $date_matched = true;
+                            }
+                        } else if ($row_end_ts !== false) {
+                            if ($row_end_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) {
+                                $date_matched = true;
+                            }
                         }
                     }
                 }
+                // =========================================================================
 
                 $has_status = in_array($current_table, ['tbl_researchconducted', 'tbl_extension_project_conducted']);
                 $status_matched = true; 
@@ -242,31 +286,74 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $discipline_text = !empty($row["program"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader"></i> ' . htmlspecialchars($row["program"]) . '</div>' : '';
                 $clean_row['Lead_Proponent'] = "<div class='font-weight-bold text-gray-800'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . $rank_badge . "</div>" . $discipline_text;
 
-                if ($current_table == 'tbl_itelectualprop') {
-                    $clean_row['Co_Authors'] = !empty($row['coauth']) ? htmlspecialchars($row['coauth'], ENT_QUOTES, 'UTF-8') : 'None';
-                } else {
-                    $co_html = "";
-                    if (!empty($row['Co_Researchers_Raw'])) {
-                        $co_list = explode('||', $row['Co_Researchers_Raw']);
-                        foreach ($co_list as $co_data) {
-                            $parts = explode('|', $co_data);
-                            if (count($parts) >= 1) {
-                                $c_name = $parts[0];
-                                $c_rank = $parts[1] ?? '';
-                                $c_prog = $parts[2] ?? '';
-                                $c_badge = !empty($c_rank) ? '<span class="badge badge-light border px-2 py-1 ml-2 align-text-top" style="font-size:0.6rem; color:#5a5c69;">' . htmlspecialchars($c_rank) . '</span>' : '';
-                                $c_discipline = !empty($c_prog) ? '<div class="text-xs text-muted" style="margin-left:5px;">— ' . htmlspecialchars($c_prog) . '</div>' : '';
-                                $co_html .= "<div class='mb-2'><span class='text-gray-700 font-weight-bold' style='font-size:0.9rem;'>$c_name</span>$c_badge $c_discipline</div>";
-                            }
+                $co_html = "";
+                if (!empty($row['Co_Researchers_Raw'])) {
+                    $co_list = explode('||', $row['Co_Researchers_Raw']);
+                    foreach ($co_list as $co_data) {
+                        $parts = explode('|', $co_data);
+                        if (count($parts) >= 1) {
+                            $c_name = $parts[0];
+                            $c_rank = $parts[1] ?? '';
+                            $c_prog = $parts[2] ?? '';
+                            $c_badge = !empty($c_rank) ? '<span class="badge badge-light border px-2 py-1 ml-2 align-text-top" style="font-size:0.6rem; color:#5a5c69;">' . htmlspecialchars($c_rank) . '</span>' : '';
+                            $c_discipline = !empty($c_prog) ? '<div class="text-xs text-muted" style="margin-left:5px;">— ' . htmlspecialchars($c_prog) . '</div>' : '';
+                            $co_html .= "<div class='mb-2'><span class='text-gray-700 font-weight-bold' style='font-size:0.9rem;'>$c_name</span>$c_badge $c_discipline</div>";
                         }
                     }
-                    $clean_row['Co_Authors'] = !empty($co_html) ? $co_html : 'None';
                 }
+                $clean_row['Co_Authors'] = !empty($co_html) ? $co_html : 'None';
 
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
                     
-                    if ($kl === 'id' || $kl === 'researcherid' || $kl === 'lead_author_id' || $kl === 'lead_researcher_id' || $kl === 'status' || $kl === 'department' || $kl === 'college' || $kl === 'firstname' || $kl === 'familyname' || $kl === 'academic_rank' || $kl === 'program' || $kl === 'co_researchers_raw' || $kl === 'lead_proponent' || $kl === 'co_authors' || $kl === 'so_file' || $kl === 'moa_file' || $kl === 'has_files' || $kl === 'file' || $kl === 'terminal_report_file' || $kl === 'attachments') continue;
+                    if (in_array($kl, ['id', 'researcherid', 'lead_author_id', 'lead_researcher_id', 'status', 'department', 'college', 'firstname', 'familyname', 'academic_rank', 'program', 'co_researchers_raw', 'lead_proponent', 'co_authors', 'so_file', 'moa_file', 'has_files', 'file', 'terminal_report_file', 'attachments', 'coauth'])) continue;
+                    
+                    // =========================================================================
+                    // THE FIX: The "Magic Replacer" V2 (Crash-Proof!)
+                    // =========================================================================
+                    if (trim((string)$v) === 'Legacy Replaced') {
+                        $real_data = '';
+                        $cat = '';
+                        
+                        if ($kl === 'terminal_report') $cat = 'Terminal Report';
+                        if ($kl === 'moa') $cat = 'MOA';
+                        if ($kl === 'so') $cat = 'SO';
+                        
+                        if ($cat !== '') {
+                            $file_table = '';
+                            $file_col = '';
+                            
+                            if ($current_table == 'tbl_extension_project_conducted') {
+                                $file_table = 'tbl_extension_files';
+                                $file_col = 'extension_id';
+                            } else if ($current_table == 'tbl_researchconducted') {
+                                $file_table = 'tbl_research_files'; 
+                                $file_col = 'research_id';
+                            }
+                            
+                            if ($file_table !== '') {
+                                try {
+                                    $sub_obj = new rms();
+                                    $sub_obj->query = "SELECT file_name FROM $file_table WHERE $file_col = '".$row['id']."' AND file_category = '$cat'";
+                                    $files = clone $sub_obj;
+                                    $files_result = $files->get_result(); 
+                                    $fnames = [];
+                                    if ($files_result) { foreach($files_result as $f) { $fnames[] = $f['file_name']; } }
+                                    if(count($fnames) > 0) { $real_data = implode(", ", $fnames); }
+                                    else { $real_data = "No File Attached"; }
+                                } catch (Exception $e) {
+                                    $real_data = "See Attached Files"; 
+                                }
+                            }
+                        }
+                        
+                        if ($real_data !== '') { 
+                            $v = $real_data; 
+                        } else { 
+                            $v = 'See Attached Files'; 
+                        }
+                    }
+                    // =========================================================================
                     
                     $friendly_k = isset($label_map[$kl]) ? $label_map[$kl] : $k;
                     $clean_row[$friendly_k] = htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -301,7 +388,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
 
                     if ($is_multi_module) {
                         
-                        // THE FIX: Apply the strict dictionary translation here!
                         $module_category = isset($friendly_modules[$current_table]) ? $friendly_modules[$current_table] : 'Unknown Category';
                         
                         $friendly_target_date = isset($label_map[$target_date_col]) ? $label_map[$target_date_col] : ucwords(str_replace('_', ' ', $target_date_col));

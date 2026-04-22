@@ -131,10 +131,8 @@ $('#add_researcherconducted').click(function() {
     
     // FIX: Properly reset Select2 UIs visually on Add
     $('#sdgs').val([]).trigger('change');  
-    $('#research_agenda_cluster').val('').trigger('change'); 
     if($.fn.selectpicker) { 
         $('#sdgs').selectpicker('refresh'); 
-        $('#research_agenda_cluster').selectpicker('refresh');
     }
     
     if ($('#collaborators').length) {
@@ -182,8 +180,7 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
             $('#title').val(data.title);
             
             // FIX: Force the UI to update with .trigger('change')
-            $('#research_agenda_cluster').val(data.research_agenda_cluster).trigger('change');
-            if($.fn.selectpicker) { $('#research_agenda_cluster').selectpicker('refresh'); }
+            $('#research_agenda_cluster').val(data.research_agenda_cluster);
 
             $('#lead_researcher_id').val(data.lead_researcher_id).trigger('change');
             

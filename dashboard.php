@@ -30,7 +30,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         $total_rows = 0; 
         $dept_counts = $base_depts; 
         $distinct_vals = [];
-        $unique_titles = [];
+        $unique_records = []; 
         
         $dept_tracked_items = []; 
 
@@ -94,12 +94,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
 
                     if (!$is_researcher) {
                         $total_rows++;
-                        $item_id = uniqid(); 
-                        if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
-                            $item_id = strtolower(trim($row[$title_col]));
-                        } else if (isset($row['id'])) {
-                            $item_id = $row['id'];
-                        }
+                        
+                        $item_id = isset($row['id']) ? $row['id'] : uniqid();
 
                         if (!isset($dept_tracked_items[$dept])) {
                             $dept_tracked_items[$dept] = [];
@@ -115,9 +111,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                             $distinct_vals[trim($row[$distinct_col])] = true;
                         }
                         
-                        if ($title_col && isset($row[$title_col]) && !empty(trim($row[$title_col]))) {
-                            $unique_titles[strtolower(trim($row[$title_col]))] = true;
-                        }
+                        $unique_records[$item_id] = true;
                     }
                 }
             }
@@ -127,7 +121,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
 
         $chart_data = [];
         foreach($dept_counts as $dept => $cnt) {
-            // THE FIX: Anti-Zero Filter! Only send the college to the chart if they actually have projects!
             if ($cnt > 0) {
                 $chart_data[] = ['label' => $dept, 'y' => $cnt];
             }
@@ -137,7 +130,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
             'total' => $total_rows, 
             'chart' => $chart_data, 
             'distinct_count' => count($distinct_vals),
-            'unique_titles_count' => count($unique_titles)
+            'unique_titles_count' => count($unique_records) 
         ];
     }
 
@@ -162,7 +155,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
 
     $chart1_data = [];
     foreach($chart1_dept_counts as $dept => $cnt) {
-        // THE FIX: Applied the Anti-Zero filter here too!
         if ($cnt > 0) {
             $chart1_data[] = ['label' => $dept, 'y' => $cnt];
         }
@@ -206,7 +198,11 @@ if(!$object->is_login())
 }
 
 include('includes/header.php'); 
+
+// Fetch true totals directly from the master tables
 $totalDepartments = $object->Get_total_departments();
+$totalDisciplines = $object->Get_total_disciplines(); 
+
 ?>
 
 <style>
@@ -359,7 +355,7 @@ $totalDepartments = $object->Get_total_departments();
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-default text-uppercase mb-1">Total Number of Colleges</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="card-colleges"><?php echo number_format($totalDepartments);?></div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="card-colleges"><?php echo $totalDepartments;?></div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -374,8 +370,8 @@ $totalDepartments = $object->Get_total_departments();
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-default text-uppercase mb-1">Total discipline</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="card-discipline"><i class="fas fa-spinner fa-spin"></i></div>
+                            <div class="text-xs font-weight-bold text-default text-uppercase mb-1">Total Discipline</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="card-discipline"><?php echo $totalDisciplines;?></div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-table fa-2x text-gray-300"></i>
@@ -1001,7 +997,7 @@ $totalDepartments = $object->Get_total_departments();
                     if ($('#card-paper').length) $('#card-paper').text(res.chart5.unique_titles_count.toLocaleString());
                     if ($('#card-pub').length) $('#card-pub').text(res.chart3.unique_titles_count.toLocaleString());
                     
-                    if ($('#card-discipline').length) $('#card-discipline').text(res.chart5.distinct_count.toLocaleString()); 
+                    // THE FIX: We remove the javascript update for card-discipline so it stays as the true static total!
                     if ($('#card-projects').length) $('#card-projects').text(res.chart7.unique_titles_count.toLocaleString()); 
 
                     if ($('#title-chart1').length) $('#title-chart1').text('Total Active Researchers');

@@ -87,6 +87,7 @@ $('#publicationModal').on('hidden.bs.modal', function() {
 });
 
 // Add New Publication
+// Add New Publication
 $('#add_publication').click(function () {
     $('#publication_form')[0].reset();  
     $('#publication_form').parsley().reset();  
@@ -99,9 +100,16 @@ $('#add_publication').click(function () {
 
     $('#modal_title').text('Add Publication');  
     $('#action_publication').val('Add');
-    var rid = $('#researcherModala').data('id');  
+    
+    // FIX: Safely grab the researcher ID from multiple potential sources
+    var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');  
+    
     $('#hidden_researcherID').val(rid); 
-    if(rid) { $('#lead_author_id').val(rid).trigger('change'); }
+    
+    // Trigger the change to automatically select the lead author
+    if(rid) { 
+        $('#lead_author_id').val(rid).trigger('change'); 
+    }
 
     $('#submit_button_publication').val('Add');
     $('#publicationModal').modal('show');  

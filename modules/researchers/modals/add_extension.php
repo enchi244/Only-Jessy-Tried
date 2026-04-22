@@ -91,7 +91,7 @@
                                 </div>
                                 <div class="col-md-6 form-group mb-4">
                                     <label for="assist_coordinators"><i class="fas fa-users-cog mr-2 text-primary"></i>Asst. Coordinators</label>
-                                    <select name="assist_coordinators[]" id="assist_coordinators" class="form-control select2-researcher" style="width: 100%;" multiple="multiple" required>
+                                    <select name="assist_coordinators[]" id="assist_coordinators" class="form-control select2-researcher" style="width: 100%;" multiple="multiple">
                                     </select>
                                 </div>
                             </div>

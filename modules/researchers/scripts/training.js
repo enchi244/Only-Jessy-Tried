@@ -87,18 +87,30 @@ $('#trainingsAttendedModal').on('hidden.bs.modal', function () {
 
 $('#add_training_attended').click(function () {
     $('#trainings_attended_form')[0].reset();  
-    $('#trainings_attended_form').parsley().reset();  
+    if ($('#trainings_attended_form').parsley) {
+        $('#trainings_attended_form').parsley().reset();  
+    }
 
     // UPDATED to use classes for the universal widget
     $('#trainingsAttendedModal .new-files-container').html('');
     $('#trainingsAttendedModal .existing-files-container').html('');
     $('#dynamic_links_container_training').html('');
 
-    $('#modal_title').text('Add Trainings Attended');  
+    $('#modal_title').html('<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;"><i class="fas fa-chalkboard-teacher"></i></div> Add Trainings Attended');  
     $('#action_training').val('Add');
-    var rid = $('#researcherModala').data('id');  
+    
+    // ==========================================
+    // THE FIX: Bulletproof ID Fetcher
+    // ==========================================
+    // 1. Checks the dedicated hidden input on view_researcher.php
+    // 2. Fallback: Checks the URL for ?id=123
+    // 3. Fallback: Checks the Massive Edit Modal
+    var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id') || $('#researcherModala').data('id');
+    
     $('#hidden_researcherID_training').val(rid);  
-    $('#submit_button_training').val('Add');
+    // ==========================================
+
+    $('#submit_button_training').val('Save Data');
     $('#trainingsAttendedModal').modal('show');  
     $('#form_message').html('');
 });
