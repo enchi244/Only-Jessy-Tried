@@ -26,153 +26,214 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Research Data Management System</title>
+    <title>SDMU | St. Joseph College of Sindangan</title>
     <link rel="stylesheet" href="css/public_style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <header class="header">
-        <div class="logo-container">
-            <img src="img/roblox.png" alt="University Logo" class="logo">
-            <div class="header-text">
-                <h1>St. Joseph College of Sindangan Incorporated</h1>
-                <p>Research Data Management System</p>
+    <nav id="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-text">SDMU <span class="highlight">SJCSI</span></span>
             </div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="rde-database.php" class="btn-nav">RDE Outputs</a></li>
+                <li>
+                    <a href="login.php" class="btn-login">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: -2px;">
+                            <path d="M8.5 10c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1z"/>
+                            <path d="M10.828.122A.5.5 0 0 1 11 .5V1h.5A1.5 1.5 0 0 1 13 2.5V15h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V1.5a.5.5 0 0 1 .43-.495l7-1a.5.5 0 0 1 .398.117zM11.5 2H11v13h1V2.5a.5.5 0 0 0-.5-.5zM4 1.934V15h6V1.077l-6 .857z"/>
+                        </svg>
+                        Admin Login
+                    </a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <header id="home" class="hero section">
+        <div class="hero-content fade-in-up">
+            <h1>Statistics and Data Management Unit</h1>
+            <p>Empowering St. Joseph College of Sindangan Incorporated through statistical expertise, data integrity, and actionable research insights.</p>
+            <div class="hero-buttons">
+                <a href="#about" class="btn btn-primary">Discover SDMU</a>
+                <a href="#rde-outputs" class="btn btn-secondary">Explore Researches</a>
+            </div>
+        </div>
+        <div class="hero-image-container fade-in-up delay-1">
+            <img src="img/research_center.jpg" alt="SDMU Hero Image" class="interactive-img">
         </div>
     </header>
 
-    <nav class="navbar">
-        <div class="menu-toggle" id="mobile-menu">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.php" class="active">Home</a></li>
-            <li><a href="#">About</a></li>
-            <li><a href="rde-database.php">RDE Database</a></li>
-            <li><a href="#">News & Updates</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="login.php" class="login-btn">LOGIN</a></li>
-        </ul>
-    </nav>
-
-    <section class="hero-slider">
-        <div class="slider-container">
-            <div class="slide fade">
-                <img src="img/sampol.jpg" alt="Research Activity 1">
-                <div class="slide-caption">
-                    <h2>Advancing Innovation and Excellence</h2>
-                    <p>Empowering researchers through comprehensive data management.</p>
+    <section id="about" class="about section">
+        <div class="container">
+            <div class="section-title fade-in-up">
+                <h2>About the Office</h2>
+                <div class="line"></div>
+            </div>
+            <div class="about-grid">
+                <div class="about-text scroll-reveal">
+                    <p class="lead">Under the Research Development and Evaluation Center (RDEC), the SDMU collects, manages, and analyzes data within the University.</p>
+                    <h3>Core Responsibilities:</h3>
+                    <ul class="task-list">
+                        <li><strong>Demographic Profiling:</strong> Collects pertinent data including the demographic profile of teaching and non-teaching personnel.</li>
+                        <li><strong>Data Summarization:</strong> Presents data summaries with conclusions and recommendations.</li>
+                        <li><strong>Information Handling:</strong> Handles data processing, storage, retrieval, and the production of hard-copy information.</li>
+                        <li><strong>Database Management:</strong> Manages databases, encompassing consistent updating and data screening.</li>
+                        <li><strong>Statistical Analysis:</strong> Performs advanced statistical computations and analyses for R&D projects.</li>
+                    </ul>
+                </div>
+                <div class="about-visuals scroll-reveal right">
+                    <div class="vertical-carousel">
+                        <div class="carousel-track">
+                            <img src="img/sampol.jpg" alt="SDMU Image 1">
+                            <img src="img/sampolb.jpg" alt="SDMU Image 2">
+                            <img src="img/roblox.png" alt="SDMU Image 3">
+                            
+                            <img src="img/sampol.jpg" alt="SDMU Image 1">
+                            <img src="img/sampolb.jpg" alt="SDMU Image 2">
+                            <img src="img/roblox.png" alt="SDMU Image 3">
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="slide fade">
-                <img src="img/sampolb.jpg" alt="Research Activity 2">
-                <div class="slide-caption">
-                    <h2>Collaborative Research Opportunities</h2>
-                    <p>Fostering partnerships across various disciplines.</p>
-                </div>
-            </div>
-            <div class="slide fade">
-                <img src="img/research_center.jpg" alt="Research Facility">
-                <div class="slide-caption">
-                    <h2>State-of-the-Art Facilities</h2>
-                    <p>Providing the resources needed for groundbreaking discoveries.</p>
-                </div>
-            </div>
-
-            <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
-            <a class="next" onclick="plusSlides(1)">&#10095;</a>
-        </div>
-        <br>
-        <div style="text-align:center">
-            <span class="dot" onclick="currentSlide(1)"></span>
-            <span class="dot" onclick="currentSlide(2)"></span>
-            <span class="dot" onclick="currentSlide(3)"></span>
         </div>
     </section>
 
-    <section class="statistics">
-        <div class="stat-box">
-            <h3><?php echo number_format($centersCount); ?></h3>
-            <p>RDE Centers / Colleges</p>
-        </div>
-        <div class="stat-box">
-            <h3><?php echo number_format($researchConductedCount); ?></h3>
-            <p>Researches Conducted</p>
-        </div>
-        <div class="stat-box">
-            <h3><?php echo number_format($researchertotal); ?></h3>
-            <p>Active Researchers</p>
-        </div>
-        <div class="stat-box">
-            <h3><?php echo number_format($publicationtotal); ?></h3>
-            <p>Total Publications</p>
+    <section id="mission-vision" class="mv-section section">
+        <div class="container">
+            <div class="mv-grid">
+                <div class="mv-card scroll-reveal">
+                    <h3>Our Mission</h3>
+                    <p>SDMU is committed to providing appropriate statistical information and analyses while ensuring that the R&D data of the University are properly stored and managed.</p>
+                </div>
+                <div class="mv-card scroll-reveal delay-1">
+                    <h3>Our Vision</h3>
+                    <p>SDMU aspires to become the leading hub of statistical expertise and data integrity within St. Joseph College of Sindangan Incorporated.</p>
+                </div>
+            </div>
         </div>
     </section>
 
-    <section class="news-preview">
-        <h2>Latest News & Updates</h2>
-        <div class="news-grid">
-            <div class="news-card">
-                <img src="img/images.jpg" alt="News 1">
-                <div class="news-content">
-                    <h4>New Grant Awarded for Sustainable Agriculture</h4>
-                    <p class="date">October 15, 2023</p>
-                    <p>The university has received a major grant to explore sustainable farming practices in the region.</p>
-                    <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+    <section id="impact" class="impact-section section">
+        <div class="container">
+            <div class="impact-grid">
+                <div class="impact-item scroll-reveal up">
+                    <h3 class="counter" data-target="<?php echo $centersCount; ?>">0</h3>
+                    <p>RDE Centers / Colleges</p>
+                </div>
+                <div class="impact-item scroll-reveal up delay-1">
+                    <h3 class="counter" data-target="<?php echo $researchConductedCount; ?>">0</h3>
+                    <p>Researches Conducted</p>
+                </div>
+                <div class="impact-item scroll-reveal up delay-2">
+                    <h3 class="counter" data-target="<?php echo $researchertotal; ?>">0</h3>
+                    <p>Active Researchers</p>
+                </div>
+                <div class="impact-item scroll-reveal up delay-3">
+                    <h3 class="counter" data-target="<?php echo $publicationtotal; ?>">0</h3>
+                    <p>Total Publications</p>
                 </div>
             </div>
-            <div class="news-card">
-                <img src="img/group-photo-poses-aperture-priority.webp" alt="News 2">
-                <div class="news-content">
-                    <h4>Annual Research Symposium 2023</h4>
-                    <p class="date">September 28, 2023</p>
-                    <p>Join us for our annual symposium showcasing the latest findings from our dedicated researchers.</p>
-                    <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
-                </div>
-            </div>
-            <div class="news-card">
-                <img src="img/sample.webp" alt="News 3">
-                <div class="news-content">
-                    <h4>Breakthrough in Renewable Energy Tech</h4>
-                    <p class="date">September 10, 2023</p>
-                    <p>Our engineering department has published groundbreaking research on efficient solar cell materials.</p>
-                    <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="view-all-container">
-            <a href="#" class="btn-primary">View All News</a>
         </div>
     </section>
 
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>About SDMU</h3>
-                <p>The Research Data Management Unit is dedicated to organizing, preserving, and sharing the intellectual output of St. Joseph College of Sindangan Incorporated.</p>
+    <section id="news" class="news-section section">
+        <div class="container">
+            <div class="section-title fade-in-up">
+                <h2>Latest from SDMU</h2>
+                <div class="line"></div>
             </div>
-            <div class="footer-section">
-                <h3>Quick Links</h3>
-                <ul>
-                    <li><a href="index.php">Home</a></li>
-                    <li><a href="rde-database.php">RDE Database</a></li>
-                    <li><a href="login.php">Admin Login</a></li>
-                </ul>
+            
+            <div class="news-grid">
+                <article class="news-card scroll-reveal up">
+                    <div class="news-img-wrapper">
+                        <img src="img/research_center.jpg" alt="News Image">
+                    </div>
+                    <div class="news-content">
+                        <span class="news-date">October 12, 2026</span>
+                        <h3><a href="#">SDMU Launches New Demographic Dashboard</a></h3>
+                        <p>The office has officially rolled out the new interactive dashboard for teaching and non-teaching personnel data...</p>
+                        <a href="#" class="read-more">Read Article &rarr;</a>
+                    </div>
+                </article>
+
+                <article class="news-card scroll-reveal up delay-1">
+                    <div class="news-img-wrapper">
+                        <img src="img/research_center.jpg" alt="News Image">
+                    </div>
+                    <div class="news-content">
+                        <span class="news-date">September 28, 2026</span>
+                        <h3><a href="#">SJCSI Researchers Benefit from Advanced Statistical Tools</a></h3>
+                        <p>A recent seminar hosted by SDMU showcased advanced statistical computation methods for ongoing R&D projects...</p>
+                        <a href="#" class="read-more">Read Article &rarr;</a>
+                    </div>
+                </article>
+
+                <article class="news-card scroll-reveal up delay-2">
+                    <div class="news-img-wrapper">
+                        <img src="img/research_center.jpg" alt="News Image">
+                    </div>
+                    <div class="news-content">
+                        <span class="news-date">September 10, 2026</span>
+                        <h3><a href="#">Annual Data Integrity Audit Completed</a></h3>
+                        <p>Ensuring the highest standards, the SDMU has successfully concluded the annual screening of the university's database...</p>
+                        <a href="#" class="read-more">Read Article &rarr;</a>
+                    </div>
+                </article>
             </div>
-            <div class="footer-section">
-                <h3>Contact Us</h3>
-                <p><i class="fas fa-map-marker-alt"></i> National Highway, Sindangan, Zamboanga del Norte</p>
-                <p><i class="fas fa-envelope"></i> research@sjc.edu.ph</p>
-                <p><i class="fas fa-phone"></i> (065) 123-4567</p>
+        </div>
+    </section>
+
+    <section id="rde-outputs" class="rde-section section">
+        <div class="container rde-content scroll-reveal up">
+            <h2>Research Development & Evaluation Outputs</h2>
+            <p>Dive into the expansive repository of SJCSI's research data, academic publications, and statistical findings.</p>
+            <a href="rde-database.php" class="btn btn-primary large-btn">
+                Access Research Database
+            </a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <h3>SDMU <span class="highlight">SJCSI</span></h3>
+                <p>Statistics and Data Management Unit<br>St. Joseph College of Sindangan Incorporated</p>
+            </div>
+            <div class="footer-links">
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="rde-database.php">RDE Outputs</a>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; <?php echo date('Y'); ?> St. Joseph College of Sindangan Incorporated. All Rights Reserved.</p>
+            <p>&copy; <?php echo date('Y'); ?> St. Joseph College of Sindangan Incorporated - SDMU. All rights reserved.</p>
         </div>
     </footer>
+
+    <div id="newsModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-body">
+                <img id="modalImage" src="" alt="News Feature Image">
+                <div class="modal-text">
+                    <span id="modalDate" class="news-date"></span>
+                    <h2 id="modalTitle"></h2>
+                    <div id="modalFullText" class="modal-article-body">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="js/public_app.js"></script>
 </body>
