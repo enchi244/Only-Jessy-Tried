@@ -13,39 +13,39 @@ if(!isset($_SESSION)) {
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $action_rd = $_POST['action_rd'];
+    $action_rd = $_POST['action_rd'] ?? '';
 
     if ($action_rd == 'update') {
         $error = '';
         $success = '';
     
-        // 1. Prepare data array - Fixed missing comma after academic_ranku
+        // 1. Prepare data array 
         $update_data = array(
-            ':id'                     => $_POST['hidden_id_rd'],
-            ':researcherID'           => $_POST['researcherIDu'],
-            ':familyName'             => $_POST['familyNameu'],
-            ':firstName'              => $_POST['firstNameu'],
-            ':middleName'             => $_POST['middleNameu'],
-            ':Suffix'                 => $_POST['Suffixu'],
-            ':department'             => $_POST['departmentu'],
-            ':program'                => $_POST['programu'],
-            ':academic_rank'          => $_POST['academic_ranku'], // Added comma here
-            ':bachelor_degree'        => $_POST['bachelor_degreeu'],
-            ':bachelor_institution'   => $_POST['bachelor_institutionu'],
-            ':bachelor_YearGraduated' => $_POST['bachelor_YearGraduatedu'],
-            ':masterDegree'           => $_POST['masterDegreeu'],
-            ':masterInstitution'      => $_POST['masterInstitutionu'],
-            ':masterYearGraduated'    => $_POST['masterYearGraduatedu'],
-            ':doctorateDegree'        => $_POST['doctorateDegreeu'],
-            ':doctorateInstitution'   => $_POST['doctorateInstitutionu'],
-            ':doctorateYearGraduate'  => $_POST['doctorateYearGraduateu'],
-            ':postDegree'             => $_POST['postDegreeu'],
-            ':postInstitution'        => $_POST['postInstitutionu'],
-            ':postYearGraduate'       => $_POST['postYearGraduateu'],
+            ':id'                     => $_POST['hidden_id_rd'] ?? '',
+            ':researcherID'           => $_POST['researcherID'] ?? '',
+            ':familyName'             => strtoupper($_POST['familyName'] ?? ''),
+            ':firstName'              => strtoupper($_POST['firstName'] ?? ''),
+            ':middleName'             => strtoupper($_POST['middleName'] ?? ''),
+            ':Suffix'                 => strtoupper($_POST['Suffix'] ?? ''),
+            ':department'             => $_POST['department'] ?? '',
+            ':program'                => $_POST['program'] ?? '',
+            ':academic_rank'          => $_POST['academic_rank'] ?? '',
+            ':bachelor_degree'        => strtoupper($_POST['bachelor_degree'] ?? ''),
+            ':bachelor_institution'   => strtoupper($_POST['bachelor_institution'] ?? ''),
+            ':bachelor_YearGraduated' => strtoupper($_POST['bachelor_YearGraduated'] ?? ''),
+            ':masterDegree'           => strtoupper($_POST['masterDegree'] ?? ''),
+            ':masterInstitution'      => strtoupper($_POST['masterInstitution'] ?? ''),
+            ':masterYearGraduated'    => strtoupper($_POST['masterYearGraduated'] ?? ''),
+            ':doctorateDegree'        => strtoupper($_POST['doctorateDegree'] ?? ''),
+            ':doctorateInstitution'   => strtoupper($_POST['doctorateInstitution'] ?? ''),
+            ':doctorateYearGraduate'  => strtoupper($_POST['doctorateYearGraduate'] ?? ''),
+            ':postDegree'             => strtoupper($_POST['postDegree'] ?? ''),
+            ':postInstitution'        => strtoupper($_POST['postInstitution'] ?? ''),
+            ':postYearGraduate'       => strtoupper($_POST['postYearGraduate'] ?? ''),
             ':user'                   => $object->Get_user_name($_SESSION['user_id'])
         );
     
-        // 2. Updated SQL Query - Added academic_rank to the SET clause
+        // 2. Execute SQL Query
         $object->query = "
             UPDATE tbl_researchdata 
             SET researcherID = :researcherID,
@@ -72,11 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             WHERE id = :id
         ";
 
-        if($object->execute($update_data)) {
-            $success = '<div class="alert alert-success">Research Data Updated</div>';
-        } else {
-            $error = '<div class="alert alert-danger">Database Error: Could not update record.</div>';
-        }
+        // Call execute directly. If it fails, rms.php kills the script. 
+        // If it passes this line, it was successful.
+        $object->execute($update_data);
+        
+        $success = '<div class="alert alert-success">Research Data Updated</div>';
     
         $output = array(
             'error'   => $error,

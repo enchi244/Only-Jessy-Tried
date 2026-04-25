@@ -133,14 +133,25 @@ $('#ext_project_form').on('submit', function (event) {
                     $('#submit_button_ext').val($('#action_ext').val());
                 } else {
                     $('#extModal').modal('hide');
-                    Swal.fire({ title: 'Success!', text: 'Record saved successfully.', icon: 'success', timer: 1000, showConfirmButton: false });
+                    var Svalue = $('#action_ext').val();
+                    Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The extension activity has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' }});
 
-                    var projectID = $('#viewExtensionsModal').data('project-id');
-                    if(projectID) {
-                        loadextprotab(projectID);
+                    // --- UPGRADED AUTO-REFRESH LOGIC ---
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ 
+                            var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
+                            // Routes to the inner tab automatically
+                            window.location.href = window.location.pathname + '?id=' + rid + '&tab=ext';
+                        }, 800);
                     } else {
-                        setTimeout(function(){ location.reload(); }, 1000);
+                        var researcherID = $('#researcherModala').data('id');  
+                        if(researcherID) { 
+                            if(typeof loadextprotab === "function") loadextprotab(researcherID); 
+                        } else {
+                            $('.dataTable').each(function() { if ($.fn.dataTable.isDataTable(this)) { $(this).DataTable().ajax.reload(null, false); } });
+                        }
                     }
+                    // -----------------------------------
                 }
             }
         });

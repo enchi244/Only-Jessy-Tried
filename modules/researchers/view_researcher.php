@@ -146,9 +146,7 @@ include('../../includes/header.php');
     <i class="fas fa-arrow-left mr-2"></i>Back to Directory
 </a>
 
-<button type="button" id="hidden_profile_edit" class="edit_buttona d-none" data-id="<?php echo htmlspecialchars($researcher_id); ?>"></button>
-
-<div class="profile-header d-flex align-items-center clickable-card position-relative" title="Click to Edit Profile" onclick="document.getElementById('hidden_profile_edit').click();">
+<div class="profile-header d-flex align-items-center clickable-card position-relative edit_buttona" data-id="<?php echo htmlspecialchars($researcher_id); ?>" title="Click to Edit Profile">
     
     <div class="position-absolute text-white-50" style="top: 20px; right: 25px; font-size: 1.5rem; opacity: 0.7;">
         <i class="fas fa-user-edit"></i>
@@ -173,7 +171,6 @@ include('../../includes/header.php');
         <p class="mb-0 text-white-50"><i class="fas fa-id-badge mr-2"></i>System ID: <?php echo htmlspecialchars($researcher_id); ?> | Researcher ID: <?php echo htmlspecialchars($researcher_data['researcherID']); ?></p>
     </div>
 </div>
-
 <?php include('modals/add_researchConducted.php'); ?>
 <?php include('modals/add_publication.php'); ?>
 <?php include('modals/add_intellectualProperty.php'); ?>
@@ -597,133 +594,7 @@ include('../../includes/header.php');
 
 <input type="hidden" id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>">
 
-<div id="researcherModala" class="modal fade" data-backdrop="static" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 1250px;">
-        <div class="modal-content">
-            <div class="modal-header pb-2">
-                <h4 class="modal-title d-flex align-items-center" name="modal_title" id="modal_title">
-                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;">
-                        <i class="fas fa-user-edit"></i>
-                    </div>
-                    Update Profile Data
-                </h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-
-            <div class="modal-body px-4" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
-                <span id="form_message"></span>
-
-                <form method="post" id="researcherModala_form">
-                    <div class="form-group mb-4">
-                        <label for="researcherIDu" class="m-0"><i class="fas fa-id-badge mr-2 text-primary"></i>Researcher ID</label>
-                        <input type="text" name="researcherIDu" id="researcherIDu" class="form-control bg-light mt-2" required maxlength="50" readonly />
-                    </div>
-                    
-                    <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-user mr-2 text-secondary"></i>Personal Information</h6>
-                    <div class="form-group row mb-4">
-                        <div class="col-md-3 mb-2"><label for="familyNameu">Family Name</label><input type="text" name="familyNameu" id="familyNameu" class="form-control" required maxlength="100" /></div>
-                        <div class="col-md-3 mb-2"><label for="firstNameu">First Name</label><input type="text" name="firstNameu" id="firstNameu" class="form-control" required maxlength="100" /></div>
-                        <div class="col-md-3 mb-2"><label for="middleNameu">Middle Name</label><input type="text" name="middleNameu" id="middleNameu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-3 mb-2"><label for="Suffixu">Suffix</label><input type="text" name="Suffixu" id="Suffixu" class="form-control" maxlength="10" /></div>
-                    </div>
-                    
-                    <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-building mr-2 text-secondary"></i>Academic Assignment</h6>
-                    <div class="form-group row mb-4">
-                        <div class="col-md-4 mb-2">
-                            <label for="departmentu">Select Department</label>
-                            <select name="departmentu" id="departmentu" class="form-control" data-parsley-trigger="change">
-                                <option value="">Select Department</option>
-                                <?php
-                                $object->query = "SELECT category_name FROM product_category_table WHERE category_status = 'Enable' ORDER BY category_name ASC";
-                                $category_result = $object->get_result();
-                                foreach($category_result as $category) { echo '<option value="'.$category["category_name"].'">'.$category["category_name"].'</option>'; }
-                                ?>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label for="programu">Major Discipline</label>
-                            <select name="programu" id="programu" class="form-control" data-parsley-trigger="change">
-                                <option value="">Select Program</option>
-                                <?php
-                                $object->query = "SELECT * FROM tbl_majordiscipline";
-                                $program_result = $object->get_result();
-                                foreach($program_result as $program) { echo '<option value="'.$program["major"].'">'.$program["major"].'</option>'; }
-                                ?>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label for="academic_ranku">Academic Rank</label>
-                            <select name="academic_ranku" id="academic_ranku" class="form-control" data-parsley-trigger="change">
-                                <option value="">Select Rank</option>
-                                <option value="Instructor I">Instructor I</option>
-                                <option value="Instructor II">Instructor II</option>
-                                <option value="Instructor III">Instructor III</option>
-                                <option value="Assistant Professor I">Assistant Professor I</option>
-                                <option value="Assistant Professor II">Assistant Professor II</option>
-                                <option value="Assistant Professor III">Assistant Professor III</option>
-                                <option value="Assistant Professor IV">Assistant Professor IV</option>
-                                <option value="Associate Professor I">Associate Professor I</option>
-                                <option value="Associate Professor II">Associate Professor II</option>
-                                <option value="Associate Professor III">Associate Professor III</option>
-                                <option value="Associate Professor IV">Associate Professor IV</option>
-                                <option value="Associate Professor V">Associate Professor V</option>
-                                <option value="Professor I">Professor I</option>
-                                <option value="Professor II">Professor II</option>
-                                <option value="Professor III">Professor III</option>
-                                <option value="Professor IV">Professor IV</option>
-                                <option value="Professor V">Professor V</option>
-                                <option value="Professor VI">Professor VI</option>
-                                <option value="College Professor">College Professor</option>
-                                <option value="University Professor">University Professor</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-graduation-cap mr-2 text-secondary"></i>Educational Background</h6>
-                    
-                    <div class="form-group row mb-3">
-                        <div class="col-md-4 mb-2"><label for="bachelor_degreeu">Bachelor's Degree</label><input type="text" name="bachelor_degreeu" id="bachelor_degreeu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="bachelor_institutionu">Institution</label><input type="text" name="bachelor_institutionu" id="bachelor_institutionu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="bachelor_YearGraduatedu">Year Graduated</label><input type="text" name="bachelor_YearGraduatedu" id="bachelor_YearGraduatedu" class="form-control" maxlength="4" /></div>
-                    </div>
-                    <div class="form-group row mb-3">
-                        <div class="col-md-4 mb-2"><label for="masterDegreeu">Master's Degree</label><input type="text" name="masterDegreeu" id="masterDegreeu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="masterInstitutionu">Institution</label><input type="text" name="masterInstitutionu" id="masterInstitutionu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="masterYearGraduatedu">Year Graduated</label><input type="text" name="masterYearGraduatedu" id="masterYearGraduatedu" class="form-control" maxlength="4" /></div>
-                    </div>
-                    <div class="form-group row mb-3">
-                        <div class="col-md-4 mb-2"><label for="doctorateDegreeu">Doctorate Degree</label><input type="text" name="doctorateDegreeu" id="doctorateDegreeu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="doctorateInstitutionu">Institution</label><input type="text" name="doctorateInstitutionu" id="doctorateInstitutionu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="doctorateYearGraduateu">Year Graduated</label><input type="text" name="doctorateYearGraduateu" id="doctorateYearGraduateu" class="form-control" maxlength="4" /></div>
-                    </div>
-                    <div class="form-group row mb-3">
-                        <div class="col-md-4 mb-2"><label for="postDegreeu">Post-Doctorate</label><input type="text" name="postDegreeu" id="postDegreeu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="postInstitutionu">Institution</label><input type="text" name="postInstitutionu" id="postInstitutionu" class="form-control" maxlength="100" /></div>
-                        <div class="col-md-4 mb-2"><label for="postYearGraduateu">Year Graduated</label><input type="text" name="postYearGraduateu" id="postYearGraduateu" class="form-control" maxlength="4" /></div>
-                    </div>
-                    
-                    <div class="modal-footer border-top-0 pt-3 mt-4 px-0 pb-0">
-                        <button type="button" class="btn btn-outline-secondary font-weight-bold" data-dismiss="modal">Close</button>
-                        <button type="button" id="submit_button_rd" class="btn btn-danger pink px-4 font-weight-bold shadow-sm">Update Profile</button>
-                    </div>
-                </form>
-
-                <div class="d-none">
-                    <table id="researcherconducted_table"></table>
-                    <table id="publication_table"></table>
-                    <table id="intellectualprop_table"></table>
-                    <table id="paper_presentation_table"></table>
-                    <table id="trainings_attended_table"></table>
-                    <table id="extension_project_table"></table>
-                    <table id="ext_project_table"></table>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
+<?php include 'modals/add_researcher.php'; ?>
 
 <?php include('../../includes/footer.php'); ?>
 
@@ -858,14 +729,14 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-<script src="scripts/research_conducted.js"></script>
-<script src="scripts/profile.js"></script>
-<script src="scripts/publication.js"></script>
-<script src="scripts/intellectual_prop.js"></script>
-<script src="scripts/paper_presentation.js"></script>
-<script src="scripts/training.js"></script>
-<script src="scripts/extension_project.js"></script>
-<script src="scripts/extension.js"></script>
+<script src="scripts/research_conducted.js?v=2"></script>
+<script src="scripts/profile.js?v=2"></script>
+<script src="scripts/publication.js?v=2"></script>
+<script src="scripts/intellectual_prop.js?v=2"></script>
+<script src="scripts/paper_presentation.js?v=2"></script>
+<script src="scripts/training.js?v=2"></script>
+<script src="scripts/extension_project.js?v=2"></script>
+<script src="scripts/extension.js?v=2"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {

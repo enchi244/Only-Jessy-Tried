@@ -46,35 +46,32 @@ $('#paper_presentation_form').on('submit', function (event) {
             beforeSend: function () {
                 $('#submit_button_paper_presentation').attr('disabled', 'disabled').val('Wait...');
             },
+
             success: function (data) {
                 $('#submit_button_paper_presentation').attr('disabled', false);
-                if (data.error != '') {
+                if (data.error && data.error != '') {
                     $('#form_message').html(data.error);
                     $('#submit_button_paper_presentation').val($('#action_paper_presentation').val());
                 } else {
                     $('#paperPresentationModal').modal('hide');
-                    $('#message').html(data.success);
-
                     var Svalue = $('#action_paper_presentation').val();
-                    Swal.fire({
-                        title: Svalue == "Add" ? 'Added!' : 'Updated!',
-                        text: 'The paper presentation has been successfully saved.',
-                        icon: 'success',
-                        timer: 800,  
-                        showConfirmButton: false,  
-                        customClass: { confirmButton: 'btn-success' }
-                    });
+                    Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The paper presentation has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' }});
 
+                    // --- UPGRADED AUTO-REFRESH LOGIC ---
                     if (window.location.href.indexOf("view_researcher.php") > -1) {
-                        setTimeout(function(){ location.reload(); }, 800);
+                        setTimeout(function(){ 
+                            var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
+                            window.location.href = window.location.pathname + '?id=' + rid + '&tab=pp';
+                        }, 800);
                     } else {
                         var researcherID = $('#researcherModala').data('id');  
-                        if(researcherID) { loadPaperPresentationTab(researcherID); }
+                        if(researcherID) { 
+                            if(typeof loadPaperPresentationTab === "function") loadPaperPresentationTab(researcherID); 
+                        } else {
+                            $('.dataTable').each(function() { if ($.fn.dataTable.isDataTable(this)) { $(this).DataTable().ajax.reload(null, false); } });
+                        }
                     }
-
-                    setTimeout(function () {
-                        $('#message').html('');
-                    }, 5000);
+                    // -----------------------------------
                 }
             }
         });

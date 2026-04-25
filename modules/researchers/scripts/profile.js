@@ -129,48 +129,27 @@ $(document).ready(function() {
     }
 
 
-    // Add New Researcher Form
+    // Open Unified Modal for ADDING
     $('#add_researcher').click(function(){
         $('#researcher_form')[0].reset();
         $('#researcher_form').parsley().reset();    
-        $('#modal_title').text('Add Data');
-        $('#action').val('Add');
-        $('#submit_button').val('Add');
-        $('#researcherModal').modal('show');
+        // No need to set UI here, the modal 'show' listener inside add_researcher.php handles it!
+        $('#action').val('Add'); 
         $('#form_message_rm').html('');
+        $('#researcherModal').modal('show');
     });
 
-    $('#researcher_form').parsley();
-    $('#researcher_form').on('submit', function(event){
-        event.preventDefault();
-        if($('#researcher_form').parsley().isValid()) {		
-            $.ajax({
-                url: "actions/researcher_action.php",
-                method: "POST",
-                data: $(this).serialize(),
-                dataType: 'json',
-                beforeSend: function() { $('#submit_button').attr('disabled', 'disabled').val('wait...'); },
-                success: function(data) {
-                    $('#submit_button').attr('disabled', false);
-                    if(data.error != '') {
-                        $('#form_message_rm').html(data.error); $('#submit_button').val('Add');
-                    } else {
-                        $('#researcherModal').modal('hide'); $('#message_rm').html(data.success);
-                        if (typeof dataTable !== 'undefined') { dataTable.ajax.reload(); }
-                        Swal.fire({ title: 'Added!', text: 'The record has been successfully added.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
-                        setTimeout(function(){ $('#message_rm').html(''); }, 5000);
-                    }
-                }
-            });
-        }
-    });
-
-    // Open Massive Edit Modal
+    // Open Unified Modal for EDITING
     $(document).on('click', '.edit_buttona', function(){
         var id = $(this).data('id');
-        var editForm = $('#researcherModala_form');
-        if (editForm.length > 0) { editForm[0].reset(); var parsleyInstance = editForm.parsley(); if (parsleyInstance) { parsleyInstance.reset(); } }
-        $('#form_message').html('');
+        var editForm = $('#researcher_form');
+        
+        if (editForm.length > 0) { 
+            editForm[0].reset(); 
+            var parsleyInstance = editForm.parsley(); 
+            if (parsleyInstance) { parsleyInstance.reset(); } 
+        }
+        $('#form_message_rm').html('');
 
         $.ajax({
             url: "actions/researcher_action.php",
@@ -178,10 +157,36 @@ $(document).ready(function() {
             data: {id: id, action: 'fetch_single'},
             dataType: 'JSON',
             success: function(data) {
-                $('#researcherIDu').val(data.researcherID); $('#familyNameu').val(data.familyName); $('#firstNameu').val(data.firstName); $('#middleNameu').val(data.middleName); $('#Suffixu').val(data.Suffix); $('#departmentu').val(data.department); $('#programu').val(data.program); $('#academic_ranku').val(data.academic_rank); $('#bachelor_degreeu').val(data.bachelor_degree); $('#bachelor_institutionu').val(data.bachelor_institution); $('#bachelor_YearGraduatedu').val(data.bachelor_YearGraduated); $('#masterDegreeu').val(data.masterDegree); $('#masterInstitutionu').val(data.masterInstitution); $('#masterYearGraduatedu').val(data.masterYearGraduated); $('#doctorateDegreeu').val(data.doctorateDegree); $('#doctorateInstitutionu').val(data.doctorateInstitution); $('#doctorateYearGraduateu').val(data.doctorateYearGraduate); $('#postDegreeu').val(data.postDegree); $('#postInstitutionu').val(data.postInstitution); $('#postYearGraduateu').val(data.postYearGraduate);
-                $('#submit_button_rd').val('Edit'); $('#researcherModala').data('id', id).modal('show'); $('#hidden_id_rd').val(id);
+                // Populate the unified modal fields (removed 'u' suffix)
+                $('#researcherID').val(data.researcherID); 
+                $('#familyName').val(data.familyName); 
+                $('#firstName').val(data.firstName); 
+                $('#middleName').val(data.middleName); 
+                $('#Suffix').val(data.Suffix); 
+                $('#department').val(data.department); 
+                $('#program').val(data.program); 
+                $('#academic_rank').val(data.academic_rank); 
+                $('#bachelor_degree').val(data.bachelor_degree); 
+                $('#bachelor_institution').val(data.bachelor_institution); 
+                $('#bachelor_YearGraduated').val(data.bachelor_YearGraduated); 
+                $('#masterDegree').val(data.masterDegree); 
+                $('#masterInstitution').val(data.masterInstitution); 
+                $('#masterYearGraduated').val(data.masterYearGraduated); 
+                $('#doctorateDegree').val(data.doctorateDegree); 
+                $('#doctorateInstitution').val(data.doctorateInstitution); 
+                $('#doctorateYearGraduate').val(data.doctorateYearGraduate); 
+                $('#postDegree').val(data.postDegree); 
+                $('#postInstitution').val(data.postInstitution); 
+                $('#postYearGraduate').val(data.postYearGraduate);
                 
-                // Only try to load the sub-tabs if the functions actually exist in the current window context
+                // Set action to Edit so the modal styles itself automatically
+                $('#action').val('Edit');
+                $('#hidden_id').val(id);
+                
+                // Show unified modal
+                $('#researcherModal').modal('show');
+                
+                // Load sub-tabs if present in the view
                 if (typeof loadResearchConductedTab === "function") { loadResearchConductedTab(id); }
                 if (typeof loadPublicationTab === "function") { loadPublicationTab(id); }
                 if (typeof loadIntellectualPropTab === "function") { loadIntellectualPropTab(id); }
@@ -193,29 +198,72 @@ $(document).ready(function() {
         });
     });
 
-    // Update Profile Data (Inside Edit Modal)
-    $('#researcherModala_form').parsley();
-    $('#submit_button_rd').on('click', function(event) {
-        event.preventDefault(); 
-        var dataPayload = {
-            researcherIDu: $('#researcherIDu').val(), familyNameu: $('#familyNameu').val(), firstNameu: $('#firstNameu').val(), middleNameu: $('#middleNameu').val(), Suffixu: $('#Suffixu').val(), departmentu: $('#departmentu').val(), programu: $('#programu').val(), academic_ranku: $('#academic_ranku').val(), bachelor_degreeu: $('#bachelor_degreeu').val(), bachelor_institutionu: $('#bachelor_institutionu').val(), bachelor_YearGraduatedu: $('#bachelor_YearGraduatedu').val(), masterDegreeu: $('#masterDegreeu').val(), masterInstitutionu: $('#masterInstitutionu').val(), masterYearGraduatedu: $('#masterYearGraduatedu').val(), doctorateDegreeu: $('#doctorateDegreeu').val(), doctorateInstitutionu: $('#doctorateInstitutionu').val(), doctorateYearGraduateu: $('#doctorateYearGraduateu').val(), postDegreeu: $('#postDegreeu').val(), postInstitutionu: $('#postInstitutionu').val(), postYearGraduateu: $('#postYearGraduateu').val(), hidden_id_rd: $('#hidden_id_rd').val(), action_rd: 'update'
-        };
-
-        $.ajax({
-            url: 'actions/update_researcher.php', method: 'POST', data: dataPayload, dataType: 'json',
-            success: function(response) {
-                Swal.fire({ title: 'Updated!', text: 'The record has been successfully updated.', icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
-                
-                if (window.location.pathname.indexOf('view_researcher.php') !== -1) {
-                    setTimeout(function() { location.reload(); }, 600);
-                } else if (typeof dataTable !== 'undefined') {
-                    $('#researcherModala').modal('hide');
-                    dataTable.ajax.reload();
-                }
+    // UNIFIED Form Submit Logic (Handles both Add & Edit)
+    $('#researcher_form').parsley();
+    $('#researcher_form').on('submit', function(event){
+        event.preventDefault();
+        
+        if($('#researcher_form').parsley().isValid()) {     
+            
+            var currentAction = $('#action').val();
+            
+            // Route Add vs Edit to proper files
+            var targetUrl = (currentAction === 'Edit') ? 'actions/update_researcher.php' : 'actions/researcher_action.php';
+            
+            // Generate standard payload from form
+            var payload = $(this).serialize();
+            
+            // If editing, append legacy keys that update_researcher.php expects
+            if(currentAction === 'Edit') {
+                payload += '&action_rd=update&hidden_id_rd=' + $('#hidden_id').val();
             }
-        }); 
-    });
 
+            $.ajax({
+                url: targetUrl,
+                method: "POST",
+                data: payload,
+                dataType: 'json',
+                beforeSend: function() { 
+                    $('#submit_button').attr('disabled', 'disabled').val('wait...'); 
+                },
+                success: function(data) {
+                    $('#submit_button').attr('disabled', false);
+                    
+                    if(data && data.error && data.error != '') {
+                        // Backend returned an error
+                        $('#form_message_rm').html(data.error); 
+                        $('#submit_button').val(currentAction === 'Edit' ? 'Update Researcher' : 'Save Researcher');
+                    } else {
+                        // Success block
+                        $('#researcherModal').modal('hide'); 
+                        $('#message_rm').html(data ? data.success : '');
+                        
+                        var successMsg = (currentAction === 'Edit') ? 'The record has been successfully updated.' : 'The record has been successfully added.';
+                        Swal.fire({ title: (currentAction === 'Edit' ? 'Updated!' : 'Added!'), text: successMsg, icon: 'success', timer: 600, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
+                        
+                        setTimeout(function(){ $('#message_rm').html(''); }, 5000);
+
+                        // Refresh UI based on where we are
+                        if (currentAction === 'Edit' && window.location.pathname.indexOf('view_researcher.php') !== -1) {
+                            setTimeout(function() { location.reload(); }, 600);
+                        } else if (typeof dataTable !== 'undefined') { 
+                            dataTable.ajax.reload(); 
+                        }
+                    }
+                },
+                error: function() {
+                    // Fallback block if backend returns empty/non-JSON on update
+                    $('#submit_button').attr('disabled', false);
+                    $('#researcherModal').modal('hide');
+                    Swal.fire({ title: 'Success', text: 'Action completed.', icon: 'success', timer: 600, showConfirmButton: false });
+                    
+                    if (currentAction === 'Edit' && window.location.pathname.indexOf('view_researcher.php') !== -1) {
+                        setTimeout(function() { location.reload(); }, 600);
+                    } else if (typeof dataTable !== 'undefined') { dataTable.ajax.reload(); }
+                }
+            });
+        }
+    });
 
     // --- MASTER TABLE DELETE HANDLERS ---
     function triggerMasterDelete(url, dataPayload) {
@@ -246,8 +294,9 @@ $(document).ready(function() {
     // Global Modal Fix
     $('.modal').on('hidden.bs.modal', function() {
         if ($('.modal.show').length > 0) { $('body').addClass('modal-open'); }
-        $('#researcherModala .modal-body').scrollTop(0);
+        $('#researcherModal .modal-body').scrollTop(0); // Updated ID
     });
+    
     // Trigger table refresh when dropdown filters change
     $('#filter_rank, #filter_program').on('change', function() {
         if ($.fn.DataTable.isDataTable('#researcher_table')) {

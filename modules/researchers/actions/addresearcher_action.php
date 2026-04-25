@@ -33,25 +33,25 @@ if(isset($_POST["action"]) && $_POST["action"] == 'Add')
     {
         $data = array(
             ':researcherID'          => $researcherID,
-            ':familyName'            => $_POST['familyName'] ?? $_POST['familyNameu'] ?? '',
-            ':firstName'             => $_POST['firstName'] ?? $_POST['firstNameu'] ?? '',
-            ':middleName'            => $_POST['middleName'] ?? $_POST['middleNameu'] ?? '',
-            ':Suffix'                => $_POST['Suffix'] ?? $_POST['Suffixu'] ?? '',
+            ':familyName'            => strtoupper($_POST['familyName'] ?? $_POST['familyNameu'] ?? ''),
+            ':firstName'             => strtoupper($_POST['firstName'] ?? $_POST['firstNameu'] ?? ''),
+            ':middleName'            => strtoupper($_POST['middleName'] ?? $_POST['middleNameu'] ?? ''),
+            ':Suffix'                => strtoupper($_POST['Suffix'] ?? $_POST['Suffixu'] ?? ''),
             ':department'            => $_POST['department'] ?? $_POST['departmentu'] ?? '',
             ':program'               => $_POST['program'] ?? $_POST['programu'] ?? '',
             ':academic_rank'         => $_POST['academic_rank'] ?? '', // NEW FIELD
-            ':bachelor_degree'       => $_POST['bachelor_degree'] ?? $_POST['bachelor_degreeu'] ?? '',
-            ':bachelor_institution'  => $_POST['bachelor_institution'] ?? $_POST['bachelor_institutionu'] ?? '',
-            ':bachelor_YearGraduated'=> $_POST['bachelor_YearGraduated'] ?? $_POST['bachelor_YearGraduatedu'] ?? '',
-            ':masterDegree'          => $_POST['masterDegree'] ?? $_POST['masterDegreeu'] ?? '',
-            ':masterInstitution'     => $_POST['masterInstitution'] ?? $_POST['masterInstitutionu'] ?? '',
-            ':masterYearGraduated'   => $_POST['masterYearGraduated'] ?? $_POST['masterYearGraduatedu'] ?? '',
-            ':doctorateDegree'       => $_POST['doctorateDegree'] ?? $_POST['doctorateDegreeu'] ?? '',
-            ':doctorateInstitution'  => $_POST['doctorateInstitution'] ?? $_POST['doctorateInstitutionu'] ?? '',
-            ':doctorateYearGraduate' => $_POST['doctorateYearGraduate'] ?? $_POST['doctorateYearGraduateu'] ?? '',
-            ':postDegree'            => $_POST['postDegree'] ?? $_POST['postDegreeu'] ?? '',
-            ':postInstitution'       => $_POST['postInstitution'] ?? $_POST['postInstitutionu'] ?? '',
-            ':postYearGraduate'      => $_POST['postYearGraduate'] ?? $_POST['postYearGraduateu'] ?? ''
+            ':bachelor_degree'       => strtoupper($_POST['bachelor_degree'] ?? $_POST['bachelor_degreeu'] ?? ''),
+            ':bachelor_institution'  => strtoupper($_POST['bachelor_institution'] ?? $_POST['bachelor_institutionu'] ?? ''),
+            ':bachelor_YearGraduated'=> strtoupper($_POST['bachelor_YearGraduated'] ?? $_POST['bachelor_YearGraduatedu'] ?? ''),
+            ':masterDegree'          => strtoupper($_POST['masterDegree'] ?? $_POST['masterDegreeu'] ?? ''),
+            ':masterInstitution'     => strtoupper($_POST['masterInstitution'] ?? $_POST['masterInstitutionu'] ?? ''),
+            ':masterYearGraduated'   => strtoupper($_POST['masterYearGraduated'] ?? $_POST['masterYearGraduatedu'] ?? ''),
+            ':doctorateDegree'       => strtoupper($_POST['doctorateDegree'] ?? $_POST['doctorateDegreeu'] ?? ''),
+            ':doctorateInstitution'  => strtoupper($_POST['doctorateInstitution'] ?? $_POST['doctorateInstitutionu'] ?? ''),
+            ':doctorateYearGraduate' => strtoupper($_POST['doctorateYearGraduate'] ?? $_POST['doctorateYearGraduateu'] ?? ''),
+            ':postDegree'            => strtoupper($_POST['postDegree'] ?? $_POST['postDegreeu'] ?? ''),
+            ':postInstitution'       => strtoupper($_POST['postInstitution'] ?? $_POST['postInstitutionu'] ?? ''),
+            ':postYearGraduate'      => strtoupper($_POST['postYearGraduate'] ?? $_POST['postYearGraduateu'] ?? '')
         );
 
         $object->query = "

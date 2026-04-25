@@ -91,11 +91,20 @@ $('#researchconducted_form').on('submit', function(event) {
                         customClass: { confirmButton: 'btn-success' }
                     });
 
-                    $('.dataTable').each(function() {
-                        if ($.fn.dataTable.isDataTable(this)) {
-                            $(this).DataTable().ajax.reload(null, false);
-                        }
-                    });
+                    // --- NEW AUTO-REFRESH LOGIC ---
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ 
+                            var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
+                            window.location.href = window.location.pathname + '?id=' + rid + '&tab=education';
+                        }, 800);
+                    } else {
+                        $('.dataTable').each(function() {
+                            if ($.fn.dataTable.isDataTable(this)) {
+                                $(this).DataTable().ajax.reload(null, false);
+                            }
+                        });
+                    }
+                    // ------------------------------
 
                     setTimeout(function(){
                         $('#message').html('');

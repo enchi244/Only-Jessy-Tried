@@ -70,12 +70,17 @@ $('#intellectualprop_form').on('submit', function (event) {
                     var Svalue = $('#action_intellectualprop').val();
                     Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The intellectual property has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' }});
 
+                    // --- UPGRADED AUTO-REFRESH LOGIC ---
                     if (window.location.href.indexOf("view_researcher.php") > -1) {
-                        setTimeout(function(){ location.reload(); }, 800);
+                        setTimeout(function(){ 
+                            var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
+                            window.location.href = window.location.pathname + '?id=' + rid + '&tab=ip';
+                        }, 800);
                     } else {
                         var researcherID = $('#researcherModala').data('id');  
                         if(researcherID) { loadIntellectualPropTab(researcherID); }
                     }
+                    // -----------------------------------
                 }
             }
         });

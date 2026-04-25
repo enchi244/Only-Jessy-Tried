@@ -73,38 +73,31 @@ $('#extension_project_form').on('submit', function (event) {
                 $('#submit_button_extension').attr('disabled', 'disabled').html('<i class="fas fa-spinner fa-spin"></i> Saving...');
             },
             success: function (data) {
-                $('#submit_button_extension').attr('disabled', false).html('Save Data');
+                $('#submit_button_extension_project').attr('disabled', false);
                 if (data.error && data.error != '') {
                     $('#form_message').html(data.error);
+                    $('#submit_button_extension_project').val($('#action_extension').val());
                 } else {
                     $('#extensionProjectModal').modal('hide');
-                    $('#message').html(data.success);
-
                     var Svalue = $('#action_extension').val();
-                    var titleText = (Svalue == "Add") ? 'Added!' : 'Updated!';
-                    var msgText = (Svalue == "Add") ? 'The extension project has been successfully added.' : 'The extension project has been successfully updated.';
+                    Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The extension project has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' }});
 
-                    Swal.fire({
-                        title: titleText,
-                        text: msgText,
-                        icon: 'success',
-                        timer: 800,
-                        showConfirmButton: false, 
-                        customClass: { confirmButton: 'btn-success' }
-                    });
-
-                    var researcherID = $('#researcherModala').data('id');  
-                    loadExtensionProjectsTab(researcherID);  
-
-                    setTimeout(function () {
-                        $('#message').html('');
-                    }, 5000);
+                    // --- UPGRADED AUTO-REFRESH LOGIC ---
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ 
+                            var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
+                            window.location.href = window.location.pathname + '?id=' + rid + '&tab=epc';
+                        }, 800);
+                    } else {
+                        var researcherID = $('#researcherModala').data('id');  
+                        if(researcherID) { 
+                            if(typeof loadExtensionProjectsTab === "function") loadExtensionProjectsTab(researcherID); 
+                        } else {
+                            $('.dataTable').each(function() { if ($.fn.dataTable.isDataTable(this)) { $(this).DataTable().ajax.reload(null, false); } });
+                        }
+                    }
+                    // -----------------------------------
                 }
-            },
-            error: function(xhr) {
-                $('#submit_button_extension').attr('disabled', false).html('Save Data');
-                Swal.fire('Error', 'An error occurred while saving the data. Check the console.', 'error');
-                console.error(xhr.responseText);
             }
         });
     }

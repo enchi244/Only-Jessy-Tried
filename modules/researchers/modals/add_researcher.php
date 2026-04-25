@@ -3,11 +3,11 @@
         <form method="post" id="researcher_form" class="w-100">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title" id="modal_title">
+                    <h4 class="modal-title d-flex align-items-center" id="modal_title">
                         <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;">
-                            <i class="fas fa-user-plus"></i>
+                            <i class="fas fa-user-plus" id="modal_icon"></i>
                         </div>
-                        Add Researcher
+                        <span id="modal_title_text">Add Researcher</span>
                     </h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -20,7 +20,8 @@
                     <div class="form-group mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label for="researcherID" class="m-0"><i class="fas fa-id-badge mr-2 text-primary"></i>Researcher ID</label>
-                            <div class="custom-control custom-switch">
+                            
+                            <div class="custom-control custom-switch" id="customIdSwitchWrapper">
                                 <input type="checkbox" class="custom-control-input" id="toggleCustomID">
                                 <label class="custom-control-label text-muted font-weight-bold" style="font-size: 0.85rem; cursor: pointer;" for="toggleCustomID">Custom ID</label>
                             </div>
@@ -196,12 +197,60 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // Auto-generate ID when modal opens (only if it's an "Add" action and Custom ID is OFF)
+    // Modal shown behavior
     $('#researcherModal').on('show.bs.modal', function () {
-        if (!toggleSwitch.checked && $('#action').val() === 'Add') {
-            const year = new Date().getFullYear();
-            const randomNum = Math.floor(10000 + Math.random() * 90000); // 5 digit random number
-            idInput.value = 'RES-' + year + '-' + randomNum;
+        if ($('#action').val() === 'Add') {
+            // Setup for ADD
+            $('#modal_title_text').text('Add Researcher');
+            $('#modal_icon').removeClass('fa-user-edit').addClass('fa-user-plus');
+            $('#submit_button').val('Save Researcher');
+            $('#customIdSwitchWrapper').show(); // Allow custom ID on creation
+            
+            if (!toggleSwitch.checked) {
+                const year = new Date().getFullYear();
+                const randomNum = Math.floor(10000 + Math.random() * 90000); 
+                idInput.value = 'RES-' + year + '-' + randomNum;
+                idInput.readOnly = true;
+                idInput.classList.add('bg-light');
+            }
+        } else {
+            // Setup for EDIT
+            $('#modal_title_text').text('Edit Researcher');
+            $('#modal_icon').removeClass('fa-user-plus').addClass('fa-user-edit');
+            $('#submit_button').val('Update Researcher');
+            $('#customIdSwitchWrapper').hide(); // Hide toggle to prevent changing ID
+            idInput.readOnly = true;            // Lock the ID
+            idInput.classList.add('bg-light');
+        }
+    });
+
+    // Reset form to "Add" state when modal closes
+    $('#researcherModal').on('hidden.bs.modal', function () {
+        $('#researcher_form')[0].reset();
+        $('#action').val('Add');
+        $('#hidden_id').val('');
+        toggleSwitch.checked = false;
+    });
+
+    // Auto-Capitalize Inputs
+    const fieldsToCapitalize = [
+        'familyName', 'firstName', 'middleName', 'Suffix',
+        'bachelor_degree', 'bachelor_institution', 'bachelor_YearGraduated',
+        'masterDegree', 'masterInstitution', 'masterYearGraduated',
+        'doctorateDegree', 'doctorateInstitution', 'doctorateYearGraduate',
+        'postDegree', 'postInstitution', 'postYearGraduate'
+    ];
+
+    fieldsToCapitalize.forEach(function(fieldId) {
+        const input = document.getElementById(fieldId);
+        if (input) {
+            input.classList.add('text-uppercase'); 
+            input.addEventListener('input', function() {
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.toUpperCase();
+                this.setSelectionRange(start, end);
+            });
         }
     });
 });

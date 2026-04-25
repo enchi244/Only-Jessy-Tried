@@ -72,8 +72,18 @@ $('#publication_form').on('submit', function(event) {
                     var Svalue = $('#action_publication').val();
                     Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The publication has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false, customClass: { confirmButton: 'btn-success' } });
                     
-                    var researcherID = $('#researcherModala').data('id');  
-                    loadPublicationTab(researcherID);
+                    // --- NEW AUTO-REFRESH LOGIC ---
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ 
+                            var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
+                            window.location.href = window.location.pathname + '?id=' + rid + '&tab=degree';
+                        }, 800);
+                    } else {
+                        var researcherID = $('#researcherModala').data('id');  
+                        if(researcherID) { loadPublicationTab(researcherID); }
+                    }
+                    // ------------------------------
+
                     setTimeout(function(){ $('#message').html(''); }, 5000);
                 }
             }
