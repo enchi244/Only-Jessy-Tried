@@ -263,9 +263,19 @@ body.sidebar-toggled #content-wrapper {
                     <i class="fas fa-fw fa-globe"></i>
                     <span>Agenda & SDG Tracker</span>
                 </a>
-                                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/researchers/archive.php">
-                    <i class="fas fa-trash-alt fa-sm fa-fw mr-2"></i> 
-                    <span>Recycle Bin<span>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/researchers/archive.php">
+                    <i class="fas fa-fw fa-trash-alt"></i> 
+                    <span>Recycle Bin</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="<?php echo $object->base_url; ?>manage_cms.php">
+                    <i class="fas fa-fw fa-window-restore"></i> 
+                    <span>Manage Website Content</span>
                 </a>
             </li>
             <?php } ?>
