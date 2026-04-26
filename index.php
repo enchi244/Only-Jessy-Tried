@@ -2,31 +2,53 @@
 // Start the session and include your core DB connection
 include('core/rms.php');
 
-// $conn is created at the bottom of core/rms.php, we will use it for quick counts
-
-// 1. Count Researches Conducted
+// --- 1. RDE DATA COUNTS ---
 $researchConductedCount = 0;
 $rc_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_researchconducted");
-if($rc_query && $row = mysqli_fetch_assoc($rc_query)) {
-    $researchConductedCount = $row['total'];
+if($rc_query && $row = mysqli_fetch_assoc($rc_query)) { $researchConductedCount = $row['total']; }
+
+$ipCount = 0;
+$ip_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_itelectualprop"); 
+if($ip_query && $row = mysqli_fetch_assoc($ip_query)) { $ipCount = $row['total']; }
+
+$ppCount = 0;
+$pp_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_paperpresentation"); 
+if($pp_query && $row = mysqli_fetch_assoc($pp_query)) { $ppCount = $row['total']; }
+
+$epCount = 0;
+$ep_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_extension_project_conducted"); 
+if($ep_query && $row = mysqli_fetch_assoc($ep_query)) { $epCount = $row['total']; }
+
+// --- 2. CMS FETCH QUERIES ---
+
+// Fetch About, Mission, Vision
+$about_query = mysqli_query($conn, "SELECT * FROM tbl_cms_about LIMIT 1");
+$cms_about = mysqli_fetch_assoc($about_query);
+
+// Fetch Carousel Images
+$carousel_images = [];
+$car_query = mysqli_query($conn, "SELECT * FROM tbl_cms_carousel");
+if($car_query){
+    while($row = mysqli_fetch_assoc($car_query)){
+        $carousel_images[] = $row;
+    }
 }
 
-// 2. Count Departments/Centers
-$centersCount = 0;
-$centers_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM product_category_table WHERE category_status = 'Enable'");
-if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
-    $centersCount = $row['total'];
+// Fetch Top 3 News Items
+$news_items = [];
+$news_query = mysqli_query($conn, "SELECT * FROM tbl_cms_news ORDER BY date_published DESC");
+if($news_query){
+    while($row = mysqli_fetch_assoc($news_query)){
+        $news_items[] = $row;
+    }
 }
-
-// Note: $researchertotal and $publicationtotal are already calculated 
-// dynamically at the bottom of your core/rms.php file!
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SDMU | St. Joseph College of Sindangan</title>
+    <title>SDMU | Western Mindanao State University</title>
     <link rel="stylesheet" href="css/public_style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 </head>
@@ -35,7 +57,7 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
     <nav id="navbar">
         <div class="nav-container">
             <div class="logo">
-                <span class="logo-text">SDMU <span class="highlight">SJCSI</span></span>
+                <span class="logo-text">SDMU <span class="highlight">WMSU</span></span>
             </div>
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
@@ -62,10 +84,10 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
     <header id="home" class="hero section">
         <div class="hero-content fade-in-up">
             <h1>Statistics and Data Management Unit</h1>
-            <p>Empowering St. Joseph College of Sindangan Incorporated through statistical expertise, data integrity, and actionable research insights.</p>
+            <p>Empowering Western Mindanao State University through statistical expertise, data integrity, and actionable research insights.</p>
             <div class="hero-buttons">
                 <a href="#about" class="btn btn-primary">Discover SDMU</a>
-                <a href="#rde-outputs" class="btn btn-secondary">Explore Researches</a>
+                <a href="rde-database.php" class="btn btn-secondary">Explore Researches</a>
             </div>
         </div>
         <div class="hero-image-container fade-in-up delay-1">
@@ -81,7 +103,8 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
             </div>
             <div class="about-grid">
                 <div class="about-text scroll-reveal">
-                    <p class="lead">Under the Research Development and Evaluation Center (RDEC), the SDMU collects, manages, and analyzes data within the University.</p>
+                    <p class="lead"><?php echo isset($cms_about['about_text']) ? $cms_about['about_text'] : ''; ?></p>
+                    
                     <h3>Core Responsibilities:</h3>
                     <ul class="task-list">
                         <li><strong>Demographic Profiling:</strong> Collects pertinent data including the demographic profile of teaching and non-teaching personnel.</li>
@@ -94,13 +117,13 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
                 <div class="about-visuals scroll-reveal right">
                     <div class="vertical-carousel">
                         <div class="carousel-track">
-                            <img src="img/sampol.jpg" alt="SDMU Image 1">
-                            <img src="img/sampolb.jpg" alt="SDMU Image 2">
-                            <img src="img/roblox.png" alt="SDMU Image 3">
+                            <?php foreach($carousel_images as $img): ?>
+                                <img src="<?php echo $img['image_path']; ?>" alt="<?php echo $img['alt_text']; ?>">
+                            <?php endforeach; ?>
                             
-                            <img src="img/sampol.jpg" alt="SDMU Image 1">
-                            <img src="img/sampolb.jpg" alt="SDMU Image 2">
-                            <img src="img/roblox.png" alt="SDMU Image 3">
+                            <?php foreach($carousel_images as $img): ?>
+                                <img src="<?php echo $img['image_path']; ?>" alt="<?php echo $img['alt_text']; ?>">
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>
@@ -113,11 +136,11 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
             <div class="mv-grid">
                 <div class="mv-card scroll-reveal">
                     <h3>Our Mission</h3>
-                    <p>SDMU is committed to providing appropriate statistical information and analyses while ensuring that the R&D data of the University are properly stored and managed.</p>
+                    <p><?php echo isset($cms_about['mission_text']) ? $cms_about['mission_text'] : ''; ?></p>
                 </div>
                 <div class="mv-card scroll-reveal delay-1">
                     <h3>Our Vision</h3>
-                    <p>SDMU aspires to become the leading hub of statistical expertise and data integrity within St. Joseph College of Sindangan Incorporated.</p>
+                    <p><?php echo isset($cms_about['vision_text']) ? $cms_about['vision_text'] : ''; ?></p>
                 </div>
             </div>
         </div>
@@ -127,20 +150,28 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
         <div class="container">
             <div class="impact-grid">
                 <div class="impact-item scroll-reveal up">
-                    <h3 class="counter" data-target="<?php echo $centersCount; ?>">0</h3>
-                    <p>RDE Centers / Colleges</p>
-                </div>
-                <div class="impact-item scroll-reveal up delay-1">
                     <h3 class="counter" data-target="<?php echo $researchConductedCount; ?>">0</h3>
                     <p>Researches Conducted</p>
+                </div>
+                <div class="impact-item scroll-reveal up delay-1">
+                    <h3 class="counter" data-target="<?php echo $publicationtotal; ?>">0</h3>
+                    <p>Total Publications</p>
+                </div>
+                <div class="impact-item scroll-reveal up delay-2">
+                    <h3 class="counter" data-target="<?php echo $ipCount; ?>">0</h3>
+                    <p>Intellectual Properties</p>
+                </div>
+                <div class="impact-item scroll-reveal up delay-3">
+                    <h3 class="counter" data-target="<?php echo $ppCount; ?>">0</h3>
+                    <p>Paper Presentations</p>
+                </div>
+                <div class="impact-item scroll-reveal up delay-1">
+                    <h3 class="counter" data-target="<?php echo $epCount; ?>">0</h3>
+                    <p>Extension Projects</p>
                 </div>
                 <div class="impact-item scroll-reveal up delay-2">
                     <h3 class="counter" data-target="<?php echo $researchertotal; ?>">0</h3>
                     <p>Active Researchers</p>
-                </div>
-                <div class="impact-item scroll-reveal up delay-3">
-                    <h3 class="counter" data-target="<?php echo $publicationtotal; ?>">0</h3>
-                    <p>Total Publications</p>
                 </div>
             </div>
         </div>
@@ -153,42 +184,36 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
                 <div class="line"></div>
             </div>
             
-            <div class="news-grid">
-                <article class="news-card scroll-reveal up">
+<div class="news-grid" id="newsGridContainer">
+                <?php 
+                foreach($news_items as $news): 
+                    $formattedDate = date("F j, Y", strtotime($news['date_published']));
+                ?>
+                <article class="news-card js-news-card fade-in-up" style="display: none;">
                     <div class="news-img-wrapper">
-                        <img src="img/research_center.jpg" alt="News Image">
+                        <img src="<?php echo $news['image_path']; ?>" alt="News Image">
                     </div>
                     <div class="news-content">
-                        <span class="news-date">October 12, 2026</span>
-                        <h3><a href="#">SDMU Launches New Demographic Dashboard</a></h3>
-                        <p>The office has officially rolled out the new interactive dashboard for teaching and non-teaching personnel data...</p>
-                        <a href="#" class="read-more">Read Article &rarr;</a>
-                    </div>
-                </article>
+                        <span class="news-date"><?php echo $formattedDate; ?></span>
+                        <h3><a href="#"><?php echo $news['title']; ?></a></h3>
+                        <p><?php echo $news['summary']; ?></p>
+                        
+                        <div class="hidden-full-content" style="display:none;">
+                            <?php echo htmlspecialchars($news['content']); ?>
+                        </div>
 
-                <article class="news-card scroll-reveal up delay-1">
-                    <div class="news-img-wrapper">
-                        <img src="img/research_center.jpg" alt="News Image">
-                    </div>
-                    <div class="news-content">
-                        <span class="news-date">September 28, 2026</span>
-                        <h3><a href="#">SJCSI Researchers Benefit from Advanced Statistical Tools</a></h3>
-                        <p>A recent seminar hosted by SDMU showcased advanced statistical computation methods for ongoing R&D projects...</p>
                         <a href="#" class="read-more">Read Article &rarr;</a>
                     </div>
                 </article>
+                <?php 
+                endforeach; 
+                ?>
+            </div>
 
-                <article class="news-card scroll-reveal up delay-2">
-                    <div class="news-img-wrapper">
-                        <img src="img/research_center.jpg" alt="News Image">
-                    </div>
-                    <div class="news-content">
-                        <span class="news-date">September 10, 2026</span>
-                        <h3><a href="#">Annual Data Integrity Audit Completed</a></h3>
-                        <p>Ensuring the highest standards, the SDMU has successfully concluded the annual screening of the university's database...</p>
-                        <a href="#" class="read-more">Read Article &rarr;</a>
-                    </div>
-                </article>
+            <div id="newsPagination" style="display: flex; justify-content: center; align-items: center; margin-top: 30px; gap: 20px;">
+                <button id="prevNewsBtn" class="btn btn-secondary" style="border-radius: 50%; width: 45px; height: 45px; padding: 0; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; transition: all 0.3s ease;">&lt;</button>
+                <span id="newsPageIndicator" style="font-weight: 600; color: #555; font-family: 'Inter', sans-serif;">1 / 1</span>
+                <button id="nextNewsBtn" class="btn btn-secondary" style="border-radius: 50%; width: 45px; height: 45px; padding: 0; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; transition: all 0.3s ease;">&gt;</button>
             </div>
         </div>
     </section>
@@ -196,7 +221,7 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
     <section id="rde-outputs" class="rde-section section">
         <div class="container rde-content scroll-reveal up">
             <h2>Research Development & Evaluation Outputs</h2>
-            <p>Dive into the expansive repository of SJCSI's research data, academic publications, and statistical findings.</p>
+            <p>Dive into the expansive repository of WMSU's research data, academic publications, and statistical findings.</p>
             <a href="rde-database.php" class="btn btn-primary large-btn">
                 Access Research Database
             </a>
@@ -206,8 +231,8 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
     <footer>
         <div class="container footer-content">
             <div class="footer-brand">
-                <h3>SDMU <span class="highlight">SJCSI</span></h3>
-                <p>Statistics and Data Management Unit<br>St. Joseph College of Sindangan Incorporated</p>
+                <h3>SDMU <span class="highlight">WMSU</span></h3>
+                <p>Statistics and Data Management Unit<br>Western Mindanao State University</p>
             </div>
             <div class="footer-links">
                 <a href="#home">Home</a>
@@ -216,7 +241,7 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; <?php echo date('Y'); ?> St. Joseph College of Sindangan Incorporated - SDMU. All rights reserved.</p>
+            <p>&copy; <?php echo date('Y'); ?> Western Mindanao State University - SDMU. All rights reserved.</p>
         </div>
     </footer>
 
@@ -228,13 +253,85 @@ if($centers_query && $row = mysqli_fetch_assoc($centers_query)) {
                 <div class="modal-text">
                     <span id="modalDate" class="news-date"></span>
                     <h2 id="modalTitle"></h2>
-                    <div id="modalFullText" class="modal-article-body">
-                        </div>
+                    <div id="modalFullText" class="modal-article-body"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="js/public_app.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const cards = document.querySelectorAll('.js-news-card');
+        const prevBtn = document.getElementById('prevNewsBtn');
+        const nextBtn = document.getElementById('nextNewsBtn');
+        const indicator = document.getElementById('newsPageIndicator');
+        const paginationContainer = document.getElementById('newsPagination');
+
+        const itemsPerPage = 3;
+        let currentPage = 1;
+        const totalPages = Math.ceil(cards.length / itemsPerPage);
+
+        // Hide pagination if there are 3 or fewer articles
+        if (cards.length <= itemsPerPage) {
+            paginationContainer.style.display = 'none';
+        }
+
+        function updateGrid() {
+            // 1. Hide all cards
+            cards.forEach(card => card.style.display = 'none');
+
+            // 2. Calculate which ones to show
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+
+// 3. Show them
+            for (let i = start; i < end && i < cards.length; i++) {
+                cards[i].style.display = 'block'; // Restores original stacked layout
+            }
+
+            // 4. Update text and buttons
+            indicator.textContent = `${currentPage} / ${totalPages}`;
+            
+            // Disable/Enable styling for Prev button
+            if (currentPage === 1) {
+                prevBtn.style.opacity = '0.4';
+                prevBtn.style.cursor = 'not-allowed';
+            } else {
+                prevBtn.style.opacity = '1';
+                prevBtn.style.cursor = 'pointer';
+            }
+
+            // Disable/Enable styling for Next button
+            if (currentPage === totalPages) {
+                nextBtn.style.opacity = '0.4';
+                nextBtn.style.cursor = 'not-allowed';
+            } else {
+                nextBtn.style.opacity = '1';
+                nextBtn.style.cursor = 'pointer';
+            }
+        }
+
+        // Button Click Listeners
+        prevBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateGrid();
+            }
+        });
+
+        nextBtn.addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateGrid();
+            }
+        });
+
+        // Initialize the first view
+        if (cards.length > 0) {
+            updateGrid();
+        }
+    });
+    </script>
 </body>
 </html>

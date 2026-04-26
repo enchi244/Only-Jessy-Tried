@@ -513,34 +513,44 @@ footer {
     text-align: center;
 }
 
-.impact-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
+/* --- Impact Counters Section --- */
+.impact-section {
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 80px 0;
+    text-align: center;
 }
 
+/* 1. Force this specific container to stretch across the whole screen */
+.impact-section .container {
+    max-width: 95%; /* Uses 95% of the screen width instead of being boxed in */
+    padding: 0 1rem;
+}
+
+/* 2. Keep the 6-column single line */
+.impact-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1.5rem; 
+}
+
+/* 3. Make the numbers massive again */
 .impact-item h3 {
     display: inline-block;
-    font-size: 4rem;
+    font-size: 4.5rem; /* Massively increased */
     color: var(--white);
     margin-bottom: 0;
     line-height: 1;
 }
 
-.impact-item span {
-    font-size: 3rem;
-    font-weight: bold;
-    color: var(--white);
-    font-family: 'Playfair Display', serif;
-}
-
+/* 4. Make the text labels larger and bolder */
 .impact-item p {
-    font-size: 1.1rem;
+    font-size: 1.15rem; /* Increased size */
     margin-top: 0.5rem;
     opacity: 0.9;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-weight: 700; /* Made text bolder to balance the giant numbers */
 }
 
 /* --- News & Updates Section --- */
