@@ -13,7 +13,7 @@ $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] :
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
-// Helper to build URLs so we don't lose search/filter state when clicking tabs or pages
+// Helper to build URLs
 function build_url($new_tab, $search, $college, $year, $page_num = 1) {
     return "?tab=$new_tab&search=" . urlencode($search) . "&college=" . urlencode($college) . "&year=" . urlencode($year) . "&page=$page_num";
 }
@@ -26,7 +26,7 @@ $colleges_list = $object->statement_result();
 // 3. Determine Table and Columns based on Tab
 $table = "";
 $date_column = "";
-$type_column = ""; // For badges
+$type_column = ""; 
 
 if ($tab == 'research') {
     $table = "tbl_researchconducted";
@@ -40,6 +40,10 @@ if ($tab == 'research') {
     $table = "tbl_itelectualprop";
     $date_column = "date_applied";
     $type_column = "type";
+} elseif ($tab == 'policy') {  // <--- NEW: Added Research Policy Support
+    $table = "tbl_research_policy";
+    $date_column = "date_implemented";
+    $type_column = ""; 
 } elseif ($tab == 'trainings') {
     $table = "tbl_trainingsattended";
     $date_column = "date_train";
@@ -59,60 +63,43 @@ if ($tab == 'research') {
 }
 
 // 4. Build the Database Query Filters
-$where = " WHERE rd.status = 1 "; // Only active researchers
+$where = " WHERE rd.status = 1 "; 
 $params = [];
 
-// Safely append item status check only for tables that have a status column in your DB
-$tables_with_status = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_extension_project_conducted', 'tbl_ext'];
+$tables_with_status = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_research_policy', 'tbl_extension_project_conducted', 'tbl_ext'];
 if (in_array($table, $tables_with_status)) {
     $where .= " AND main.status = 1 ";
 }
 
-// Apply Search Filter
 if ($search != '') {
     $where .= " AND (main.title LIKE :search OR rd.familyName LIKE :search OR rd.firstName LIKE :search) ";
     $params[':search'] = "%$search%";
 }
 
-// Apply College Filter
 if ($college != 'all') {
     $where .= " AND rd.department = :college ";
     $params[':college'] = $college;
 }
 
-// Apply Year Filter
 if ($year != 'all' && $date_column != "") {
     $where .= " AND main.$date_column LIKE :year ";
     $params[':year'] = "%$year%";
 }
 
-// 5. Pagination Logic: Get Total Row Count
-$object->query = "
-    SELECT COUNT(main.id) as total_rows 
-    FROM $table main 
-    LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
-    $where 
-";
+// 5. Pagination Logic
+$object->query = "SELECT COUNT(main.id) as total_rows FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where";
 $object->execute($params);
 $count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
 $total_results = $count_result['total_rows'];
 $total_pages = ceil($total_results / $limit);
 
-// Ensure current page doesn't exceed total pages
 if ($page > $total_pages && $total_pages > 0) {
     $page = $total_pages;
     $offset = ($page - 1) * $limit;
 }
 
-// 6. Execute the Main Query with LIMIT and OFFSET
-$object->query = "
-    SELECT main.*, rd.firstName, rd.familyName, rd.department 
-    FROM $table main 
-    LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
-    $where 
-    ORDER BY main.id DESC 
-    LIMIT $limit OFFSET $offset
-";
+// 6. Execute the Main Query
+$object->query = "SELECT main.*, rd.firstName, rd.familyName, rd.department FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where ORDER BY main.id DESC LIMIT $limit OFFSET $offset";
 $object->execute($params);
 $results = $object->statement_result();
 $current_page_count = $object->row_count();
@@ -127,37 +114,6 @@ $current_page_count = $object->row_count();
     <link rel="stylesheet" href="css/public_style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Pagination Button Styles */
-        .pagination-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            margin-top: 40px;
-            flex-wrap: wrap;
-        }
-        .page-btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: 0.3s;
-            border: 2px solid var(--primary-color);
-        }
-        .page-btn-outline {
-            background-color: transparent;
-            color: var(--primary-color);
-        }
-        .page-btn-outline:hover {
-            background-color: var(--primary-color);
-            color: var(--white);
-        }
-        .page-btn-active {
-            background-color: var(--primary-color);
-            color: var(--white);
-        }
-    </style>
 </head>
 <body class="database-body">
 
@@ -168,15 +124,7 @@ $current_page_count = $object->row_count();
             </div>
             <ul class="nav-links">
                 <li><a href="index.php">&larr; Back to Home</a></li>
-                <li>
-                    <a href="login.php" class="btn-login">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: -2px;">
-                            <path d="M8.5 10c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1z"/>
-                            <path d="M10.828.122A.5.5 0 0 1 11 .5V1h.5A1.5 1.5 0 0 1 13 2.5V15h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V1.5a.5.5 0 0 1 .43-.495l7-1a.5.5 0 0 1 .398.117zM11.5 2H11v13h1V2.5a.5.5 0 0 0-.5-.5zM4 1.934V15h6V1.077l-6 .857z"/>
-                        </svg>
-                        Admin Login
-                    </a>
-                </li>
+                <li><a href="login.php" class="btn-login"><i class="fas fa-user-shield"></i> Admin Login</a></li>
             </ul>
         </div>
     </nav>
@@ -184,7 +132,7 @@ $current_page_count = $object->row_count();
     <header class="db-header">
         <div class="container text-center fade-in-up">
             <h1>Research & Evaluation Outputs</h1>
-            <p>Explore thousands of academic papers, intellectual properties, and publications.</p>
+            <p>Explore thousands of academic papers, intellectual properties, policies, and publications.</p>
             
             <form action="rde-database.php" method="GET" class="search-wrapper">
                 <input type="hidden" name="tab" value="<?php echo htmlspecialchars($tab); ?>">
@@ -192,7 +140,7 @@ $current_page_count = $object->row_count();
                 <input type="hidden" name="year" value="<?php echo htmlspecialchars($year); ?>">
                 
                 <div class="search-bar-container">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <i class="fas fa-search search-icon"></i>
                     <input type="text" name="search" id="searchInput" placeholder="Search by title, author, or keyword..." value="<?php echo htmlspecialchars($search); ?>">
                     <button type="submit" class="btn btn-primary" id="searchBtn">Search</button>
                 </div>
@@ -246,8 +194,9 @@ $current_page_count = $object->row_count();
                     <a href="<?php echo build_url('research', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'research') echo 'active'; ?>">Research Conducted</a>
                     <a href="<?php echo build_url('publication', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'publication') echo 'active'; ?>">Publication</a>
                     <a href="<?php echo build_url('ip', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'ip') echo 'active'; ?>">Intellectual Property</a>
+                    <a href="<?php echo build_url('policy', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'policy') echo 'active'; ?>">Research Policy</a>
                     <a href="<?php echo build_url('pp', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'pp') echo 'active'; ?>">Paper Presentations</a>
-                    <a href="<?php echo build_url('trainings', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'trainings') echo 'active'; ?>">Trainings Attended</a>
+                    <a href="<?php echo build_url('trainings', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'trainings') echo 'active'; ?>">Trainings</a>
                     <a href="<?php echo build_url('epc', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'epc') echo 'active'; ?>">Extension Projects</a>
                     <a href="<?php echo build_url('ext', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'ext') echo 'active'; ?>">Extension Activities</a>
                 </div>
@@ -270,17 +219,101 @@ $current_page_count = $object->row_count();
                             
                             <h3><?php echo htmlspecialchars($row['title']); ?></h3>
                             
-                            <p style="color:#555; margin-bottom: 10px;">
+                            <p class="author-line">
                                 <strong>Author/Lead:</strong> <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
                             </p>
                             
-                            <div class="card-footer" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; display:flex; justify-content:space-between; align-items:center;">
-                                <span class="college-tag" style="background:#e9ecef; padding:4px 8px; border-radius:4px; font-size:12px;">
+                            <div class="card-details-drawer">
+                                <?php if($tab == 'research'): ?>
+                                    <?php
+                                    // Fetch Co-Authors for Research (EXCLUDING THE LEAD AUTHOR)
+                                    $object->query = "
+                                        SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') as co_authors 
+                                        FROM tbl_research_collaborators col 
+                                        JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                                        WHERE col.research_id = '".$row['id']."' 
+                                        AND col.researcher_id != '".$row['researcherID']."'
+                                    ";
+                                    $object->execute();
+                                    $co_res = $object->statement->fetch(PDO::FETCH_ASSOC);
+                                    $co_authors = !empty($co_res['co_authors']) ? $co_res['co_authors'] : 'None';
+                                    ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> <?php echo htmlspecialchars($co_authors); ?></div>
+                                        <div><i class="fas fa-bullseye text-success"></i> <strong>SDGs:</strong> <?php echo htmlspecialchars($row['sdgs'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-layer-group text-info"></i> <strong>Cluster:</strong> <?php echo htmlspecialchars($row['research_agenda_cluster'] ?? 'N/A'); ?></div>
+                                    </div>
+
+                                <?php elseif($tab == 'publication'): ?>
+                                    <?php
+                                    // Fetch Co-Authors for Publication (EXCLUDING THE LEAD AUTHOR)
+                                    $object->query = "
+                                        SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') as co_authors 
+                                        FROM tbl_publication_collaborators col 
+                                        JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                                        WHERE col.publication_id = '".$row['id']."' 
+                                        AND col.researcher_id != '".$row['researcherID']."'
+                                    ";
+                                    $object->execute();
+                                    $co_res = $object->statement->fetch(PDO::FETCH_ASSOC);
+                                    $co_authors = !empty($co_res['co_authors']) ? $co_res['co_authors'] : 'None';
+                                    ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> <?php echo htmlspecialchars($co_authors); ?></div>
+                                        <div class="full-width"><i class="fas fa-book-open text-danger"></i> <strong>Journal:</strong> <?php echo htmlspecialchars($row['journal'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-barcode text-secondary"></i> <strong>ISSN/ISBN:</strong> <?php echo htmlspecialchars($row['issn_isbn'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-hashtag text-info"></i> <strong>Vol/Issue:</strong> <?php echo htmlspecialchars($row['vol_num_issue_num'] ?? 'N/A'); ?></div>
+                                    </div>
+
+                                <?php elseif($tab == 'ip'): ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> <?php echo htmlspecialchars($row['coauth'] ?? 'None'); ?></div>
+                                        <div><i class="far fa-calendar-check text-success"></i> <strong>Granted:</strong> <?php echo htmlspecialchars($row['date_granted'] ?? 'Pending'); ?></div>
+                                    </div>
+
+                                <?php elseif($tab == 'policy'): ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-align-left text-primary"></i> <strong>Abstract:</strong> <?php echo htmlspecialchars($row['abstract'] ?? 'N/A'); ?></div>
+                                        <div class="full-width"><i class="fas fa-info-circle text-info"></i> <strong>Description:</strong> <?php echo htmlspecialchars($row['description'] ?? 'N/A'); ?></div>
+                                    </div>
+
+                                <?php elseif($tab == 'pp'): ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-building text-primary"></i> <strong>Organizer:</strong> <?php echo htmlspecialchars($row['conference_organizer'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-map-marker-alt text-danger"></i> <strong>Venue:</strong> <?php echo htmlspecialchars($row['conference_venue'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-globe text-info"></i> <strong>Level:</strong> <?php echo htmlspecialchars($row['conference_title'] ?? 'N/A'); ?></div>
+                                    </div>
+
+                                <?php elseif($tab == 'trainings'): ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-building text-primary"></i> <strong>Sponsor:</strong> <?php echo htmlspecialchars($row['sponsor_org'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-map-marker-alt text-danger"></i> <strong>Venue:</strong> <?php echo htmlspecialchars($row['venue'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-clock text-warning"></i> <strong>Hours:</strong> <?php echo htmlspecialchars($row['totnh'] ?? '0'); ?></div>
+                                    </div>
+
+                                <?php elseif($tab == 'epc'): ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Beneficiaries:</strong> <?php echo htmlspecialchars($row['target_beneficiaries_communities'] ?? 'N/A'); ?></div>
+                                        <div class="full-width"><i class="fas fa-handshake text-info"></i> <strong>Partners:</strong> <?php echo htmlspecialchars($row['partners'] ?? 'None'); ?></div>
+                                    </div>
+
+                                <?php elseif($tab == 'ext'): ?>
+                                    <div class="drawer-grid">
+                                        <div class="full-width"><i class="fas fa-info-circle text-primary"></i> <strong>Description:</strong> <?php echo htmlspecialchars($row['description'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-user-tie text-info"></i> <strong>Lead:</strong> <?php echo htmlspecialchars($row['proj_lead'] ?? 'N/A'); ?></div>
+                                        <div><i class="fas fa-users text-warning"></i> <strong>Assist:</strong> <?php echo htmlspecialchars($row['assist_coordinators'] ?? 'None'); ?></div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="card-footer">
+                                <span class="college-tag">
+                                    <i class="fas fa-university mr-1 text-primary"></i>
                                     <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?>
                                 </span>
-                                <span class="date-tag" style="font-weight:bold; color:#f23e5d;">
+                                <span class="date-tag">
+                                    <i class="far fa-calendar-alt mr-1"></i>
                                     <?php 
-                                    // Extract just the year if possible
                                     $date_val = $row[$date_column] ?? '';
                                     echo !empty($date_val) ? date('Y', strtotime(str_replace('/', '-', $date_val))) : 'N/A'; 
                                     ?>
@@ -295,10 +328,7 @@ $current_page_count = $object->row_count();
                                 <a href="<?php echo build_url($tab, $search, $college, $year, $page - 1); ?>" class="page-btn page-btn-outline">&laquo; Prev</a>
                             <?php endif; ?>
 
-                            <?php 
-                            // Show page numbers
-                            for($i = 1; $i <= $total_pages; $i++): 
-                            ?>
+                            <?php for($i = 1; $i <= $total_pages; $i++): ?>
                                 <a href="<?php echo build_url($tab, $search, $college, $year, $i); ?>" class="page-btn <?php echo ($i == $page) ? 'page-btn-active' : 'page-btn-outline'; ?>"><?php echo $i; ?></a>
                             <?php endfor; ?>
 
@@ -331,35 +361,36 @@ $current_page_count = $object->row_count();
         function updateArrows() {
             if(!tabsContainer || !leftBtn || !rightBtn) return;
             
-            leftBtn.style.display = tabsContainer.scrollLeft <= 5 ? 'none' : 'flex';
+            if (tabsContainer.scrollLeft <= 5) {
+                leftBtn.style.opacity = '0';
+                leftBtn.style.pointerEvents = 'none';
+            } else {
+                leftBtn.style.opacity = '1';
+                leftBtn.style.pointerEvents = 'auto';
+            }
+            
             const maxScrollLeft = tabsContainer.scrollWidth - tabsContainer.clientWidth;
-            rightBtn.style.display = tabsContainer.scrollLeft >= maxScrollLeft - 5 ? 'none' : 'flex';
+            if (tabsContainer.scrollLeft >= maxScrollLeft - 2) {
+                rightBtn.style.opacity = '0';
+                rightBtn.style.pointerEvents = 'none';
+            } else {
+                rightBtn.style.opacity = '1';
+                rightBtn.style.pointerEvents = 'auto';
+            }
         }
 
-        if(rightBtn) {
-            rightBtn.addEventListener('click', () => {
-                tabsContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-            });
-        }
-
-        if(leftBtn) {
-            leftBtn.addEventListener('click', () => {
-                tabsContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-            });
-        }
+        if(rightBtn) rightBtn.addEventListener('click', () => tabsContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' }));
+        if(leftBtn) leftBtn.addEventListener('click', () => tabsContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' }));
 
         if(tabsContainer) {
             tabsContainer.addEventListener('scroll', updateArrows);
             window.addEventListener('resize', updateArrows);
-            
             updateArrows();
 
-            // Auto-scroll to active tab on load
             const activeTab = tabsContainer.querySelector('.db-tab.active');
             if (activeTab) {
                 const containerRect = tabsContainer.getBoundingClientRect();
                 const tabRect = activeTab.getBoundingClientRect();
-                
                 if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
                     tabsContainer.scrollLeft = activeTab.offsetLeft - containerRect.left - 40; 
                     updateArrows(); 

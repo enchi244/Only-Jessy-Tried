@@ -971,6 +971,119 @@ footer {
     margin-bottom: 1.5rem;
 }
 
+/* --- HOVER EXPANDABLE DETAILS DRAWER --- */
+.card-details-drawer {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 1px dashed rgba(0,0,0,0.1);
+}
+
+.data-card:hover .card-details-drawer {
+    max-height: 600px; /* Expands to fit content automatically */
+    opacity: 1;
+    visibility: visible;
+    margin-top: 15px;
+    padding-top: 15px;
+}
+
+.drawer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+.drawer-grid .full-width {
+    grid-column: 1 / -1;
+}
+
+.drawer-grid strong {
+    color: var(--dark-bg);
+    margin-right: 5px;
+}
+
+.author-line {
+    color: #555;
+    margin-bottom: 0; /* Removed margin so drawer attaches smoothly */
+    transition: margin-bottom 0.4s ease;
+}
+
+/* Base Card Tweaks */
+.data-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s, box-shadow 0.3s; /* Smoothed out transition */
+}
+
+.data-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.1); /* Slightly deeper shadow on hover */
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.college-tag {
+    background: var(--bg-light);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.date-tag {
+    font-weight: 800;
+    color: var(--primary-color);
+    font-size: 0.85rem;
+}
+
+/* Pagination Button Styles */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+}
+.page-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: 0.3s;
+    border: 2px solid var(--primary-color);
+}
+.page-btn-outline {
+    background-color: transparent;
+    color: var(--primary-color);
+}
+.page-btn-outline:hover {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+.page-btn-active {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
 .card-footer {
     display: flex;
     gap: 1rem;
