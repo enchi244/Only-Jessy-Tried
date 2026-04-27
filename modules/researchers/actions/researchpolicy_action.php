@@ -1,5 +1,5 @@
 <?php
-include('../../core/rms.php');
+include('../../../core/rms.php');
 $object = new rms();
 
 if(isset($_POST["action_policy"]))
@@ -21,7 +21,7 @@ if(isset($_POST["action_policy"]))
     // --- ADD ---
     if($_POST["action_policy"] == 'Add')
     {
-        $rc_id = !empty($_POST["research_conducted_id"]) ? $_POST["research_conducted_id"] : NULL;
+        $rc_id = (!empty($_POST["research_conducted_id"])) ? (int)$_POST["research_conducted_id"] : NULL;
 
         $data = array(
             ':researcherID'          => $_POST["researcher_id"],
@@ -39,17 +39,18 @@ if(isset($_POST["action_policy"]))
         ";
         $object->execute($data);
         
-        // Get inserted ID for files
         $policy_id = $object->connect->lastInsertId();
 
-        // Handle Dynamic Multi-Files Array
-        if (isset($_FILES['research_files']['name']) && count($_FILES['research_files']['name']) > 0) {
+        // Safely Handle Dynamic Multi-Files Array (ADDED EXTRA ../ TO PATH)
+        if (isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && count($_FILES['research_files']['name']) > 0) {
             for ($i = 0; $i < count($_FILES['research_files']['name']); $i++) {
-                if ($_FILES['research_files']['name'][$i] != '') {
+                if (!empty($_FILES['research_files']['name'][$i])) {
                     $category = $_POST['file_categories'][$i] ?? 'Other';
                     $extension = pathinfo($_FILES['research_files']['name'][$i], PATHINFO_EXTENSION);
                     $new_file_name = 'policy_' . time() . '_' . rand(100,999) . '.' . $extension;
-                    move_uploaded_file($_FILES['research_files']['tmp_name'][$i], '../../uploads/documents/' . $new_file_name);
+                    
+                    // FIX: Go up 3 levels from actions/ to reach root uploads/
+                    move_uploaded_file($_FILES['research_files']['tmp_name'][$i], '../../../uploads/documents/' . $new_file_name);
                     
                     $file_data = [
                         ':policy_id' => $policy_id,
@@ -81,7 +82,6 @@ if(isset($_POST["action_policy"]))
             $data['date_implemented'] = $row['date_implemented'];
         }
 
-        // Fetch Linked Files
         $object->query = "SELECT * FROM tbl_policy_files WHERE policy_id = '$policy_id'";
         $files_result = $object->get_result();
         $data['existing_files'] = [];
@@ -100,12 +100,13 @@ if(isset($_POST["action_policy"]))
     if($_POST["action_policy"] == 'Edit')
     {
         $policy_id = $_POST['hidden_id_policy'];
+        $rc_id = (!empty($_POST["research_conducted_id"])) ? (int)$_POST["research_conducted_id"] : NULL;
 
         $data = array(
             ':title'                 => strtoupper($_POST["title"]),
             ':abstract'              => $_POST["abstract"],
             ':description'           => $_POST["description"],
-            ':research_conducted_id' => !empty($_POST["research_conducted_id"]) ? $_POST["research_conducted_id"] : NULL,
+            ':research_conducted_id' => $rc_id,
             ':date_implemented'      => $_POST["date_implemented"],
             ':id'                    => $policy_id
         );
@@ -121,14 +122,16 @@ if(isset($_POST["action_policy"]))
         ";
         $object->execute($data);
 
-        // Handle newly appended Multi-Files Array
-        if (isset($_FILES['research_files']['name']) && count($_FILES['research_files']['name']) > 0) {
+        // Handle newly appended Multi-Files Array (ADDED EXTRA ../ TO PATH)
+        if (isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && count($_FILES['research_files']['name']) > 0) {
             for ($i = 0; $i < count($_FILES['research_files']['name']); $i++) {
-                if ($_FILES['research_files']['name'][$i] != '') {
+                if (!empty($_FILES['research_files']['name'][$i])) {
                     $category = $_POST['file_categories'][$i] ?? 'Other';
                     $extension = pathinfo($_FILES['research_files']['name'][$i], PATHINFO_EXTENSION);
                     $new_file_name = 'policy_' . time() . '_' . rand(100,999) . '.' . $extension;
-                    move_uploaded_file($_FILES['research_files']['tmp_name'][$i], '../../uploads/documents/' . $new_file_name);
+                    
+                    // FIX: Go up 3 levels from actions/ to reach root uploads/
+                    move_uploaded_file($_FILES['research_files']['tmp_name'][$i], '../../../uploads/documents/' . $new_file_name);
                     
                     $file_data = [
                         ':policy_id' => $policy_id,
@@ -153,8 +156,9 @@ if(isset($_POST["action_policy"]))
         $object->execute([':id' => $file_id]);
         $res = $object->statement->fetch(PDO::FETCH_ASSOC);
         
-        if($res && file_exists('../../uploads/documents/'.$res['file_name'])) {
-            unlink('../../uploads/documents/'.$res['file_name']);
+        // FIX: Go up 3 levels for the delete action too
+        if($res && file_exists('../../../uploads/documents/'.$res['file_name'])) {
+            unlink('../../../uploads/documents/'.$res['file_name']);
         }
         
         $object->query = "DELETE FROM tbl_policy_files WHERE id = :id";

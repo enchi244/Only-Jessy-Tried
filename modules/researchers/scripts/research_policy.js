@@ -69,7 +69,7 @@ $(document).ready(function() {
                 
                 loadResearchDropdown(rid, data.research_conducted_id);
 
-                // Render Existing Files using the universal style
+                // Render Existing Files
                 if(data.existing_files && data.existing_files.length > 0) {
                     var filesHtml = '';
                     data.existing_files.forEach(function(f) {
@@ -113,19 +113,28 @@ $(document).ready(function() {
                 success: function(data) {
                     $('#submit_button_policy').attr('disabled', false);
                     if (data.error) {
-                        Swal.fire('Error', data.error, 'error');
+                        Swal.fire('Form Error', data.error, 'error');
                         $('#submit_button_policy').val($('#action_policy').val());
                     } else {
                         $('#policyModal').modal('hide');
                         var Svalue = $('#action_policy').val();
                         Swal.fire({ title: Svalue == "Add" ? 'Added!' : 'Updated!', text: 'The research policy has been successfully saved.', icon: 'success', timer: 800, showConfirmButton: false});
 
-                        // Auto-refresh 
                         setTimeout(function(){ 
                             var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
                             window.location.href = window.location.pathname + '?id=' + rid + '&tab=policy';
                         }, 800);
                     }
+                },
+                // --- NEW ERROR HANDLER (Prevents Infinite "Wait...") ---
+                error: function(xhr, status, error) {
+                    $('#submit_button_policy').attr('disabled', false).val($('#action_policy').val());
+                    Swal.fire({
+                        title: 'Database or Server Error',
+                        text: 'An error occurred. Check the browser console (F12) for the exact PHP error.',
+                        icon: 'error'
+                    });
+                    console.error("AJAX Error Details:", xhr.responseText);
                 }
             });
         }
