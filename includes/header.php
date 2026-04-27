@@ -338,6 +338,10 @@ body.sidebar-toggled #content-wrapper {
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Profile
                                 </a>
+                                <a class="dropdown-item" href="<?php echo $object->base_url; ?>index.php">
+                                    <i class="fas fa-globe fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    View Public Website
+                                </a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>

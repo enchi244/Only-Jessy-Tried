@@ -873,11 +873,7 @@ $totalDisciplines = $object->Get_total_disciplines();
 
 </div> <?php include('includes/footer.php'); ?>
 
-<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/jquery-easing/jquery.easing.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 
 <script>

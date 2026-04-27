@@ -20,7 +20,6 @@ rms.sql
 images/
 tmp/
 scss/
-img/
 vendor/
 vendors/
 rmsStructureOnly.sql

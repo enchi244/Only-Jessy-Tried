@@ -2,15 +2,20 @@
 include('core/rms.php');
 $object = new rms();
 
-// 1. Capture URL Parameters for Filters and Tabs
+// 1. Capture URL Parameters for Filters, Tabs, and Pagination
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'research';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $college = isset($_GET['college']) ? $_GET['college'] : 'all';
 $year = isset($_GET['year']) ? $_GET['year'] : 'all';
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 
-// Helper to build URLs so we don't lose search/filter state when clicking tabs
-function build_url($new_tab, $search, $college, $year) {
-    return "?tab=$new_tab&search=" . urlencode($search) . "&college=" . urlencode($college) . "&year=" . urlencode($year);
+// Items per page
+$limit = 10;
+$offset = ($page - 1) * $limit;
+
+// Helper to build URLs so we don't lose search/filter state when clicking tabs or pages
+function build_url($new_tab, $search, $college, $year, $page_num = 1) {
+    return "?tab=$new_tab&search=" . urlencode($search) . "&college=" . urlencode($college) . "&year=" . urlencode($year) . "&page=$page_num";
 }
 
 // 2. Fetch Colleges for the Dropdown
@@ -18,9 +23,50 @@ $object->query = "SELECT category_name FROM product_category_table WHERE categor
 $object->execute();
 $colleges_list = $object->statement_result();
 
-// 3. Build the Database Query based on the Active Tab
+// 3. Determine Table and Columns based on Tab
+$table = "";
+$date_column = "";
+$type_column = ""; // For badges
+
+if ($tab == 'research') {
+    $table = "tbl_researchconducted";
+    $date_column = "completed_date";
+    $type_column = "stat";
+} elseif ($tab == 'publication') {
+    $table = "tbl_publication";
+    $date_column = "publication_date";
+    $type_column = "indexing"; 
+} elseif ($tab == 'ip') {
+    $table = "tbl_itelectualprop";
+    $date_column = "date_applied";
+    $type_column = "type";
+} elseif ($tab == 'trainings') {
+    $table = "tbl_trainingsattended";
+    $date_column = "date_train";
+    $type_column = "lvl";
+} elseif ($tab == 'pp') {
+    $table = "tbl_paperpresentation";
+    $date_column = "date_paper";
+    $type_column = "type_pp";
+} elseif ($tab == 'epc') {
+    $table = "tbl_extension_project_conducted";
+    $date_column = "start_date";
+    $type_column = "status_exct";
+} elseif ($tab == 'ext') {
+    $table = "tbl_ext";
+    $date_column = "period_implement";
+    $type_column = "stat";
+}
+
+// 4. Build the Database Query Filters
 $where = " WHERE rd.status = 1 "; // Only active researchers
 $params = [];
+
+// Safely append item status check only for tables that have a status column in your DB
+$tables_with_status = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_extension_project_conducted', 'tbl_ext'];
+if (in_array($table, $tables_with_status)) {
+    $where .= " AND main.status = 1 ";
+}
 
 // Apply Search Filter
 if ($search != '') {
@@ -34,48 +80,42 @@ if ($college != 'all') {
     $params[':college'] = $college;
 }
 
-// Determine Table and Date Column based on Tab
-$table = "";
-$date_column = "";
-$type_column = ""; // For badges
-
-if ($tab == 'research') {
-    $table = "tbl_researchconducted";
-    $date_column = "completed_date";
-    $type_column = "stat"; // Status as badge
-} elseif ($tab == 'publication') {
-    $table = "tbl_publication";
-    $date_column = "publication_date";
-    $type_column = "indexing"; 
-} elseif ($tab == 'ip') {
-    $table = "tbl_itelectualprop";
-    $date_column = "date_applied";
-    $type_column = "type";
-} elseif ($tab == 'trainings') {
-    $table = "tbl_trainingsattended";
-    $date_column = "date_train";
-    $type_column = "lvl";
-}
-
 // Apply Year Filter
 if ($year != 'all' && $date_column != "") {
-    // Extracts the year from the date column (assuming standard date formats)
     $where .= " AND main.$date_column LIKE :year ";
     $params[':year'] = "%$year%";
 }
 
-// Execute the Query
+// 5. Pagination Logic: Get Total Row Count
+$object->query = "
+    SELECT COUNT(main.id) as total_rows 
+    FROM $table main 
+    LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
+    $where 
+";
+$object->execute($params);
+$count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
+$total_results = $count_result['total_rows'];
+$total_pages = ceil($total_results / $limit);
+
+// Ensure current page doesn't exceed total pages
+if ($page > $total_pages && $total_pages > 0) {
+    $page = $total_pages;
+    $offset = ($page - 1) * $limit;
+}
+
+// 6. Execute the Main Query with LIMIT and OFFSET
 $object->query = "
     SELECT main.*, rd.firstName, rd.familyName, rd.department 
     FROM $table main 
     LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
     $where 
     ORDER BY main.id DESC 
-    LIMIT 100
+    LIMIT $limit OFFSET $offset
 ";
 $object->execute($params);
 $results = $object->statement_result();
-$result_count = $object->row_count();
+$current_page_count = $object->row_count();
 ?>
 
 <!DOCTYPE html>
@@ -83,9 +123,41 @@ $result_count = $object->row_count();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDE Database | SDMU WMSU</title>
+    <title>RDE Database | SDMU</title>
     <link rel="stylesheet" href="css/public_style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Pagination Button Styles */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: 0.3s;
+            border: 2px solid var(--primary-color);
+        }
+        .page-btn-outline {
+            background-color: transparent;
+            color: var(--primary-color);
+        }
+        .page-btn-outline:hover {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+        .page-btn-active {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+    </style>
 </head>
 <body class="database-body">
 
@@ -167,20 +239,29 @@ $result_count = $object->row_count();
 
         <section class="db-content">
             
-            <div class="category-tabs">
-                <a href="<?php echo build_url('research', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'research') echo 'active'; ?>" style="text-decoration:none;">Research Conducted</a>
-                <a href="<?php echo build_url('publication', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'publication') echo 'active'; ?>" style="text-decoration:none;">Publication</a>
-                <a href="<?php echo build_url('ip', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'ip') echo 'active'; ?>" style="text-decoration:none;">Intellectual Property</a>
-                <a href="<?php echo build_url('trainings', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'trainings') echo 'active'; ?>" style="text-decoration:none;">Trainings Attended</a>
+            <div class="tabs-wrapper">
+                <button class="scroll-arrow left-arrow" id="scrollLeftBtn" type="button"><i class="fas fa-chevron-left"></i></button>
+                
+                <div class="category-tabs" id="categoryTabs">
+                    <a href="<?php echo build_url('research', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'research') echo 'active'; ?>">Research Conducted</a>
+                    <a href="<?php echo build_url('publication', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'publication') echo 'active'; ?>">Publication</a>
+                    <a href="<?php echo build_url('ip', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'ip') echo 'active'; ?>">Intellectual Property</a>
+                    <a href="<?php echo build_url('pp', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'pp') echo 'active'; ?>">Paper Presentations</a>
+                    <a href="<?php echo build_url('trainings', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'trainings') echo 'active'; ?>">Trainings Attended</a>
+                    <a href="<?php echo build_url('epc', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'epc') echo 'active'; ?>">Extension Projects</a>
+                    <a href="<?php echo build_url('ext', $search, $college, $year); ?>" class="db-tab <?php if($tab == 'ext') echo 'active'; ?>">Extension Activities</a>
+                </div>
+
+                <button class="scroll-arrow right-arrow" id="scrollRightBtn" type="button"><i class="fas fa-chevron-right"></i></button>
             </div>
 
             <div class="db-results" id="resultsContainer">
                 
                 <div class="results-meta">
-                    <span>Showing <strong><?php echo $result_count; ?></strong> results for your query</span>
+                    <span>Showing Page <strong><?php echo $page; ?></strong> of <strong><?php echo max(1, $total_pages); ?></strong> (Total: <?php echo $total_results; ?> records)</span>
                 </div>
 
-                <?php if($result_count > 0): ?>
+                <?php if($current_page_count > 0): ?>
                     <?php foreach($results as $row): ?>
                         <div class="data-card">
                             <?php if(!empty($row[$type_column])): ?>
@@ -207,6 +288,26 @@ $result_count = $object->row_count();
                             </div>
                         </div>
                     <?php endforeach; ?>
+
+                    <?php if($total_pages > 1): ?>
+                        <div class="pagination-container">
+                            <?php if($page > 1): ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, $page - 1); ?>" class="page-btn page-btn-outline">&laquo; Prev</a>
+                            <?php endif; ?>
+
+                            <?php 
+                            // Show page numbers
+                            for($i = 1; $i <= $total_pages; $i++): 
+                            ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, $i); ?>" class="page-btn <?php echo ($i == $page) ? 'page-btn-active' : 'page-btn-outline'; ?>"><?php echo $i; ?></a>
+                            <?php endfor; ?>
+
+                            <?php if($page < $total_pages): ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, $page + 1); ?>" class="page-btn page-btn-outline">Next &raquo;</a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
                 <?php else: ?>
                     <div class="data-card">
                         <h3>No Results Found</h3>
@@ -219,5 +320,53 @@ $result_count = $object->row_count();
     </main>
 
     <script src="js/public_app.js"></script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const tabsContainer = document.getElementById('categoryTabs');
+        const leftBtn = document.getElementById('scrollLeftBtn');
+        const rightBtn = document.getElementById('scrollRightBtn');
+        const scrollAmount = 300; 
+
+        function updateArrows() {
+            if(!tabsContainer || !leftBtn || !rightBtn) return;
+            
+            leftBtn.style.display = tabsContainer.scrollLeft <= 5 ? 'none' : 'flex';
+            const maxScrollLeft = tabsContainer.scrollWidth - tabsContainer.clientWidth;
+            rightBtn.style.display = tabsContainer.scrollLeft >= maxScrollLeft - 5 ? 'none' : 'flex';
+        }
+
+        if(rightBtn) {
+            rightBtn.addEventListener('click', () => {
+                tabsContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            });
+        }
+
+        if(leftBtn) {
+            leftBtn.addEventListener('click', () => {
+                tabsContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            });
+        }
+
+        if(tabsContainer) {
+            tabsContainer.addEventListener('scroll', updateArrows);
+            window.addEventListener('resize', updateArrows);
+            
+            updateArrows();
+
+            // Auto-scroll to active tab on load
+            const activeTab = tabsContainer.querySelector('.db-tab.active');
+            if (activeTab) {
+                const containerRect = tabsContainer.getBoundingClientRect();
+                const tabRect = activeTab.getBoundingClientRect();
+                
+                if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
+                    tabsContainer.scrollLeft = activeTab.offsetLeft - containerRect.left - 40; 
+                    updateArrows(); 
+                }
+            }
+        }
+    });
+    </script>
 </body>
 </html>

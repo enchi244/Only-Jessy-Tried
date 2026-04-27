@@ -399,26 +399,36 @@ function upload_image()
 	if(isset($_FILES["user_image"]))
 	{
 		$extension = explode('.', $_FILES['user_image']['name']);
-		$new_name = rand() . '.' . $extension[1];
-		$destination = 'images/' . $new_name;
-		move_uploaded_file($_FILES['user_image']['tmp_name'], $destination);
-		return $destination;
+		$new_name = rand() . '.' . end($extension); // Use end() to safely get extension
+		
+        // Go up two directories to save the image in the global img/profiles/ folder
+        $destination = '../../img/profiles/' . $new_name;
+		
+        move_uploaded_file($_FILES['user_image']['tmp_name'], $destination);
+		
+        // Return the clean path relative to the root URL for the database
+        return 'img/profiles/' . $new_name;
 	}
 }
 
 function make_avatar($character)
 {
-    $path = "images/". time() . ".png";
+    $file_name = time() . ".png";
+    $destination = "../../img/profiles/" . $file_name;
+    
 	$image = imagecreate(200, 200);
 	$red = rand(0, 255);
 	$green = rand(0, 255);
 	$blue = rand(0, 255);
     imagecolorallocate($image, 230, 230, 230);  
     $textcolor = imagecolorallocate($image, $red, $green, $blue);
-    imagettftext($image, 100, 0, 55, 150, $textcolor, 'font/arial.ttf', $character);
-    imagepng($image, $path);
+    
+    // Path to the font must also go up two directories
+    imagettftext($image, 100, 0, 55, 150, $textcolor, '../../font/arial.ttf', $character);
+    imagepng($image, $destination);
     imagedestroy($image);
-    return $path;
+    
+    return 'img/profiles/' . $file_name;
 }
 
 ?>

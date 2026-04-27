@@ -40,6 +40,10 @@ $object->query = "SELECT ip.* FROM tbl_itelectualprop ip JOIN tbl_ip_collaborato
 $object->execute();
 $intellectual_props = $object->statement_result();
 
+$object->query = "SELECT p.*, rc.title as linked_research FROM tbl_research_policy p LEFT JOIN tbl_researchconducted rc ON p.research_conducted_id = rc.id WHERE p.researcherID = '$researcher_id' AND p.status = 1 ORDER BY p.date_implemented DESC";
+$object->execute();
+$policies = $object->statement_result();
+
 $object->query = "SELECT * FROM tbl_paperpresentation WHERE researcherID = '$researcher_id' ORDER BY date_paper DESC";
 $object->execute();
 $presentations = $object->statement_result();
@@ -171,10 +175,11 @@ include('../../includes/header.php');
         <p class="mb-0 text-white-50"><i class="fas fa-id-badge mr-2"></i>System ID: <?php echo htmlspecialchars($researcher_id); ?> | Researcher ID: <?php echo htmlspecialchars($researcher_data['researcherID']); ?></p>
     </div>
 </div>
+
 <?php include('modals/add_researchConducted.php'); ?>
 <?php include('modals/add_publication.php'); ?>
 <?php include('modals/add_intellectualProperty.php'); ?>
-<?php include('modals/add_paperPresentation.php'); ?>
+<?php include('modals/add_researchPolicy.php'); ?> <?php include('modals/add_paperPresentation.php'); ?>
 <?php include('modals/add_trainingsAttended.php'); ?>
 <?php include('modals/add_extensionProject.php'); ?> 
 <?php include('modals/add_extension.php'); ?>
@@ -188,7 +193,7 @@ include('../../includes/header.php');
                     <a class="nav-link custom-tab-btn" id="tab-education" href="#education" role="tab"><i class="fas fa-microscope mr-2"></i> Research Conducted</a>
                     <a class="nav-link custom-tab-btn" id="tab-degree" href="#degree" role="tab"><i class="fas fa-book mr-2"></i> Publications</a>
                     <a class="nav-link custom-tab-btn" id="tab-ip" href="#ip" role="tab"><i class="fas fa-lightbulb mr-2"></i> Intellectual Property</a>
-                    <a class="nav-link custom-tab-btn" id="tab-pp" href="#pp" role="tab"><i class="fas fa-file-alt mr-2"></i> Paper Presentation</a>
+                    <a class="nav-link custom-tab-btn" id="tab-policy" href="#policy" role="tab"><i class="fas fa-file-contract mr-2"></i> Research Policy</a> <a class="nav-link custom-tab-btn" id="tab-pp" href="#pp" role="tab"><i class="fas fa-file-alt mr-2"></i> Paper Presentation</a>
                     <a class="nav-link custom-tab-btn" id="tab-tra" href="#tra" role="tab"><i class="fas fa-chalkboard-teacher mr-2"></i> Trainings</a>
                     <a class="nav-link custom-tab-btn" id="tab-epc" href="#epc" role="tab"><i class="fas fa-project-diagram mr-2"></i> Extension Projects</a>
                 </div>
@@ -345,6 +350,49 @@ include('../../includes/header.php');
                             </div>
                         <?php else: ?>
                             <div class="alert alert-light text-center py-4 border">No intellectual property records found.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="tab-pane custom-tab-pane" id="policy" role="tabpanel" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="font-weight-bold text-gray-800 m-0">Research Policy</h4>
+                        </div>
+
+                        <?php if(count($policies) > 0): ?>
+                            <?php foreach($policies as $pol): ?>
+                                <div class="card shadow-sm mb-3 border-left-danger position-relative clickable-card edit_button_policy" data-id="<?php echo $pol['id']; ?>">
+                                    <div class="card-body py-3">
+                                        <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
+                                            <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_policy" data-id="<?php echo $pol['id']; ?>"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                        <h5 class="font-weight-bold text-gray-800 mb-2 pr-5"><?php echo htmlspecialchars($pol['title']); ?></h5>
+                                        <p class="text-muted mb-2 font-size-sm">
+                                            <i class="fas fa-link mr-1 text-primary"></i> Linked Research: <?php echo !empty($pol['linked_research']) ? htmlspecialchars($pol['linked_research']) : '<i class="text-muted font-italic">None</i>'; ?>
+                                        </p>
+                                        <p class="mb-2 text-dark small"><b>Abstract:</b> <?php echo htmlspecialchars($pol['abstract']); ?></p>
+                                        
+                                        <div class="mt-2 pt-2 border-top">
+                                            <span class="badge badge-danger px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Implemented: <?php echo htmlspecialchars($pol['date_implemented']); ?></span>
+                                            
+                                            <?php
+                                            // Fetch and display linked files for this specific policy card
+                                            $object->query = "SELECT * FROM tbl_policy_files WHERE policy_id = '".$pol['id']."'";
+                                            $object->execute();
+                                            $policy_files = $object->statement_result();
+                                            if(count($policy_files) > 0): 
+                                                foreach($policy_files as $file): ?>
+                                                    <a href="../../uploads/documents/<?php echo htmlspecialchars($file['file_name']); ?>" target="_blank" class="badge badge-light border px-2 py-1 mr-1 isolate-click shadow-sm" style="text-decoration: none;">
+                                                        <i class="fas fa-file-download mr-1 text-primary"></i> <?php echo htmlspecialchars($file['category']); ?>
+                                                    </a>
+                                            <?php 
+                                                endforeach; 
+                                            endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="alert alert-light text-center py-4 border">No research policies recorded yet.</div>
                         <?php endif; ?>
                     </div>
 
@@ -580,7 +628,7 @@ include('../../includes/header.php');
     <button type="button" id="add_researcherconducted"></button>
     <button type="button" id="add_publication"></button>
     <button type="button" id="add_intellectualprop"></button>
-    <button type="button" id="add_paper_presentation"></button>
+    <button type="button" id="add_policy"></button> <button type="button" id="add_paper_presentation"></button>
     <button type="button" id="add_training_attended"></button>
     <button type="button" id="add_extension_project"></button>
     <button type="button" id="add_extension"></button>
@@ -641,6 +689,7 @@ document.addEventListener("DOMContentLoaded", function() {
         'tab-education': 'btn_view_conducted',
         'tab-degree': 'btn_view_publications',
         'tab-ip': 'btn_view_ip',
+        'tab-policy': 'btn_view_policy', // NEW MAPPING
         'tab-pp': 'btn_view_pp',
         'tab-tra': 'btn_view_tra',
         'tab-epc': 'btn_view_epc' // Extension is now covered under EPC
@@ -651,6 +700,7 @@ document.addEventListener("DOMContentLoaded", function() {
         'tab-education': 'add_researcherconducted',
         'tab-degree': 'add_publication',
         'tab-ip': 'add_intellectualprop',
+        'tab-policy': 'add_policy', // NEW MAPPING
         'tab-pp': 'add_paper_presentation',
         'tab-tra': 'add_training_attended'
         // epc is handled dynamically
@@ -733,7 +783,7 @@ document.addEventListener("DOMContentLoaded", function() {
 <script src="scripts/profile.js?v=2"></script>
 <script src="scripts/publication.js?v=2"></script>
 <script src="scripts/intellectual_prop.js?v=2"></script>
-<script src="scripts/paper_presentation.js?v=2"></script>
+<script src="scripts/research_policy.js?v=1"></script> <script src="scripts/paper_presentation.js?v=2"></script>
 <script src="scripts/training.js?v=2"></script>
 <script src="scripts/extension_project.js?v=2"></script>
 <script src="scripts/extension.js?v=2"></script>
