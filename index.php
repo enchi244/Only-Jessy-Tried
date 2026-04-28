@@ -72,7 +72,6 @@ if($news_query){
                         <li><a href="rde-database.php?tab=research">Research Conducted</a></li>
                         <li><a href="rde-database.php?tab=publication">Academic Publications</a></li>
                         <li><a href="rde-database.php?tab=ip">Intellectual Properties</a></li>
-                        <li><a href="rde-database.php?tab=policy">Research Policies</a></li>
                         <li><a href="rde-database.php?tab=pp">Paper Presentations</a></li>
                         <li><a href="rde-database.php?tab=trainings">Trainings Attended</a></li>
                         <li><a href="rde-database.php?tab=epc">Extension Projects</a></li>
