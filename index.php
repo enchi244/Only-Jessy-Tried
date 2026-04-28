@@ -62,7 +62,23 @@ if($news_query){
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
                 <li><a href="#about">About</a></li>
-                <li><a href="rde-database.php" class="btn-nav">RDE Outputs</a></li>
+                
+                <li class="nav-item-dropdown">
+                    <a href="rde-database.php" class="btn-nav">
+                        RDE Outputs 
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 5px; margin-bottom: -2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="rde-database.php?tab=research">Research Conducted</a></li>
+                        <li><a href="rde-database.php?tab=publication">Academic Publications</a></li>
+                        <li><a href="rde-database.php?tab=ip">Intellectual Properties</a></li>
+                        <li><a href="rde-database.php?tab=policy">Research Policies</a></li>
+                        <li><a href="rde-database.php?tab=pp">Paper Presentations</a></li>
+                        <li><a href="rde-database.php?tab=trainings">Trainings Attended</a></li>
+                        <li><a href="rde-database.php?tab=epc">Extension Projects</a></li>
+                        <li><a href="rde-database.php?tab=ext">Extension Activities</a></li>
+                    </ul>
+                </li>
                 <li>
                     <a href="login.php" class="btn-login">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: -2px;">
