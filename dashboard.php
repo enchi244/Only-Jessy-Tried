@@ -1004,10 +1004,27 @@ $totalDisciplines = $object->Get_total_disciplines();
                     if ($('#title-chart6').length) $('#title-chart6').text('Total Number of Trainings Attended: ' + res.chart6.unique_titles_count);
                     if ($('#title-chart7').length) $('#title-chart7').text('Total Number of Extension Project Conducted: ' + res.chart7.unique_titles_count);
 
-                    function updateChart(chartObj, legendId, data) {
+function updateChart(chartObj, legendId, data) {
                         if (typeof chartObj !== 'undefined') {
+                            
+                            // 1. THE FIX: Sort the data from smallest to largest
+                            data.sort(function(a, b) {
+                                return parseInt(a.y) - parseInt(b.y);
+                            });
+
                             var formattedData = data.map(function(item) {
-                                return { label: item.label, y: parseInt(item.y), color: getConsistentColor(item.label) };
+                                return { 
+                                    label: item.label, 
+                                    y: parseInt(item.y), 
+                                    color: getConsistentColor(item.label),
+                                    
+                                    // 2. THE FIX: Force the numbers to always show on the chart
+                                    indexLabel: "{y}", 
+                                    indexLabelFontColor: "#4e73df", 
+                                    indexLabelFontWeight: "bold",
+                                    indexLabelFontSize: 14,
+                                    indexLabelPlacement: "outside" 
+                                };
                             });
                             
                             generateCustomLegend(formattedData, legendId);

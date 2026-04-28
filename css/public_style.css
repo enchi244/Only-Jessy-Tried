@@ -131,6 +131,60 @@ a {
     transform: translateY(-2px);
 }
 
+/* --- Navbar Dropdown --- */
+.nav-item-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px; /* Creates a hover bridge */
+    margin-bottom: -10px;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 150%; 
+    left: 0;
+    background: var(--white);
+    min-width: 250px;
+    border-radius: 8px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(15px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    list-style: none;
+    padding: 0.5rem 0;
+    z-index: 1000;
+    border-top: 3px solid var(--primary-color);
+}
+
+.nav-item-dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    top: 100%; 
+}
+
+.dropdown-menu li a {
+    display: block;
+    padding: 0.8rem 1.5rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+/* Override the default nav-link underline effect for dropdown items */
+.nav-links .dropdown-menu li a::after {
+    display: none !important;
+}
+
+.dropdown-menu li a:hover {
+    background: var(--bg-light);
+    color: var(--primary-color);
+    padding-left: 1.8rem; /* Sleek indent effect on hover */
+}
+
 /* --- Buttons --- */
 .btn {
     display: inline-block;
@@ -503,34 +557,36 @@ footer {
     text-align: center;
 }
 
-.impact-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
+/* 1. Force this specific container to stretch across the whole screen */
+.impact-section .container {
+    max-width: 95%; /* Uses 95% of the screen width instead of being boxed in */
+    padding: 0 1rem;
 }
 
+/* 2. Keep the 6-column single line */
+.impact-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1.5rem; 
+}
+
+/* 3. Make the numbers massive again */
 .impact-item h3 {
     display: inline-block;
-    font-size: 4rem;
+    font-size: 4.5rem; /* Massively increased */
     color: var(--white);
     margin-bottom: 0;
     line-height: 1;
 }
 
-.impact-item span {
-    font-size: 3rem;
-    font-weight: bold;
-    color: var(--white);
-    font-family: 'Playfair Display', serif;
-}
-
+/* 4. Make the text labels larger and bolder */
 .impact-item p {
-    font-size: 1.1rem;
+    font-size: 1.15rem; /* Increased size */
     margin-top: 0.5rem;
     opacity: 0.9;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-weight: 700; /* Made text bolder to balance the giant numbers */
 }
 
 /* --- News & Updates Section --- */
@@ -787,13 +843,82 @@ footer {
 
 /* Database Layout (Sidebar + Content) */
 .db-container {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 2.5rem;
-    margin-top: 10px; 
+    display: block !important; /* Forces it to fill the screen */
+    margin-top: -20px; 
+}
+
+.db-content {
+    width: 100%;
+}
+
+/* 2. Horizontal Top Filter Bar */
+.top-filter-bar {
+    background: var(--white);
+    padding: 1.2rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    margin-bottom: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    justify-content: space-between;
     position: relative;
-    z-index: 10;
-    padding-bottom: 100px;
+    z-index: 20;
+}
+
+.filter-inputs-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    flex: 1;
+    align-items: center;
+}
+
+.top-filter-bar .search-bar-container {
+    box-shadow: none;
+    border: 1px solid #e0e0e0;
+    flex: 2;
+    min-width: 250px;
+    padding: 6px 15px;
+}
+
+.top-filter-bar .filter-group {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 160px;
+}
+
+.top-filter-bar .filter-group label {
+    display: none; /* Hide labels for a cleaner inline look */
+}
+
+.top-filter-bar .btn {
+    padding: 0.7rem 1.8rem;
+    white-space: nowrap;
+}
+
+/* 3. Full-Width Cards Grid (For standard categories) */
+.db-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+}
+
+.db-results-grid .data-card {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.db-results-grid .data-card .card-footer {
+    margin-top: auto; /* Always pushes the footer to the bottom of the card */
+}
+
+/* Reduce the massive padding on the header since the search bar moved down */
+.db-header.category-header {
+    padding-bottom: 80px; 
 }
 
 /* --- NEW: STICKY SIDEBAR --- */
@@ -1062,6 +1187,7 @@ footer {
     gap: 8px;
     margin-top: 40px;
     flex-wrap: wrap;
+    margin-bottom: 60px;
 }
 .page-btn {
     padding: 8px 16px;
@@ -1099,3 +1225,252 @@ footer {
     border-left-color: #ccc;
 }
 .skeleton .card-badge { background: #eee; color: #888; }
+
+/* ==========================================================================
+   RDE HUB GRID (Category Directory)
+   ========================================================================== */
+.rde-hub-section {
+    padding: 60px 0 100px 0;
+    background-color: var(--bg-light);
+}
+
+.rde-hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    margin-top: -40px; /* Pulls grid slightly up into the header space for depth */
+    position: relative;
+    z-index: 10;
+}
+
+.hub-category-card {
+    background: var(--white);
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+    border-top: 4px solid transparent;
+}
+
+.hub-category-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+    border-top-color: var(--primary-color);
+}
+
+.hub-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(139, 0, 0, 0.08); /* Light maroon */
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    transition: all 0.3s ease;
+}
+
+.hub-category-card:hover .hub-icon-wrapper {
+    background-color: var(--primary-color);
+    color: var(--white);
+    transform: scale(1.05) rotate(-5deg);
+}
+
+.hub-category-card h3 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    color: var(--dark-bg);
+}
+
+.hub-category-card p {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    flex-grow: 1; /* Pushes the link to the bottom */
+}
+
+.hub-explore-link {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: gap 0.3s ease;
+}
+
+.hub-explore-link:hover {
+    gap: 12px; /* Arrow slides right on hover */
+}
+
+/* ==========================================================================
+   RESEARCH BLOG LAYOUT
+   ========================================================================== */
+.research-blog-top {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.featured-research-post .card-badge {
+    background-color: var(--primary-color);
+    color: var(--white);
+    align-self: flex-start;
+}
+
+.trending-research-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.trending-header {
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--text-light);
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--bg-light);
+    padding-bottom: 8px;
+}
+
+.trending-card h3 {
+    font-size: 1.1rem;
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+.research-blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+}
+
+.hero-card {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.hero-card .card-footer {
+    margin-top: auto; /* Pushes the footer to the bottom of the card */
+}
+
+/* Responsive adjustment for tablets and smaller */
+@media (max-width: 992px) {
+    .research-blog-top {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   WIDER CONTAINER FOR DATABASE GRID
+   ========================================================================== */
+.database-body .container {
+    max-width: 1600px !important; /* Expands the max width significantly */
+    width: 95% !important;        /* Uses 95% of the screen up to 1600px */
+}
+
+/* Optional: Make the Top Filter Bar stretch perfectly with the new width */
+.top-filter-bar {
+    width: 100%;
+}
+
+/* 1. Top Viewed / Featured Image */
+.featured-research-post {
+    padding: 0 !important; /* Removes padding so image hits the edges */
+    overflow: hidden;
+}
+
+.post-image-large {
+    width: 100%;
+    height: 320px; 
+    background-color: var(--bg-light);
+    background-image: url('../img/research_center.jpg'); /* Default Placeholder */
+    background-position: center;
+    background-size: cover;
+    position: relative;
+    border-bottom: 4px solid var(--primary-color);
+}
+
+.featured-research-post .card-badge {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    margin: 0;
+    z-index: 2;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.featured-research-post .post-content {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+/* 2. Trending List Images (Small on the left) */
+.trending-card {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 12px !important;
+    gap: 15px;
+}
+
+.trending-image {
+    width: 100px;
+    min-height: 100px;
+    border-radius: 6px;
+    background-color: #eee;
+    background-image: url('../img/sample.webp'); /* Default Placeholder */
+    background-position: center;
+    background-size: cover;
+    flex-shrink: 0;
+}
+
+.trending-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+}
+
+/* 3. Grid Hero Cards (Images on top) */
+.hero-card {
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.hero-card-image {
+    width: 100%;
+    height: 180px;
+    background-color: #eee;
+    background-image: url('../img/sampol.jpg'); /* Default Placeholder */
+    background-position: center;
+    background-size: cover;
+    border-bottom: 3px solid var(--bg-light);
+    transition: transform 0.4s ease;
+}
+
+/* Optional: Slight zoom effect on hover for the grid cards */
+.hero-card:hover .hero-card-image {
+    transform: scale(1.05);
+}
+
+.hero-card-content {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    position: relative; /* Keeps content above the zoomed image */
+    background: var(--white);
+}

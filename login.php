@@ -46,9 +46,14 @@ if($object->is_login())
 <style type="text/css">
     
 .bg-login-imagehs {
-  background-image: url('img/hslogo2.png');
+  background-image: url('img/wmsulogo.jpg');
   background-position: center;
-  background-size: cover;
+  background-size: contain;
+  background-repeat: no-repeat;
+  /* Keeps the grid column from collapsing */
+  min-height: 400px;
+  /* Forces the image to only take up 70% of the box, creating a natural margin */
+  background-size: 70%;
 }
 
 .red{
