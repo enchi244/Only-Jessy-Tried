@@ -27,16 +27,18 @@ $researcher_data = $object->statement->fetch(PDO::FETCH_ASSOC);
 // Format the name nicely
 $full_name = trim($researcher_data['firstName'] . ' ' . $researcher_data['middleName'] . ' ' . $researcher_data['familyName'] . ' ' . $researcher_data['Suffix']);
 
-$object->query = "SELECT rc.* FROM tbl_researchconducted rc JOIN tbl_research_collaborators col ON rc.id = col.research_id WHERE col.researcher_id = '$researcher_id' ORDER BY rc.started_date DESC";
+// UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD
+$object->query = "SELECT DISTINCT rc.* FROM tbl_researchconducted rc LEFT JOIN tbl_research_collaborators col ON rc.id = col.research_id WHERE (rc.researcherID = '$researcher_id' OR col.researcher_id = '$researcher_id') ORDER BY rc.started_date DESC";
 $object->execute();
 $research_conducted = $object->statement_result();
 
-// Use join tables to ensure co-authors/collaborators see records on their profiles
-$object->query = "SELECT p.* FROM tbl_publication p JOIN tbl_publication_collaborators col ON p.id = col.publication_id WHERE col.researcher_id = '$researcher_id' AND p.status = 1 ORDER BY p.publication_date DESC";
+// UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD
+$object->query = "SELECT DISTINCT p.* FROM tbl_publication p LEFT JOIN tbl_publication_collaborators col ON p.id = col.publication_id WHERE (p.researcherID = '$researcher_id' OR col.researcher_id = '$researcher_id') AND p.status = 1 ORDER BY p.publication_date DESC";
 $object->execute();
 $publications = $object->statement_result();
 
-$object->query = "SELECT ip.* FROM tbl_itelectualprop ip JOIN tbl_ip_collaborators col ON ip.id = col.ip_id WHERE col.researcher_id = '$researcher_id' AND ip.status = 1 ORDER BY ip.date_applied DESC";
+// UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD
+$object->query = "SELECT DISTINCT ip.* FROM tbl_itelectualprop ip LEFT JOIN tbl_ip_collaborators col ON ip.id = col.ip_id WHERE (ip.researcherID = '$researcher_id' OR col.researcher_id = '$researcher_id') AND ip.status = 1 ORDER BY ip.date_applied DESC";
 $object->execute();
 $intellectual_props = $object->statement_result();
 
@@ -83,18 +85,18 @@ include('../../includes/header.php');
     .nav-pills .nav-link:hover { background-color: #eaecf4; }
     .nav-pills .nav-link.active, .nav-pills .show>.nav-link { background-color: #f23e5d; color: white; box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2); }
 
-    /* Clean Inner Nav Tabs styling */
-    #epcInnerTabs .nav-link {
+    /* Clean Inner Nav Tabs styling (UPDATED to include rcInnerTabs) */
+    #epcInnerTabs .nav-link, #rcInnerTabs .nav-link {
         color: #5a5c69;
         border: none;
         padding: 10px 20px;
         font-weight: 600;
         transition: all 0.2s ease;
     }
-    #epcInnerTabs .nav-link:hover {
+    #epcInnerTabs .nav-link:hover, #rcInnerTabs .nav-link:hover {
         color: #f23e5d;
     }
-    #epcInnerTabs .nav-link.active {
+    #epcInnerTabs .nav-link.active, #rcInnerTabs .nav-link.active {
         color: #f23e5d !important;
         background-color: transparent;
         border-bottom: 3px solid #f23e5d;
@@ -179,7 +181,8 @@ include('../../includes/header.php');
 <?php include('modals/add_researchConducted.php'); ?>
 <?php include('modals/add_publication.php'); ?>
 <?php include('modals/add_intellectualProperty.php'); ?>
-<?php include('modals/add_researchPolicy.php'); ?> <?php include('modals/add_paperPresentation.php'); ?>
+<?php include('modals/add_researchPolicy.php'); ?> 
+<?php include('modals/add_paperPresentation.php'); ?>
 <?php include('modals/add_trainingsAttended.php'); ?>
 <?php include('modals/add_extensionProject.php'); ?> 
 <?php include('modals/add_extension.php'); ?>
@@ -193,7 +196,7 @@ include('../../includes/header.php');
                     <a class="nav-link custom-tab-btn" id="tab-education" href="#education" role="tab"><i class="fas fa-microscope mr-2"></i> Research Conducted</a>
                     <a class="nav-link custom-tab-btn" id="tab-degree" href="#degree" role="tab"><i class="fas fa-book mr-2"></i> Publications</a>
                     <a class="nav-link custom-tab-btn" id="tab-ip" href="#ip" role="tab"><i class="fas fa-lightbulb mr-2"></i> Intellectual Property</a>
-                    <a class="nav-link custom-tab-btn" id="tab-policy" href="#policy" role="tab"><i class="fas fa-file-contract mr-2"></i> Research Policy</a> <a class="nav-link custom-tab-btn" id="tab-pp" href="#pp" role="tab"><i class="fas fa-file-alt mr-2"></i> Paper Presentation</a>
+                    <a class="nav-link custom-tab-btn" id="tab-pp" href="#pp" role="tab"><i class="fas fa-file-alt mr-2"></i> Paper Presentation</a>
                     <a class="nav-link custom-tab-btn" id="tab-tra" href="#tra" role="tab"><i class="fas fa-chalkboard-teacher mr-2"></i> Trainings</a>
                     <a class="nav-link custom-tab-btn" id="tab-epc" href="#epc" role="tab"><i class="fas fa-project-diagram mr-2"></i> Extension Projects</a>
                 </div>
@@ -258,35 +261,93 @@ include('../../includes/header.php');
                     </div>
 
                     <div class="tab-pane custom-tab-pane" id="education" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Research Timeline</h4>
-                        </div>
                         
-                        <?php if(count($research_conducted) > 0): ?>
-                            <div class="timeline mt-4">
-                                <?php foreach($research_conducted as $rc): ?>
-                                    <div class="timeline-item">
-                                        <div class="timeline-date"><?php echo htmlspecialchars($rc['started_date']); ?> to <?php echo htmlspecialchars($rc['completed_date']); ?></div>
-                                        <div class="card shadow-sm border-0 bg-light clickable-card edit_button_researchconducted" data-id="<?php echo $rc['id']; ?>">
-                                            <div class="card-body py-3">
-                                                <div class="float-right isolate-click">
-                                                    <button class="btn btn-sm btn-link text-danger delete_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-trash"></i></button>
+                        <ul class="nav nav-tabs mb-4 border-bottom-danger" id="rcInnerTabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="inner-rc-tab" data-toggle="tab" href="#inner-rc" role="tab"><i class="fas fa-microscope mr-2"></i>Research Conducted</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="inner-policy-tab" data-toggle="tab" href="#inner-policy" role="tab"><i class="fas fa-file-contract mr-2"></i>Research Policy</a>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="rcInnerTabsContent">
+                            
+                            <div class="tab-pane fade show active" id="inner-rc" role="tabpanel">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h4 class="font-weight-bold text-gray-800 m-0">Research Timeline</h4>
+                                </div>
+                                
+                                <?php if(count($research_conducted) > 0): ?>
+                                    <div class="timeline mt-4">
+                                        <?php foreach($research_conducted as $rc): ?>
+                                            <div class="timeline-item">
+                                                <div class="timeline-date"><?php echo htmlspecialchars($rc['started_date']); ?> to <?php echo htmlspecialchars($rc['completed_date']); ?></div>
+                                                <div class="card shadow-sm border-0 bg-light clickable-card edit_button_researchconducted" data-id="<?php echo $rc['id']; ?>">
+                                                    <div class="card-body py-3">
+                                                        <div class="float-right isolate-click">
+                                                            <button class="btn btn-sm btn-link text-danger delete_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                        <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($rc['title']); ?></h6>
+                                                        <p class="text-muted small mb-2">
+                                                            <i class="fas fa-bullseye mr-1"></i> SDG: <?php echo htmlspecialchars($rc['sdgs']); ?> | 
+                                                            <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($rc['funding_source']); ?> (₱<?php echo number_format((float)$rc['approved_budget'], 2); ?>)
+                                                        </p>
+                                                        <span class="badge badge-primary px-2 py-1"><?php echo htmlspecialchars($rc['stat']); ?></span>
+                                                        <span class="badge badge-light px-2 py-1 ml-1 border">Cluster: <?php echo htmlspecialchars($rc['research_agenda_cluster']); ?></span>
+                                                    </div>
                                                 </div>
-                                                <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($rc['title']); ?></h6>
-                                                <p class="text-muted small mb-2">
-                                                    <i class="fas fa-bullseye mr-1"></i> SDG: <?php echo htmlspecialchars($rc['sdgs']); ?> | 
-                                                    <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($rc['funding_source']); ?> (₱<?php echo number_format((float)$rc['approved_budget'], 2); ?>)
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="alert alert-light text-center py-4 border">No research conducted records found.</div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="tab-pane fade" id="inner-policy" role="tabpanel">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h4 class="font-weight-bold text-gray-800 m-0">Research Policy</h4>
+                                </div>
+
+                                <?php if(count($policies) > 0): ?>
+                                    <?php foreach($policies as $pol): ?>
+                                        <div class="card shadow-sm mb-3 border-left-danger position-relative clickable-card edit_button_policy" data-id="<?php echo $pol['id']; ?>">
+                                            <div class="card-body py-3">
+                                                <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
+                                                    <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_policy" data-id="<?php echo $pol['id']; ?>"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                                <h5 class="font-weight-bold text-gray-800 mb-2 pr-5"><?php echo htmlspecialchars($pol['title']); ?></h5>
+                                                <p class="text-muted mb-2 font-size-sm">
+                                                    <i class="fas fa-link mr-1 text-primary"></i> Linked Research: <?php echo !empty($pol['linked_research']) ? htmlspecialchars($pol['linked_research']) : '<i class="text-muted font-italic">None</i>'; ?>
                                                 </p>
-                                                <span class="badge badge-primary px-2 py-1"><?php echo htmlspecialchars($rc['stat']); ?></span>
-                                                <span class="badge badge-light px-2 py-1 ml-1 border">Cluster: <?php echo htmlspecialchars($rc['research_agenda_cluster']); ?></span>
+                                                <p class="mb-2 text-dark small"><b>Abstract:</b> <?php echo htmlspecialchars($pol['abstract']); ?></p>
+                                                
+                                                <div class="mt-2 pt-2 border-top">
+                                                    <span class="badge badge-danger px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Implemented: <?php echo htmlspecialchars($pol['date_implemented']); ?></span>
+                                                    
+                                                    <?php
+                                                    $object->query = "SELECT * FROM tbl_policy_files WHERE policy_id = '".$pol['id']."'";
+                                                    $object->execute();
+                                                    $policy_files = $object->statement_result();
+                                                    if(count($policy_files) > 0): 
+                                                        foreach($policy_files as $file): ?>
+                                                            <a href="../../uploads/documents/<?php echo htmlspecialchars($file['file_name']); ?>" target="_blank" class="badge badge-light border px-2 py-1 mr-1 isolate-click shadow-sm" style="text-decoration: none;">
+                                                                <i class="fas fa-file-download mr-1 text-primary"></i> <?php echo htmlspecialchars($file['category']); ?>
+                                                            </a>
+                                                    <?php 
+                                                        endforeach; 
+                                                    endif; ?>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                <?php endforeach; ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="alert alert-light text-center py-4 border">No research policies recorded yet.</div>
+                                <?php endif; ?>
                             </div>
-                        <?php else: ?>
-                            <div class="alert alert-light text-center py-4 border">No research conducted records found.</div>
-                        <?php endif; ?>
+
+                        </div>
                     </div>
 
                     <div class="tab-pane custom-tab-pane" id="degree" role="tabpanel" style="display: none;">
@@ -350,49 +411,6 @@ include('../../includes/header.php');
                             </div>
                         <?php else: ?>
                             <div class="alert alert-light text-center py-4 border">No intellectual property records found.</div>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="tab-pane custom-tab-pane" id="policy" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Research Policy</h4>
-                        </div>
-
-                        <?php if(count($policies) > 0): ?>
-                            <?php foreach($policies as $pol): ?>
-                                <div class="card shadow-sm mb-3 border-left-danger position-relative clickable-card edit_button_policy" data-id="<?php echo $pol['id']; ?>">
-                                    <div class="card-body py-3">
-                                        <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
-                                            <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_policy" data-id="<?php echo $pol['id']; ?>"><i class="fas fa-trash"></i></button>
-                                        </div>
-                                        <h5 class="font-weight-bold text-gray-800 mb-2 pr-5"><?php echo htmlspecialchars($pol['title']); ?></h5>
-                                        <p class="text-muted mb-2 font-size-sm">
-                                            <i class="fas fa-link mr-1 text-primary"></i> Linked Research: <?php echo !empty($pol['linked_research']) ? htmlspecialchars($pol['linked_research']) : '<i class="text-muted font-italic">None</i>'; ?>
-                                        </p>
-                                        <p class="mb-2 text-dark small"><b>Abstract:</b> <?php echo htmlspecialchars($pol['abstract']); ?></p>
-                                        
-                                        <div class="mt-2 pt-2 border-top">
-                                            <span class="badge badge-danger px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Implemented: <?php echo htmlspecialchars($pol['date_implemented']); ?></span>
-                                            
-                                            <?php
-                                            // Fetch and display linked files for this specific policy card
-                                            $object->query = "SELECT * FROM tbl_policy_files WHERE policy_id = '".$pol['id']."'";
-                                            $object->execute();
-                                            $policy_files = $object->statement_result();
-                                            if(count($policy_files) > 0): 
-                                                foreach($policy_files as $file): ?>
-                                                    <a href="../../uploads/documents/<?php echo htmlspecialchars($file['file_name']); ?>" target="_blank" class="badge badge-light border px-2 py-1 mr-1 isolate-click shadow-sm" style="text-decoration: none;">
-                                                        <i class="fas fa-file-download mr-1 text-primary"></i> <?php echo htmlspecialchars($file['category']); ?>
-                                                    </a>
-                                            <?php 
-                                                endforeach; 
-                                            endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <div class="alert alert-light text-center py-4 border">No research policies recorded yet.</div>
                         <?php endif; ?>
                     </div>
 
@@ -628,7 +646,8 @@ include('../../includes/header.php');
     <button type="button" id="add_researcherconducted"></button>
     <button type="button" id="add_publication"></button>
     <button type="button" id="add_intellectualprop"></button>
-    <button type="button" id="add_policy"></button> <button type="button" id="add_paper_presentation"></button>
+    <button type="button" id="add_policy"></button> 
+    <button type="button" id="add_paper_presentation"></button>
     <button type="button" id="add_training_attended"></button>
     <button type="button" id="add_extension_project"></button>
     <button type="button" id="add_extension"></button>
@@ -665,13 +684,23 @@ document.addEventListener("DOMContentLoaded", function() {
             }, 0);
         });
         
-        // Listen to changes on the newly added Inner Tabs to swap out the FAB action
+        // Listen to changes on the EPC Inner Tabs to swap out the FAB action
         $('#epcInnerTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             var target = $(e.target).attr("href"); // newly activated inner tab
             if (target === '#inner-epc') {
                 document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_extension_project');
             } else if (target === '#inner-ext') {
                 document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_extension');
+            }
+        });
+
+        // Listen to changes on the RC Inner Tabs to swap out the FAB action
+        $('#rcInnerTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr("href"); // newly activated inner tab
+            if (target === '#inner-rc') {
+                document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_researcherconducted');
+            } else if (target === '#inner-policy') {
+                document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_policy');
             }
         });
     }
@@ -689,21 +718,18 @@ document.addEventListener("DOMContentLoaded", function() {
         'tab-education': 'btn_view_conducted',
         'tab-degree': 'btn_view_publications',
         'tab-ip': 'btn_view_ip',
-        'tab-policy': 'btn_view_policy', // NEW MAPPING
         'tab-pp': 'btn_view_pp',
         'tab-tra': 'btn_view_tra',
-        'tab-epc': 'btn_view_epc' // Extension is now covered under EPC
+        'tab-epc': 'btn_view_epc'
     };
 
     // Mapping tab IDs to the "Add" button IDs expected by your jQuery scripts
     const fabMapping = {
-        'tab-education': 'add_researcherconducted',
         'tab-degree': 'add_publication',
         'tab-ip': 'add_intellectualprop',
-        'tab-policy': 'add_policy', // NEW MAPPING
         'tab-pp': 'add_paper_presentation',
         'tab-tra': 'add_training_attended'
-        // epc is handled dynamically
+        // education and epc are handled dynamically
     };
 
     tabBtns.forEach(btn => {
@@ -738,9 +764,18 @@ document.addEventListener("DOMContentLoaded", function() {
             // --- Context-Aware FAB Logic ---
             if (tabId === 'tab-personal-info') {
                 fabContainer.style.display = 'none';
+            } else if (tabId === 'tab-education') {
+                fabContainer.style.display = 'block';
+                // Find out which inner tab is currently visible for Research
+                const activeInnerTab = document.querySelector('#rcInnerTabs .nav-link.active');
+                if(activeInnerTab && activeInnerTab.getAttribute('href') === '#inner-policy') {
+                    dynamicFabBtn.setAttribute('data-target-id', 'add_policy');
+                } else {
+                    dynamicFabBtn.setAttribute('data-target-id', 'add_researcherconducted');
+                }
             } else if (tabId === 'tab-epc') {
                 fabContainer.style.display = 'block';
-                // Find out which inner tab is currently visible
+                // Find out which inner tab is currently visible for Extension
                 const activeInnerTab = document.querySelector('#epcInnerTabs .nav-link.active');
                 if(activeInnerTab && activeInnerTab.getAttribute('href') === '#inner-ext') {
                     dynamicFabBtn.setAttribute('data-target-id', 'add_extension');
@@ -783,7 +818,8 @@ document.addEventListener("DOMContentLoaded", function() {
 <script src="scripts/profile.js?v=2"></script>
 <script src="scripts/publication.js?v=2"></script>
 <script src="scripts/intellectual_prop.js?v=2"></script>
-<script src="scripts/research_policy.js?v=1"></script> <script src="scripts/paper_presentation.js?v=2"></script>
+<script src="scripts/research_policy.js?v=1"></script> 
+<script src="scripts/paper_presentation.js?v=2"></script>
 <script src="scripts/training.js?v=2"></script>
 <script src="scripts/extension_project.js?v=2"></script>
 <script src="scripts/extension.js?v=2"></script>
@@ -804,6 +840,17 @@ document.addEventListener("DOMContentLoaded", function() {
             setTimeout(function() {
                 if(typeof $ !== 'undefined') {
                     $('#inner-ext-tab').tab('show');
+                }
+                mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        } else if (activeTab === 'policy') {
+            // Redirect URL parameter 'policy' to the new inner RC tab
+            let mainLink = document.querySelector('.custom-tab-btn[href="#education"]');
+            if (mainLink) mainLink.click();
+            
+            setTimeout(function() {
+                if(typeof $ !== 'undefined') {
+                    $('#inner-policy-tab').tab('show');
                 }
                 mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 300);
