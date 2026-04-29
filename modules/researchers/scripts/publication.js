@@ -160,6 +160,7 @@ $(document).on('click', '.edit_button_publication', function(){
             }
             
             $('#title_pub').val(data.title);
+            $('#abstract_pub').val(data.abstract_pub).trigger('input');
             $('#start').val(parseLegacyDate(data.start));
             $('#end').val(parseLegacyDate(data.end));
             $('#journal').val(data.journal);
@@ -258,4 +259,12 @@ $(document).on('click', '.delete-existing-file', function(e) {
             }
         });
     }
+});
+
+// Live Word Counter for Publication Abstract
+$(document).on('input', '#abstract_pub', function() {
+    let text = $(this).val().trim();
+    // Split by spaces or newlines to get an accurate count
+    let wordCount = text.length > 0 ? text.split(/\s+/).length : 0;
+    $('#pub_word_count').text(wordCount);
 });

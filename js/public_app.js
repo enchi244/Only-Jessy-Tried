@@ -4,15 +4,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const navbar = document.getElementById('navbar');
     
     window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
+        if (navbar) {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
         }
     });
 
     // 2. Intersection Observer for Scroll Animations
-    // This gives the advanced, smooth fade-in effect as the user scrolls down
     const observerOptions = {
         root: null,
         rootMargin: '0px',
@@ -59,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-        // 4. Dynamic News Modal Logic
+    // 4. Dynamic News Modal Logic
     const modal = document.getElementById('newsModal');
     const closeBtn = document.querySelector('.modal-close');
     const readMoreBtns = document.querySelectorAll('.read-more');
@@ -71,52 +72,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalFullText = document.getElementById('modalFullText');
 
     // Open Modal Function
-    readMoreBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevents page jump
-            
-            // Extract data from the clicked card
-            const card = e.target.closest('.news-card');
-            const title = card.querySelector('h3').innerText;
-            const date = card.querySelector('.news-date').innerText;
-            const imgSrc = card.querySelector('img').src;
-            const previewText = card.querySelector('p').innerText;
-            
-            // Populate Modal
-            modalTitle.innerText = title;
-            modalDate.innerText = date;
-            modalImg.src = imgSrc;
-            
-            // Placeholder text. Your backend dev will output the full database article here.
-            modalFullText.innerHTML = `
-                <p><strong>${previewText}</strong></p>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-            `;
+    if (readMoreBtns.length > 0 && modal) {
+        readMoreBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevents page jump
+                
+                // Extract data from the clicked card
+                const card = e.target.closest('.news-card');
+                const title = card.querySelector('h3').innerText;
+                const date = card.querySelector('.news-date').innerText;
+                const imgSrc = card.querySelector('img').src;
+                const previewText = card.querySelector('p').innerText;
+                
+                // Populate Modal (Checking if elements exist first)
+                if(modalTitle) modalTitle.innerText = title;
+                if(modalDate) modalDate.innerText = date;
+                if(modalImg) modalImg.src = imgSrc;
+                
+                if(modalFullText) {
+                    modalFullText.innerHTML = `
+                        <p><strong>${previewText}</strong></p>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                    `;
+                }
 
-            // Display Modal & Prevent Background Scrolling
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden'; 
+                // Display Modal & Prevent Background Scrolling
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden'; 
+            });
         });
-    });
+    }
 
     // Close Modal Logic (Via close button)
-    closeBtn.addEventListener('click', () => {
-        modal.classList.remove('active');
-        document.body.style.overflow = 'auto'; // Re-enable background scrolling
-    });
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto'; // Re-enable background scrolling
+        });
+    }
 
     // Close Modal Logic (Clicking the dark background overlay)
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-    });
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+        });
+    }
     
     // Close Modal Logic (Pressing Escape key)
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.classList.contains('active')) {
+        if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
             modal.classList.remove('active');
             document.body.style.overflow = 'auto';
         }
@@ -141,9 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // (Frontend visual feedback)
                 console.log(`Category Switched to: ${selectedCategory}`);
                 
-                // Note to Backend Dev: 
-                // Put your AJAX/Fetch call here to query the database 
-                // based on the 'selectedCategory' variable.
             });
         });
 
@@ -153,10 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const applyFiltersBtn = document.getElementById('applyFilters');
 
         const triggerSearch = () => {
-            const query = searchInput.value;
-            const college = document.getElementById('collegeFilter').value;
-            const year = document.getElementById('yearFilter').value;
-            const activeTab = document.querySelector('.db-tab.active').getAttribute('data-category');
+            const query = searchInput ? searchInput.value : '';
+            const college = document.getElementById('collegeFilter') ? document.getElementById('collegeFilter').value : '';
+            const year = document.getElementById('yearFilter') ? document.getElementById('yearFilter').value : '';
+            const activeTabElement = document.querySelector('.db-tab.active');
+            const activeTab = activeTabElement ? activeTabElement.getAttribute('data-category') : '';
             
             console.log(`Searching for: "${query}" | Tab: ${activeTab} | College: ${college} | Year: ${year}`);
             alert("Frontend ready! Backend developer will connect this action to the database queries.");
@@ -186,12 +192,24 @@ document.addEventListener('DOMContentLoaded', () => {
         counterObserver.observe(impactSection);
     }
 
+});
+// Disable right-click context menu
+document.addEventListener('contextmenu', event => event.preventDefault());
 
+// Disable common keyboard shortcuts (Ctrl+C, Ctrl+S, Ctrl+U)
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && (e.key === 'c' || e.key === 's' || e.key === 'u' || e.key === 'p')) {
+        e.preventDefault();
+    }
 });
 
+// Blur the screen when the window loses focus
+window.addEventListener('blur', () => {
+    document.body.classList.add('blur-protect');
+});
 
+// Remove the blur when they click back into the window
+window.addEventListener('focus', () => {
+    document.body.classList.remove('blur-protect');
+});
 
-
-
-
-    

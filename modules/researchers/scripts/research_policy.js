@@ -61,7 +61,7 @@ $(document).ready(function() {
             dataType: 'JSON',
             success: function(data) {
                 $('#policy_title').val(data.title);
-                $('#policy_abstract').val(data.abstract);
+                $('#policy_abstract').val(data.abstract).trigger('input');
                 $('#policy_description').val(data.description);
                 $('#policy_date').val(data.date_implemented);
                 $('#hidden_id_policy').val(id);
@@ -199,4 +199,11 @@ $(document).ready(function() {
             }
         });
     });
+});
+
+// Live Word Counter for Policy Abstract
+$(document).on('input', '#abstract', function() {
+    let text = $(this).val().trim();
+    let wordCount = text.length > 0 ? text.split(/\s+/).length : 0;
+    $('#policy_word_count').text(wordCount);
 });

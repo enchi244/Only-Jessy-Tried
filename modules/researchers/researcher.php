@@ -482,7 +482,16 @@ include('../../includes/header.php');
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-bordered" id="intellectualprop_table" width="100%" cellspacing="0">
-                                    <thead><tr><th>Title</th><th>Co-authors</th><th>Type of IP</th><th>Date Applied</th><th>Date Granted</th><th>Action</th></tr></thead>
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Type of IP</th>
+                                            <th>Date Applied</th>
+                                            <th>Date Granted</th>
+                                            <th>Files</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
                                     <tbody></tbody>
                                 </table>
                             </div>

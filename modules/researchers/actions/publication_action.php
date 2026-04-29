@@ -76,6 +76,7 @@ if(isset($_POST["action_publication"])) {
             ':researcherID'        => $lead_author_id, 
             ':lead_author_id'      => $lead_author_id,
             ':title'               => $_POST['title_pub'],
+            ':abstract'            => $_POST['abstract_pub'], // Added abstract
             ':start'               => date("Y-m-d", strtotime($_POST['start'])),
             ':end'                 => date("Y-m-d", strtotime($_POST['end'])),
             ':journal'             => $_POST['journal'],
@@ -86,7 +87,7 @@ if(isset($_POST["action_publication"])) {
             ':has_files'           => $has_files
         );
 
-        $object->query = "INSERT INTO tbl_publication (researcherID, lead_author_id, title, start, end, journal, vol_num_issue_num, issn_isbn, indexing, publication_date, has_files, status) VALUES (:researcherID, :lead_author_id, :title, :start, :end, :journal, :vol_num_issue_num, :issn_isbn, :indexing, :publication_date, :has_files, 1)";
+        $object->query = "INSERT INTO tbl_publication (researcherID, lead_author_id, title, abstract, start, end, journal, vol_num_issue_num, issn_isbn, indexing, publication_date, has_files, status) VALUES (:researcherID, :lead_author_id, :title, :abstract, :start, :end, :journal, :vol_num_issue_num, :issn_isbn, :indexing, :publication_date, :has_files, 1)";
         $object->execute($data);
         $new_pub_id = $object->connect->lastInsertId();
 
@@ -113,6 +114,7 @@ if(isset($_POST["action_publication"])) {
         $data = array();
         foreach($result as $row) {
             $data['title'] = $row["title"];
+            $data['abstract_pub'] = $row["abstract"]; // Added abstract
             $data['start'] = parse_legacy_date_php($row["start"]);
             $data['end'] = parse_legacy_date_php($row["end"]);
             $data['journal'] = $row["journal"];
@@ -149,6 +151,7 @@ if(isset($_POST["action_publication"])) {
         $data = array(
             ':lead_author_id' => $lead_author_id,
             ':title' => $_POST['title_pub'],
+            ':abstract' => $_POST['abstract_pub'], // Added abstract
             ':start' => date("Y-m-d", strtotime($_POST['start'])),
             ':end' => date("Y-m-d", strtotime($_POST['end'])),
             ':journal' => $_POST['journal'],
@@ -159,7 +162,7 @@ if(isset($_POST["action_publication"])) {
             ':hidden_publicationID' => $pub_id
         );
 
-        $object->query = "UPDATE tbl_publication SET lead_author_id = :lead_author_id, title = :title, start = :start, end = :end, journal = :journal, vol_num_issue_num = :vol_num_issue_num, issn_isbn = :issn_isbn, indexing = :indexing, publication_date = :publication_date WHERE id = :hidden_publicationID";
+        $object->query = "UPDATE tbl_publication SET lead_author_id = :lead_author_id, title = :title, abstract = :abstract, start = :start, end = :end, journal = :journal, vol_num_issue_num = :vol_num_issue_num, issn_isbn = :issn_isbn, indexing = :indexing, publication_date = :publication_date WHERE id = :hidden_publicationID";
         $object->execute($data);
 
         $object->query = "DELETE FROM tbl_publication_collaborators WHERE publication_id = :pid";

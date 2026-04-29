@@ -39,11 +39,12 @@
                             </div>
                         </div>
 
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label class="font-weight-bold text-dark">Abstract <span class="text-danger">*</span></label>
-                                <textarea name="abstract" id="policy_abstract" class="form-control shadow-sm" rows="3" required></textarea>
-                            </div>
+                        <div class="form-group mb-3">
+                            <label for="abstract"><i class="fas fa-align-left mr-2 text-primary"></i>Abstract</label>
+                            <textarea name="abstract" id="policy_abstract" class="form-control" rows="4" placeholder="Enter policy abstract..."></textarea>
+                            <small class="text-muted mt-1 d-block text-right">
+                                <i class="fas fa-pen mr-1"></i> Word Count: <span id="policy_word_count" class="font-weight-bold text-primary">0</span>
+                            </small>
                         </div>
 
                         <div class="col-md-12">

@@ -55,16 +55,23 @@ if (isset($_POST["action_intellectualprop"])) {
         $data = array();
         foreach ($result as $row) {
             $sub_array = array();
-            $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown</span>";
+            
+            // 1. Setup Data
+            $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
+            $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown Lead</span>";
             $co_authors = $row["all_authors"] ? $row["all_authors"] : (!empty($row["coauth"]) ? htmlspecialchars($row["coauth"]) : "<span class='text-muted'>None</span>");
             $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-1 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
-            $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
-            $sub_array[] = '<div class="mb-1"><span class="font-weight-bold text-gray-800">'.$primary_author.'</span>'.$rank_badge.'</div>'.$discipline_badge;
+            $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1 mb-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
+            
+            // 2. Merge Author and Co-Authors into one styled block
+            $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span>' . $rank_badge . '</div>' . $discipline_badge . '<div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
+            
+            // 3. Assign to array (Notice we removed the separate co_authors column)
+            $sub_array[] = $author_display;
             $sub_array[] = htmlspecialchars($row["title"]);
-            $sub_array[] = $co_authors;
             $sub_array[] = htmlspecialchars($row["type"]);
             $sub_array[] = parse_legacy_date_php($row["date_granted"]);
-            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_intellectualprop" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$row["author_db_id"].'&tab=ip" class="btn view_button d-none"></a></div>';
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_intellectualprop" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$author_db_id.'&tab=ip" class="btn view_button d-none"></a></div>';
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));

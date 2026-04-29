@@ -80,11 +80,32 @@ $(document).ready(function() {
 
     // 4. Load Intellectual Property Master Table
     function loadIPTable() {
-        if ($.fn.DataTable.isDataTable('#researcher_table')) { $('#researcher_table').DataTable().destroy(); }
+        if ($.fn.DataTable.isDataTable('#researcher_table')) { 
+            $('#researcher_table').DataTable().clear().destroy(); 
+        }
+        
+        // FIX: Completely wipe the old HTML table so leftover 6-column rows don't confuse DataTables
+        $('#researcher_table').empty(); 
+
         $('#master_table_title').html('<i class="fas fa-lightbulb mr-2"></i>All Intellectual Property');
-        $('#researcher_table thead').html('<tr><th width="20%">Author</th><th width="30%">Title</th><th width="15%">Co-Authors</th><th width="15%">Type</th><th width="10%">Granted</th><th width="10%" class="text-center">Action</th></tr>');
-        dataTable = $('#researcher_table').DataTable({ "processing": true, "serverSide": true, "order": [], "ajax": { url: "actions/intellectualprop_action.php", type: "POST", data: { action_intellectualprop: 'fetch_all' } }, "columnDefs": [{ "targets": [5], "orderable": false }] });
-        $('#toggleIDColumn').hide(); $('#fab_container').hide();
+        
+        // FIX: Rebuild BOTH the <thead> and an empty <tbody> 
+        $('#researcher_table').html('<thead><tr><th width="25%">Authors</th><th width="35%">Title</th><th width="20%">Type of IP</th><th width="10%">Granted</th><th width="10%" class="text-center">Action</th></tr></thead><tbody></tbody>');
+        
+        dataTable = $('#researcher_table').DataTable({ 
+            "processing": true, 
+            "serverSide": true, 
+            "order": [], 
+            "ajax": { 
+                url: "actions/intellectualprop_action.php", 
+                type: "POST", 
+                data: { action_intellectualprop: 'fetch_all' } 
+            }, 
+            "columnDefs": [{ "targets": [4], "orderable": false }] 
+        });
+        
+        $('#toggleIDColumn').hide(); 
+        $('#fab_container').hide();
     }
 
     // 5. Load Paper Presentation Master Table

@@ -510,7 +510,7 @@ if ($tab !== 'hub') {
                         <?php else: ?>
                             <div class="db-results-grid">
                                 <?php foreach($results as $row): ?>
-                                    <div class="data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $tab; ?>">
+                                    <div class="data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $tab; ?>" <?php if($tab == 'publication' && !empty($row['abstract'])) echo 'data-abstract="'.htmlspecialchars($row['abstract']).'"'; ?>>
                                         <?php if(!empty($row[$type_column])): ?>
                                             <div class="card-badge"><?php echo htmlspecialchars($row[$type_column]); ?></div>
                                         <?php endif; ?>
@@ -749,5 +749,138 @@ if ($tab !== 'hub') {
         }
     });
     </script>
+    <style>
+.abstract-tooltip {
+    position: fixed;
+    background: rgba(25, 30, 36, 0.95);
+    color: #e2e8f0;
+    padding: 18px;
+    border-radius: 8px;
+    max-width: 400px;
+    font-size: 0.95rem;
+    pointer-events: none; /* Prevents cursor from interacting with tooltip itself */
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    line-height: 1.6;
+    /* Centers horizontally and pushes tooltip 20px above cursor */
+    transform: translate(-50%, calc(-100% - 20px));
+}
+.abstract-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+}
+.abstract-tooltip h6 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #4e73df;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 5px;
+}
+.abstract-tooltip .tooltip-content {
+    display: -webkit-box;
+    -webkit-line-clamp: 6; /* Limits to ~6 lines before truncating */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Inject Tooltip Div into DOM
+    const tooltip = document.createElement('div');
+    tooltip.className = 'abstract-tooltip fade-in-up';
+    tooltip.innerHTML = '<h6><i class="fas fa-quote-left mr-2"></i>Abstract Sneak Peek</h6><div class="tooltip-content"></div>';
+    document.body.appendChild(tooltip);
+    
+    const tooltipContent = tooltip.querySelector('.tooltip-content');
+    const pubCards = document.querySelectorAll('.data-card[data-type="publication"]');
+    
+    // 2. Attach Hover Events
+    pubCards.forEach(card => {
+        card.addEventListener('mouseenter', (e) => {
+            const abstractText = card.getAttribute('data-abstract');
+            if (abstractText && abstractText.trim() !== '') {
+                tooltipContent.textContent = abstractText;
+                tooltip.classList.add('visible');
+            }
+        });
+        
+        card.addEventListener('mousemove', (e) => {
+            // Track cursor exactly
+            tooltip.style.left = e.clientX + 'px';
+            tooltip.style.top = e.clientY + 'px';
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('visible');
+        });
+    });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    // --- 1. SETUP TOOLTIP ---
+    const tooltip = document.createElement('div');
+    tooltip.className = 'abstract-tooltip fade-in-up';
+    
+    // Notice the style="position: relative; z-index: 1;" wrapper.
+    // This ensures the abstract text always sits ON TOP of the watermark.
+    tooltip.innerHTML = `
+        <div style="position: relative; z-index: 1;">
+            <h6><i class="fas fa-quote-left mr-2"></i>Abstract Sneak Peek</h6>
+            <div class="tooltip-content"></div>
+        </div>
+    `;
+    document.body.appendChild(tooltip);
+    const tooltipContent = tooltip.querySelector('.tooltip-content');
+    
+    // --- 2. SETUP WATERMARK INSIDE TOOLTIP ---
+    const watermarkContainer = document.createElement('div');
+    watermarkContainer.className = 'secure-watermark-overlay';
+    const date = new Date().toLocaleDateString();
+    const watermarkText = `WMSU SDMU Property - ${date}`;
+    
+    // Fill the tooltip with text (Only 15 needed for a small box, not 50)
+    for (let i = 0; i < 15; i++) {
+        const span = document.createElement('span');
+        span.className = 'secure-watermark-text';
+        span.innerText = watermarkText;
+        watermarkContainer.appendChild(span);
+    }
+    
+    // APPEND TO TOOLTIP (Not the body!)
+    tooltip.appendChild(watermarkContainer);
+
+    // --- 3. ATTACH HOVER EVENTS ---
+    const abstractCards = document.querySelectorAll('.data-card[data-abstract]');
+    
+    abstractCards.forEach(card => {
+        card.addEventListener('mouseenter', (e) => {
+            const abstractText = card.getAttribute('data-abstract');
+            if (abstractText && abstractText.trim() !== '') {
+                // Show Tooltip (Watermark comes with it automatically!)
+                tooltipContent.textContent = abstractText;
+                tooltip.classList.add('visible');
+            }
+        });
+        
+        card.addEventListener('mousemove', (e) => {
+            // Track cursor exactly
+            tooltip.style.left = e.clientX + 'px';
+            tooltip.style.top = e.clientY + 'px';
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            // Hide tooltip
+            tooltip.classList.remove('visible');
+        });
+    });
+});
+</script>
 </body>
 </html>

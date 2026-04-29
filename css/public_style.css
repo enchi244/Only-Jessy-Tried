@@ -1474,3 +1474,79 @@ footer {
     position: relative; /* Keeps content above the zoomed image */
     background: var(--white);
 }
+
+/* Prevent text highlighting */
+body.database-body {
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+}
+
+@media print {
+    body * {
+        display: none !important;
+    }
+    body::after {
+        content: "Printing and saving this document is strictly prohibited by WMSU SDMU.";
+        display: block !important;
+        font-size: 20px;
+        text-align: center;
+        margin-top: 20%;
+        color: red;
+    }
+}
+
+.blur-protect {
+    filter: blur(10px);
+    pointer-events: none;
+}
+
+/* Update Tooltip so the watermark stays inside it */
+.abstract-tooltip {
+    /* (Keep your existing tooltip styles here...) */
+    position: fixed;
+    background: rgba(25, 30, 36, 0.95);
+    color: #e2e8f0;
+    padding: 18px;
+    border-radius: 8px;
+    max-width: 400px;
+    font-size: 0.95rem;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    line-height: 1.6;
+    transform: translate(-50%, calc(-100% - 20px));
+    
+    /* ADD THIS: Traps the watermark inside the tooltip bounds */
+    overflow: hidden; 
+}
+
+/* Localized Watermark Overlay (Inside Tooltip) */
+.secure-watermark-overlay {
+    position: absolute; /* Maps to the inside of the tooltip */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; 
+    z-index: 0; /* Place it BEHIND the abstract text */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    opacity: 0.12; /* Subtle visibility */
+}
+
+.secure-watermark-text {
+    font-size: 14px; /* Smaller font for the small window */
+    font-weight: bold;
+    color: #ffffff; /* White to blend with the dark background */
+    font-family: 'Inter', sans-serif;
+    transform: rotate(-30deg);
+    white-space: nowrap;
+    user-select: none;
+    margin: 10px 15px; /* Tighter spacing */
+}
