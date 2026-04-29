@@ -239,36 +239,9 @@ body.sidebar-toggled #content-wrapper {
             </li>
 
             <li class="nav-item">
-                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/colleges/colleges.php">
-                    <i class="fas fa-fw fa-university"></i>
-                    <span>Colleges</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/disciplines/disciplines.php">
-                    <i class="fas fa-fw fa-book-open"></i>
-                    <span>Discipline</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
                 <a class="nav-link" href="<?php echo $object->base_url; ?>modules/reports/report.php">
                     <i class="fas fa-fw fa-chart-bar"></i>
                     <span>Reports</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="<?php echo $object->base_url; ?>modules/trackers/track_agenda_sdg.php">
-                    <i class="fas fa-fw fa-globe"></i>
-                    <span>Agenda & SDG Tracker</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>modules/researchers/archive.php">
-                    <i class="fas fa-fw fa-trash-alt"></i> 
-                    <span>Recycle Bin</span>
                 </a>
             </li>
 
@@ -276,6 +249,13 @@ body.sidebar-toggled #content-wrapper {
                 <a class="nav-link" href="<?php echo $object->base_url; ?>manage_cms.php">
                     <i class="fas fa-fw fa-window-restore"></i> 
                     <span>Manage Website Content</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link pb-2" href="<?php echo $object->base_url; ?>settings.php">
+                    <i class="fas fa-fw fa-cogs"></i>
+                    <span>Settings</span>
                 </a>
             </li>
             <?php } ?>

@@ -1,22 +1,4 @@
 <?php
-// track_agenda_sdg.php
-include('../../core/rms.php');
-
-$object = new rms();
-
-// Access Control
-if (!$object->is_login()) {
-    header("location:" . $object->base_url . "");
-    exit;
-}
-
-if (!$object->is_master_user()) {
-    header("location:" . $object->base_url . "dashboard.php");
-    exit;
-}
-
-include('../../includes/header.php');
-
 // Connect to DB securely
 $conn = new mysqli("localhost", "root", "", "rms");
 $conn->set_charset("utf8mb4");
@@ -41,7 +23,6 @@ if ($result) {
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap4.min.css">
 
 <style>
-    body { background-color: #f4f7f6; }
     .enterprise-card {
         background: #ffffff; border: none; border-radius: 12px;
         box-shadow: 0 8px 16px rgba(0,0,0,0.04); margin-bottom: 2rem; overflow: hidden;
@@ -96,10 +77,10 @@ if ($result) {
 
     <ul class="nav nav-tabs" id="docTabs" role="tablist">
         <li class="nav-item">
-            <a class="nav-link active" id="agenda-tab" data-toggle="tab" href="#agenda-content" role="tab"><i class="fas fa-layer-group mr-2"></i>By Agenda Cluster</a>
+            <a class="nav-link active" id="agenda-tab-inner" data-toggle="tab" href="#agenda-content" role="tab"><i class="fas fa-layer-group mr-2"></i>By Agenda Cluster</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" id="sdg-tab" data-toggle="tab" href="#sdg-content" role="tab"><i class="fas fa-leaf mr-2"></i>By Sustainable Development Goal (SDG)</a>
+            <a class="nav-link" id="sdg-tab-inner" data-toggle="tab" href="#sdg-content" role="tab"><i class="fas fa-leaf mr-2"></i>By Sustainable Development Goal (SDG)</a>
         </li>
     </ul>
 
@@ -110,7 +91,7 @@ if ($result) {
                 <label class="form-label-custom mr-3 mb-0">Isolate Agenda:</label>
                 <select id="agendaFilter" class="form-control-custom">
                     <option value="">All Agenda Clusters (View All)</option>
-                    </select>
+                </select>
             </div>
             
             <div class="table-responsive">
@@ -152,7 +133,7 @@ if ($result) {
                 <label class="form-label-custom mr-3 mb-0 text-success">Isolate SDG:</label>
                 <select id="sdgFilter" class="form-control-custom" style="border-color: #1cc88a;">
                     <option value="">All SDGs (View All)</option>
-                    </select>
+                </select>
             </div>
             
             <div class="table-responsive">
@@ -192,15 +173,7 @@ if ($result) {
     </div>
 </div>
 
-<?php 
-$conn->close();
-include('../../includes/footer.php'); 
-?>
-
-<script src="<?php echo $object->base_url; ?>vendor/jquery/jquery.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="<?php echo $object->base_url; ?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<?php $conn->close(); ?>
 
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap4.min.js"></script>
