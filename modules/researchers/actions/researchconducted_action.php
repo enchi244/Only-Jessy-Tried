@@ -205,12 +205,13 @@ try {
                 $data['cover_photo'] = $row["cover_photo"];
                 $data['has_files'] = $row["has_files"];
                 $data['lead_researcher_id'] = $row["lead_researcher_id"];
-                $default_image = 'img/default_research_cover.png'; // <-- EDIT THIS to match your desired default image filename
+                $default_image = 'img/default_research_cover.png'; 
+                $db_cover = trim($row["cover_photo"] ?? '');
                 
-                if (empty($row["cover_photo"])) {
+                if (empty($db_cover)) {
                     $data['cover_photo'] = $default_image;
                 } else {
-                    $data['cover_photo'] = $row["cover_photo"];
+                    $data['cover_photo'] = $db_cover;
                 }
                 
                 $data['has_files'] = $row["has_files"];

@@ -48,6 +48,8 @@ $current_header = isset($header_content[$tab]) ? $header_content[$tab] : [
     'desc'  => 'Explore thousands of academic papers, intellectual properties, policies, and publications.'
 ];
 
+$DEFAULT_COVER = 'img/default_research_cover.png';
+
 // Items per page
 $limit = 12;
 $offset = ($page - 1) * $limit;
@@ -333,7 +335,10 @@ if ($tab !== 'hub') {
                                 <?php if($featured_item): $row = $featured_item; ?>
                                     <div class="featured-research-post data-card">
                                         
-                                        <?php $cover_img = !empty($row['cover_photo']) ? htmlspecialchars($row['cover_photo']) : 'img/default_research_cover.png'; ?>
+                                        <?php 
+                                            $db_cover = trim($row['cover_photo'] ?? '');
+                                            $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : 'img/default_research_cover.png'; 
+                                        ?>
                                         <div class="post-image-large" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;">
                                             <div class="card-badge"><i class="fas fa-fire"></i> Top Viewed</div>
                                         </div>
@@ -375,9 +380,11 @@ if ($tab !== 'hub') {
                                         <?php foreach($trending_items as $row): ?>
                                             <div class="trending-card data-card">
                                                 
-                                                <?php $cover_img = !empty($row['cover_photo']) ? htmlspecialchars($row['cover_photo']) : 'img/default_research_cover.png'; ?>
-                                                <div class="trending-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>
-                                                
+                                                <?php 
+                                                    $db_cover = trim($row['cover_photo'] ?? '');
+                                                    $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : 'img/default_research_cover.png'; 
+                                                ?>
+                                                <div class="trending-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>                                                
                                                 <div class="trending-content">
                                                     <h3><?php echo htmlspecialchars($row['title']); ?></h3>
                                                     <p class="author-line" style="font-size: 0.85rem; margin-bottom: 10px;">
@@ -405,9 +412,11 @@ if ($tab !== 'hub') {
                                     <?php foreach($grid_items as $row): ?>
                                         <div class="hero-card data-card">
                                             
-                                            <?php $cover_img = !empty($row['cover_photo']) ? htmlspecialchars($row['cover_photo']) : 'img/default_research_cover.png'; ?>
-                                            <div class="hero-card-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>
-                                            
+                                            <?php 
+                                                $db_cover = trim($row['cover_photo'] ?? '');
+                                                $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : 'img/default_research_cover.png'; 
+                                            ?>
+                                            <div class="hero-card-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>                                            
                                             <div class="hero-card-content">
                                                 <h3><?php echo htmlspecialchars($row['title']); ?></h3>
                                                 <p class="author-line">
