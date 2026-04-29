@@ -96,7 +96,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         'venue' => 'Venue',
         'discipline' => 'Discipline',
         'partners' => 'Partners',
-        'terminal_report' => 'Terminal Report'
+        'terminal_report' => 'Terminal Report',
+        'ip_validity_status' => 'Validity Status'
     ];
 
     $type_map = [
@@ -284,7 +285,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 
                 $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-2 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
                 $discipline_text = !empty($row["program"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader"></i> ' . htmlspecialchars($row["program"]) . '</div>' : '';
-                $clean_row['Lead_Proponent'] = "<div class='font-weight-bold text-gray-800'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . $rank_badge . "</div>" . $discipline_text;
+                
+                // THE FIX: Combine into one "Authors" block, keeping the Lead tag for distinction
+                $lead_html = "<div class='mb-2'><span class='font-weight-bold text-gray-800' style='font-size:0.95rem;'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . " <span class='text-danger font-weight-bold' style='font-size:0.7rem;'>(Lead)</span></span>" . $rank_badge . $discipline_text . "</div>";
 
                 $co_html = "";
                 if (!empty($row['Co_Researchers_Raw'])) {
@@ -301,12 +304,56 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         }
                     }
                 }
-                $clean_row['Co_Authors'] = !empty($co_html) ? $co_html : 'None';
+                
+                // Assign everything to a single key
+                $clean_row['Authors'] = $lead_html . $co_html;
+
+                // =========================================================================
+                // UPGRADED: IP Validity Auto-Calculator (Exact System Match)
+                // =========================================================================
+                if ($current_table == 'tbl_itelectualprop') {
+                    $ip_status = "N/A";
+                    if (!empty($row['date_granted']) && $row['date_granted'] != '0000-00-00' && $row['date_granted'] != 'null') {
+                        $granted_ts = safe_strtotime($row['date_granted']);
+                        $ip_type = strtolower(trim($row['type'] ?? ''));
+                        $duration_years = 0;
+                        $is_copyright = false;
+                        
+                        // Matches your exact system dropdown list
+                        if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) {
+                            $duration_years = 20;
+                        } elseif (strpos($ip_type, 'industrial design') !== false) {
+                            $duration_years = 5;
+                        } elseif (strpos($ip_type, 'trademark') !== false) {
+                            $duration_years = 10;
+                        } elseif (strpos($ip_type, 'copyright') !== false) {
+                            $is_copyright = true;
+                        }
+                        
+                        if ($is_copyright) {
+                            $ip_status = "Valid (Lifetime + 50 yrs)";
+                        } elseif ($duration_years > 0 && $granted_ts !== false) {
+                            $expiry_ts = strtotime("+$duration_years years", $granted_ts);
+                            if (time() > $expiry_ts) {
+                                $ip_status = "Expired";
+                            } else {
+                                $ip_status = "Active / Valid";
+                            }
+                        } else {
+                            // Safely handles "basics" or any unknown typos without expiring them
+                            $ip_status = "Active"; 
+                        }
+                    } else {
+                        $ip_status = "Pending";
+                    }
+                    $row['ip_validity_status'] = $ip_status;
+                }
+                // =========================================================================
 
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
                     
-                    if (in_array($kl, ['id', 'researcherid', 'lead_author_id', 'lead_researcher_id', 'status', 'department', 'college', 'firstname', 'familyname', 'academic_rank', 'program', 'co_researchers_raw', 'lead_proponent', 'co_authors', 'so_file', 'moa_file', 'has_files', 'file', 'terminal_report_file', 'attachments', 'coauth'])) continue;
+                    if (in_array($kl, ['id', 'researcherid', 'lead_author_id', 'lead_researcher_id', 'status', 'department', 'college', 'firstname', 'familyname', 'academic_rank', 'program', 'co_researchers_raw', 'lead_proponent', 'co_authors', 'so_file', 'moa_file', 'has_files', 'file', 'terminal_report_file', 'attachments', 'coauth', 'terminal_report'])) continue;
                     
                     // =========================================================================
                     // THE FIX: The "Magic Replacer" V2 (Crash-Proof!)
@@ -390,14 +437,12 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         
                         $module_category = isset($friendly_modules[$current_table]) ? $friendly_modules[$current_table] : 'Unknown Category';
                         
-                        $friendly_target_date = isset($label_map[$target_date_col]) ? $label_map[$target_date_col] : ucwords(str_replace('_', ' ', $target_date_col));
-                        $relevant_date = $group[$friendly_target_date] ?? 'N/A';
-                        
-                        $extra_details = [];
+                      $extra_details = [];
                         
                         foreach ($group as $k => $v) {
                             $kl = strtolower($k);
-                            if ($v !== '' && $k !== $friendly_target_date && !in_array($kl, ['title', 'lead_proponent', 'co_authors', 'department', 'college', 'record_id', 'raw_type', 'action'])) {
+                            // THE FIX: Removed the date exclusion! Now ALL dates flow directly into the details.
+                            if ($v !== '' && !in_array($kl, ['title', 'authors', 'lead_proponent', 'co_authors', 'department', 'college', 'record_id', 'raw_type', 'action'])) {
                                 $extra_details[] = "<div style='margin-bottom: 3px; line-height: 1.3;'><span style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$k}:</span> <span style='color:#12263f; font-weight:600; font-size:12px;'>{$v}</span></div> ";
                             }
                         }
@@ -406,13 +451,12 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                             'Record_ID' => $group['Record_ID'],
                             'Raw_Type' => $group['Raw_Type'],
                             'Action' => $action_btn,
-                            'Module' => $module_category,
+                            'Category' => $module_category, // Updated to "Category"
                             'Title' => $group['Title'] ?? $group['title'] ?? 'N/A',
                             'College' => $group['College'] ?? 'N/A',
-                            'Lead_Proponent' => $group['Lead_Proponent'] ?? 'N/A',
-                            'Co_Authors' => $group['Co_Authors'] ?? 'None',
-                            'Date' => $relevant_date,
-                            'Additional_Details' => implode("", $extra_details)
+                            'Authors' => $group['Authors'] ?? 'N/A', 
+                            // THE FIX: Deleted the 'Date' column entirely
+                            'Details' => implode("", $extra_details) // THE FIX: Renamed to just "Details"
                         ];
                     } else {
                         $out_group = ['Action' => $action_btn] + $group;
@@ -527,16 +571,16 @@ include('../../includes/header.php');
                 <div class="row align-items-end mb-3">
                     
                     <div class="col-lg-3 mb-2">
-                        <label class="form-label-custom">Target Modules</label>
-                        <div class="custom-multi-select position-relative w-100" id="reppDropdownContainer" data-name="Modules">
+                        <label class="form-label-custom">Category</label>
+                        <div class="custom-multi-select position-relative w-100" id="reppDropdownContainer" data-name="Categories">
                             <div class="form-control-custom w-100 text-left d-flex justify-content-between align-items-center bg-white shadow-sm dropdown-btn" style="cursor: pointer; border-color: #b7b9cc;">
-                                <span class="btn-text text-truncate font-weight-bold text-primary">All Modules</span>
+                                <span class="btn-text text-truncate font-weight-bold text-primary">Categories</span>
                                 <i class="fas fa-chevron-down text-muted" style="font-size: 0.8rem;"></i>
                             </div>
                             <div class="dropdown-menu-custom shadow-lg" style="display:none; position:absolute; top:105%; left:0; right:0; background:white; max-height:280px; overflow-y:auto; border:1px solid #edf2f9; padding:15px;">
                                 <div class="custom-control custom-checkbox mb-3 pb-3 border-bottom">
                                     <input type="checkbox" class="custom-control-input check-all" id="repp_all" checked>
-                                    <label class="custom-control-label" for="repp_all">Select All Modules</label>
+                                    <label class="custom-control-label" for="repp_all">Select All Categories</label>
                                 </div>
                                 <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input check-item" id="repp_pub" value="tbl_publication" checked>
@@ -584,7 +628,7 @@ include('../../includes/header.php');
                         <label class="form-label-custom">College</label>
                         <div class="custom-multi-select position-relative w-100" id="deptDropdownContainer" data-name="Colleges">
                             <div class="form-control-custom w-100 text-left d-flex justify-content-between align-items-center bg-white shadow-sm dropdown-btn" style="cursor: pointer; border-color: #b7b9cc;">
-                                <span class="btn-text text-truncate font-weight-bold text-primary">All Colleges</span>
+                                <span class="btn-text text-truncate font-weight-bold text-primary">Colleges</span>
                                 <i class="fas fa-chevron-down text-muted" style="font-size: 0.8rem;"></i>
                             </div>
                             <div class="dropdown-menu-custom shadow-lg" style="display:none; position:absolute; top:105%; left:0; right:0; background:white; max-height:280px; overflow-y:auto; border:1px solid #edf2f9; border-radius:10px; padding:15px;">
@@ -648,7 +692,7 @@ include('../../includes/header.php');
 
                     <div class="col-lg-3 mb-2">
                         <label class="form-label-custom text-success">Discipline / Program</label>
-                        <div class="custom-multi-select position-relative w-100" id="progDropdownContainer" data-name="Programs">
+                        <div class="custom-multi-select position-relative w-100" id="progDropdownContainer" data-name="Discipline/Programs">
                             <div class="form-control-custom w-100 text-left d-flex justify-content-between align-items-center bg-white shadow-sm dropdown-btn border-success" style="cursor: pointer;">
                                 <span class="btn-text text-truncate font-weight-bold text-primary">All Disciplines</span>
                                 <i class="fas fa-chevron-down text-muted" style="font-size: 0.8rem;"></i>
@@ -656,7 +700,7 @@ include('../../includes/header.php');
                             <div class="dropdown-menu-custom shadow-lg" style="display:none; position:absolute; top:105%; left:0; right:0; background:white; max-height:280px; overflow-y:auto; border:1px solid #edf2f9; border-radius:10px; padding:15px;">
                                 <div class="custom-control custom-checkbox mb-3 pb-3 border-bottom">
                                     <input type="checkbox" class="custom-control-input check-all" id="prog_all" checked>
-                                    <label class="custom-control-label" for="prog_all">All Disciplines</label>
+                                    <label class="custom-control-label" for="prog_all">All Disciplines/Programs</label>
                                 </div>
                                 <?php
                                 $object->query = "SELECT * FROM tbl_majordiscipline ORDER BY major ASC";
@@ -758,17 +802,20 @@ $(document).ready(function() {
     $('.dropdown-menu-custom').on('click', function(e) { e.stopPropagation(); });
     $(document).click(function() { $('.dropdown-menu-custom').slideUp('fast'); });
 
-    function updateDropdownText($container) {
+function updateDropdownText($container) {
         var $btnText = $container.find('.btn-text');
         var $checkAll = $container.find('.check-all');
         var $items = $container.find('.check-item');
         var checkedCount = $items.filter(':checked').length;
         var totalCount = $items.length;
+        
+        // Grab the exact name you want to display
         var typeName = $container.data('name'); 
 
         if (checkedCount === totalCount) {
             $checkAll.prop('checked', true);
-            $btnText.text('All ' + typeName).removeClass('text-danger text-warning').addClass('text-primary');
+            // THE FIX: Removed the forced 'All ' text! It will now print exactly what is in data-name
+            $btnText.text(typeName).removeClass('text-danger text-warning').addClass('text-primary');
         } else if (checkedCount === 0) {
             $checkAll.prop('checked', false);
             $btnText.text('None Selected').removeClass('text-primary text-warning').addClass('text-danger');
@@ -777,7 +824,8 @@ $(document).ready(function() {
             $btnText.text($items.filter(':checked').next('label').text()).removeClass('text-danger text-primary').addClass('text-warning text-dark');
         } else {
             $checkAll.prop('checked', false);
-            $btnText.text(checkedCount + ' ' + typeName + ' Selected').removeClass('text-danger text-primary').addClass('text-warning text-dark');
+            // Just adds "Selected" at the end (e.g., "3 Categories Selected")
+            $btnText.text(checkedCount + ' Selected').removeClass('text-danger text-primary').addClass('text-warning text-dark');
         }
         
         if ($container.attr('id') === 'reppDropdownContainer') {
@@ -901,8 +949,8 @@ $(document).ready(function() {
                             
                             var colClass = 'col-nowrap'; 
                             if (key === 'Title' || key === 'Research_Title') colClass = 'col-title';
-                            if (key === 'Additional_Details' || key === 'Specific_Details') colClass = 'col-details';
-                            if (key === 'Lead_Proponent' || key === 'Co_Authors') colClass = 'col-authors';
+                            if (key === 'Details' || key === 'Additional_Details' || key === 'Specific_Details') colClass = 'col-details';
+                            if (key === 'Authors' || key === 'Lead_Proponent' || key === 'Co_Authors') colClass = 'col-authors';
                             
                             if(key === 'Record_ID' || key === 'Raw_Type' || key === 'Action') {
                                 text = '<th style="display:none;">' + cleanHeader + '</th>';
@@ -923,7 +971,8 @@ $(document).ready(function() {
                             for (var i=0; i<data.header.length; i++) {
                                 var headerText = data.header[i].toLowerCase().trim();
                                 if (headerText === 'college' || headerText === 'department') deptIndex = i;
-                                if (headerText === 'module' || headerText === 'module category' || headerText === 'module_category') modIndex = i;
+                                // THE FIX: Added 'category' so Excel sorting still works perfectly
+                                if (headerText === 'category' || headerText === 'module' || headerText === 'module category') modIndex = i;
                             }
                             if (deptIndex !== -1) {
                                 data.body.sort(function(a, b) {

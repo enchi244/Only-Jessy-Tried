@@ -254,23 +254,25 @@ $totalDisciplines = $object->Get_total_disciplines();
         <div class="dashboard-filter-wrap">
             <i class="fas fa-calendar-alt text-primary mr-2" style="font-size: 1.2rem;"></i>
             
-            <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">From:</span>
+           <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">From:</span>
             <select id="filterFromYear" class="mr-3">
-                <option value="all">All Time</option>
                 <?php 
                     $curr_year = date("Y");
                     for($y = $curr_year; $y >= 2010; $y--) {
-                        echo "<option value=\"$y\">$y</option>";
+                        // Automatically selects 2010 as the default starting year
+                        $sel = ($y == 2010) ? 'selected' : '';
+                        echo "<option value=\"$y\" $sel>$y</option>";
                     }
                 ?>
             </select>
             
             <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">To:</span>
             <select id="filterToYear" class="mr-2">
-                <option value="all">All Time</option>
                 <?php 
                     for($y = $curr_year; $y >= 2010; $y--) {
-                        echo "<option value=\"$y\">$y</option>";
+                        // Automatically selects the current year as the default ending year
+                        $sel = ($y == $curr_year) ? 'selected' : '';
+                        echo "<option value=\"$y\" $sel>$y</option>";
                     }
                 ?>
             </select>

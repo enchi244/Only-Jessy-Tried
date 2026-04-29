@@ -119,7 +119,7 @@ $html_chunks[] = "
     </tr>
 </table>";
 
-$exclude_keys = ['id', 'researcherid', 'lead_researcher_id', 'lead_author_id', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'coauth', 'user_created_on', 'has_files', 'all_authors', 'primary_familyname', 'author_db_id'];
+$exclude_keys = ['id', 'researcherid', 'lead_researcher_id', 'lead_author_id', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'coauth', 'user_created_on', 'has_files', 'all_authors', 'primary_familyname', 'author_db_id', 'terminal_report'];
 
 $label_map = [
     'journal' => 'Journal',
@@ -151,7 +151,8 @@ $label_map = [
     'venue' => 'Venue',
     'discipline' => 'Discipline',
     'partners' => 'Partners',
-    'terminal_report' => 'Terminal Report'
+    'terminal_report' => 'Terminal Report',
+    'ip_validity_status' => 'Validity Status'
 ];
 
 foreach ($modules_to_run as $mod) {
@@ -161,20 +162,20 @@ foreach ($modules_to_run as $mod) {
         {$mod['title']}
     </h3>";
     
+    // THE FIX: Adjusted table headers for unified Authors column
     $html_chunks[] = "
     <table width='100%' border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 20px;'>
         <thead style='background-color: #f8f9fc; color: #4e73df; font-size: 11px; text-transform: uppercase;'>
             <tr>
                 <th width='25%' align='left' style='padding: 10px;'>Title</th>
-                <th width='15%' align='left' style='padding: 10px;'>Lead Proponent</th>
-                <th width='18%' align='left' style='padding: 10px;'>Co-Authors</th>";
+                <th width='33%' align='left' style='padding: 10px;'>Authors</th>";
                 
     if ($mod['has_status']) {
         $html_chunks[] = "<th width='10%' align='center' style='padding: 10px;'>Status</th>";
     }
 
     $html_chunks[] = "
-                <th width='32%' align='left' style='padding: 10px;'>Specific Details</th>
+                <th width='32%' align='left' style='padding: 10px;'>Details</th>
             </tr>
         </thead>
         <tbody>";
@@ -183,7 +184,6 @@ foreach ($modules_to_run as $mod) {
     if ($mod['table'] == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
     if ($mod['table'] == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
     if ($mod['table'] == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
-    // THE FIX: Allow Intellectual Property to dynamically fetch co-authors!
     if ($mod['table'] == 'tbl_itelectualprop') { $col_table = 'tbl_ip_collaborators'; $col_fk = 'ip_id'; }
 
     $query = "SELECT r.*, d.department, CONCAT(d.firstName, ' ', d.familyName) AS Lead_Researcher, d.academic_rank, d.program 
@@ -240,9 +240,6 @@ foreach ($modules_to_run as $mod) {
     }
     
     foreach ($unique_items as $item) {
-        // =========================================================================
-        // THE FIX: Strict Date Bounding Logic for Exporter
-        // =========================================================================
         $date_matched = false;
         if ($is_all_time) { 
             $date_matched = true; 
@@ -267,7 +264,6 @@ foreach ($modules_to_run as $mod) {
                 }
             } else {
                 if ($row_start_ts !== false && $row_end_ts !== false) {
-                    // STRICT BOUNDS: Must start inside AND end inside the selected years
                     if ($row_start_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) {
                         $date_matched = true;
                     }
@@ -282,7 +278,6 @@ foreach ($modules_to_run as $mod) {
                 }
             }
         }
-        // =========================================================================
 
         $status_matched = true; 
         if ($mod['has_status'] && $status !== 'all') {
@@ -298,15 +293,48 @@ foreach ($modules_to_run as $mod) {
             $found_items = true;
             $title_clean = htmlspecialchars($item['title'] ?? 'Untitled');
             
+            if ($mod['table'] == 'tbl_itelectualprop') {
+                $ip_status = "N/A";
+                if (!empty($item['date_granted']) && $item['date_granted'] != '0000-00-00' && $item['date_granted'] != 'null') {
+                    $granted_ts = safe_strtotime($item['date_granted']);
+                    $ip_type = strtolower(trim($item['type'] ?? ''));
+                    $duration_years = 0;
+                    $is_copyright = false;
+                    
+                    if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) {
+                        $duration_years = 20;
+                    } elseif (strpos($ip_type, 'industrial design') !== false) {
+                        $duration_years = 5;
+                    } elseif (strpos($ip_type, 'trademark') !== false) {
+                        $duration_years = 10;
+                    } elseif (strpos($ip_type, 'copyright') !== false) {
+                        $is_copyright = true;
+                    }
+                    
+                    if ($is_copyright) {
+                        $ip_status = "Valid (Lifetime + 50 yrs)";
+                    } elseif ($duration_years > 0 && $granted_ts !== false) {
+                        $expiry_ts = strtotime("+$duration_years years", $granted_ts);
+                        if (time() > $expiry_ts) {
+                            $ip_status = "Expired";
+                        } else {
+                            $ip_status = "Active / Valid";
+                        }
+                    } else {
+                        $ip_status = "Active"; 
+                    }
+                } else {
+                    $ip_status = "Pending";
+                }
+                $item['ip_validity_status'] = $ip_status;
+            }
+
             $detail_str = "";
             foreach ($item as $k => $v) {
                 $kl = strtolower($k);
                 if (in_array($kl, $exclude_keys) || trim((string)$v) === '' || is_numeric($k) || $kl === 'academic_rank' || $kl === 'program') continue;
                 if (in_array($kl, ['file', 'terminal_report_file', 'attachments', 'so_file', 'moa_file', 'coauth'])) continue;
                 
-                // =========================================================================
-                // THE FIX: The "Magic Replacer" V2 (Crash-Proof!)
-                // =========================================================================
                 if (trim((string)$v) === 'Legacy Replaced') {
                     $real_data = '';
                     $cat = '';
@@ -338,7 +366,6 @@ foreach ($modules_to_run as $mod) {
                                 if(count($fnames) > 0) { $real_data = implode(", ", $fnames); }
                                 else { $real_data = "No File Attached"; }
                             } catch (Exception $e) {
-                                // Failsafe: Never crash the document builder, just show a safe string
                                 $real_data = "See Attached Files"; 
                             }
                         }
@@ -350,7 +377,6 @@ foreach ($modules_to_run as $mod) {
                         $v = 'See Attached Files'; 
                     }
                 }
-                // =========================================================================
 
                 $clean_label = isset($label_map[$kl]) ? $label_map[$kl] : ucwords(str_replace('_', ' ', $k));
                 $clean_val = htmlspecialchars((string)$v);
@@ -367,7 +393,8 @@ foreach ($modules_to_run as $mod) {
             $lead_rank = htmlspecialchars($item['academic_rank'] ?? '');
             $lead_prog = htmlspecialchars($item['program'] ?? '');
             
-            $lead_display = "<strong>{$lead_name}</strong>";
+            // THE FIX: Add the Lead badge
+            $lead_display = "<strong>{$lead_name}</strong> <span style='font-size: 9px; color: #d9534f;'>(Lead)</span>";
             $lead_meta = [];
             if (!empty($lead_rank)) $lead_meta[] = $lead_rank;
             if (!empty($lead_prog)) $lead_meta[] = $lead_prog;
@@ -408,10 +435,15 @@ foreach ($modules_to_run as $mod) {
                 }
             }
 
+            // THE FIX: Merge them before printing
+            $authors_combined = "<div style='margin-bottom: 4px;'>" . $lead_display . "</div>";
+            if ($co_authors_display !== '<span style="color: #999; font-style: italic;">None</span>') {
+                $authors_combined .= $co_authors_display;
+            }
+
             $html_chunks[] = "<tr style='page-break-inside: avoid;'>";
             $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'><strong>{$title_clean}</strong></td>";
-            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'>{$lead_display}</td>";
-            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'>{$co_authors_display}</td>";
+            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'>{$authors_combined}</td>";
             
             if ($mod['has_status']) {
                 $s_val = htmlspecialchars($item['stat'] ?? $item['status_exct'] ?? 'Unknown');
@@ -424,7 +456,8 @@ foreach ($modules_to_run as $mod) {
     }
     
     if (!$found_items) {
-        $colspan = $mod['has_status'] ? 5 : 4;
+        // THE FIX: Adjusted column span since we merged 2 columns into 1
+        $colspan = $mod['has_status'] ? 4 : 3;
         $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
     }
     $html_chunks[] = "</tbody></table>";
