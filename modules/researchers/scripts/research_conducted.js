@@ -23,6 +23,20 @@ $(document).ready(function() {
         }
         $('#collaborators').trigger('change.select2'); 
     });
+
+    // Image preview handler for cover photo
+    $(document).on('change', '#cover_photo', function(){
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            $('#preview_img').attr('src', e.target.result);
+            $('#cover_photo_preview').slideDown();
+        }
+        if(this.files[0]) {
+            reader.readAsDataURL(this.files[0]);
+        } else {
+            $('#cover_photo_preview').slideUp();
+        }
+    });
 });
 
 function loadResearchConductedTab(researcherID) {
@@ -148,6 +162,12 @@ $('#add_researcherconducted').click(function() {
         $('#collaborators').val(null).trigger('change');
     }
 
+    // Reset image preview
+    var defaultImagePath = '../../img/default_research_cover.png'; // <-- MUST MATCH the PHP filename
+    $('#cover_photo').val('');
+    $('#preview_img').attr('src', defaultImagePath);
+    $('#cover_photo_preview').show();
+
     $('#researchconductedModal .new-files-container').html('');
     $('#researchconductedModal .existing-files-container').html('');
 
@@ -174,6 +194,11 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
     $('#researchconducted_form').parsley().reset();
     $('#form_message').html('');
     
+    // Reset image preview initially
+    $('#cover_photo').val('');
+    $('#cover_photo_preview').hide();
+    $('#preview_img').attr('src', '');
+
     $('#researchconductedModal .new-files-container').html('');
     $('#researchconductedModal .existing-files-container').html('');
 
@@ -213,6 +238,17 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
             $('#stat').val(data.stat);
             
             $('#has_files').val(data.has_files).trigger('change');
+
+            // Handle displaying the existing cover photo
+            // Display the fetched cover photo (which will either be the uploaded one or the default defined in PHP)
+            if(data.cover_photo && data.cover_photo != '') {
+                $('#preview_img').attr('src', '../../' + data.cover_photo);
+                $('#cover_photo_preview').show();
+            } else {
+                // Fallback just in case the PHP logic fails
+                $('#preview_img').attr('src', '../../img/default_research_cover.jpg');
+                $('#cover_photo_preview').show();
+            }
             
             if(data.existing_files && data.existing_files.length > 0) {
                 var filesHtml = '';

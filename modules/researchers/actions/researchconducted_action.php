@@ -146,7 +146,18 @@ try {
 
             $has_files = (isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) ? 'With' : 'None';
 
-            $object->query = "INSERT INTO tbl_researchconducted (researcherID, lead_researcher_id, title, research_agenda_cluster, sdgs, started_date, completed_date, funding_source, approved_budget, stat, has_files, terminal_report, status) VALUES ('$lead_researcher_id', '$lead_researcher_id', '$title', '$rac', '$sdgs', '$from_date', '$to_date', '$fs', '$ab', '$stat', '$has_files', 'Legacy Replaced', 1)";
+            // Handle Cover Photo Upload
+            $cover_photo = '';
+            if (isset($_FILES["cover_photo"]["name"]) && $_FILES["cover_photo"]["name"] != '') {
+                $extension = explode('.', $_FILES['cover_photo']['name']);
+                $new_name = 'cover_' . time() . '_' . rand() . '.' . end($extension);
+                $destination = '../../../uploads/research_files/' . $new_name;
+                if (move_uploaded_file($_FILES['cover_photo']['tmp_name'], $destination)) {
+                    $cover_photo = 'uploads/research_files/' . $new_name;
+                }
+            }
+
+            $object->query = "INSERT INTO tbl_researchconducted (researcherID, lead_researcher_id, title, research_agenda_cluster, sdgs, started_date, completed_date, funding_source, approved_budget, stat, cover_photo, has_files, terminal_report, status) VALUES ('$lead_researcher_id', '$lead_researcher_id', '$title', '$rac', '$sdgs', '$from_date', '$to_date', '$fs', '$ab', '$stat', '$cover_photo', '$has_files', 'Legacy Replaced', 1)";
             $object->execute();
             $new_research_id = intval($object->connect->lastInsertId());
 
@@ -191,6 +202,17 @@ try {
                 $data['funding_source'] = htmlspecialchars_decode($row["funding_source"]);
                 $data['approved_budget'] = $row["approved_budget"];
                 $data['stat'] = $row["stat"];
+                $data['cover_photo'] = $row["cover_photo"];
+                $data['has_files'] = $row["has_files"];
+                $data['lead_researcher_id'] = $row["lead_researcher_id"];
+                $default_image = 'img/default_research_cover.png'; // <-- EDIT THIS to match your desired default image filename
+                
+                if (empty($row["cover_photo"])) {
+                    $data['cover_photo'] = $default_image;
+                } else {
+                    $data['cover_photo'] = $row["cover_photo"];
+                }
+                
                 $data['has_files'] = $row["has_files"];
                 $data['lead_researcher_id'] = $row["lead_researcher_id"];
             }
@@ -225,8 +247,19 @@ try {
             $stat = addslashes($_POST['stat']);
             $ab = floatval($_POST['approved_budget']);
 
+            // Handle Cover Photo Upload for Edit
+            $cover_photo_query = "";
+            if (isset($_FILES["cover_photo"]["name"]) && $_FILES["cover_photo"]["name"] != '') {
+                $extension = explode('.', $_FILES['cover_photo']['name']);
+                $new_name = 'cover_' . time() . '_' . rand() . '.' . end($extension);
+                $destination = '../../../uploads/research_files/' . $new_name;
+                if (move_uploaded_file($_FILES['cover_photo']['tmp_name'], $destination)) {
+                    $cover_photo_query = ", cover_photo = 'uploads/research_files/" . $new_name . "'";
+                }
+            }
+
             // 1. Update main data
-            $object->query = "UPDATE tbl_researchconducted SET researcherID = '$lead_researcher_id', lead_researcher_id = '$lead_researcher_id', title = '$title', research_agenda_cluster = '$rac', sdgs = '$sdgs', started_date = '$from_dateu', completed_date = '$to_dateu', funding_source = '$fs', approved_budget = '$ab', stat = '$stat' WHERE id = '$research_id'";
+            $object->query = "UPDATE tbl_researchconducted SET researcherID = '$lead_researcher_id', lead_researcher_id = '$lead_researcher_id', title = '$title', research_agenda_cluster = '$rac', sdgs = '$sdgs', started_date = '$from_dateu', completed_date = '$to_dateu', funding_source = '$fs', approved_budget = '$ab', stat = '$stat' $cover_photo_query WHERE id = '$research_id'";
             $object->execute();
 
             // 2. Handle Collaborators

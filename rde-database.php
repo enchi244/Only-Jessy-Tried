@@ -333,7 +333,8 @@ if ($tab !== 'hub') {
                                 <?php if($featured_item): $row = $featured_item; ?>
                                     <div class="featured-research-post data-card">
                                         
-                                        <div class="post-image-large">
+                                        <?php $cover_img = !empty($row['cover_photo']) ? htmlspecialchars($row['cover_photo']) : 'img/default_research_cover.png'; ?>
+                                        <div class="post-image-large" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;">
                                             <div class="card-badge"><i class="fas fa-fire"></i> Top Viewed</div>
                                         </div>
                                         
@@ -374,7 +375,8 @@ if ($tab !== 'hub') {
                                         <?php foreach($trending_items as $row): ?>
                                             <div class="trending-card data-card">
                                                 
-                                                <div class="trending-image"></div>
+                                                <?php $cover_img = !empty($row['cover_photo']) ? htmlspecialchars($row['cover_photo']) : 'img/default_research_cover.png'; ?>
+                                                <div class="trending-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>
                                                 
                                                 <div class="trending-content">
                                                     <h3><?php echo htmlspecialchars($row['title']); ?></h3>
@@ -403,7 +405,8 @@ if ($tab !== 'hub') {
                                     <?php foreach($grid_items as $row): ?>
                                         <div class="hero-card data-card">
                                             
-                                            <div class="hero-card-image"></div>
+                                            <?php $cover_img = !empty($row['cover_photo']) ? htmlspecialchars($row['cover_photo']) : 'img/default_research_cover.png'; ?>
+                                            <div class="hero-card-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>
                                             
                                             <div class="hero-card-content">
                                                 <h3><?php echo htmlspecialchars($row['title']); ?></h3>

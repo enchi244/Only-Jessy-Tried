@@ -23,6 +23,13 @@
                                 <label for="title"><i class="fas fa-heading mr-2 text-primary"></i>Title</label>
                                 <input type="text" name="title" id="title" class="form-control" placeholder="Enter the complete title of the research" required />
                             </div>
+                            <div class="form-group mb-3">
+                                <label for="cover_photo"><i class="fas fa-image mr-2 text-primary"></i>Cover Photo (Optional)</label>
+                                <input type="file" name="cover_photo" id="cover_photo" class="form-control-file" accept="image/jpeg, image/png, image/jpg, image/webp" />
+                                <div id="cover_photo_preview" class="mt-2 text-center" style="display:none; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                    <img src="" id="preview_img" class="img-fluid rounded shadow-sm" style="max-height: 180px; object-fit: cover;" />
+                                </div>
+                            </div>
 
                             <div class="form-group mb-3">
                                 <label for="lead_researcher_id"><i class="fas fa-user-tie mr-2 text-primary"></i>Lead Researcher</label>
