@@ -731,7 +731,7 @@ if ($tab !== 'hub') {
 
         function logView(id, type) {
             // Strictly use 'actions/...' so it perfectly matches whatever folder rde-database.php is currently in.
-            fetch('actions/update_count.php', {
+            fetch('modules/researchers/actions/update_count.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `item_id=${id}&item_type=${type}`

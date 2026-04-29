@@ -1,6 +1,6 @@
 <?php
 // actions/log_view.php
-include('../core/rms.php');
+include('../../../core/rms.php');
 $object = new rms();
 
 // Ensure it's a POST request and values are provided
