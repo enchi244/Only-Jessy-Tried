@@ -274,9 +274,7 @@ if($news_query){
                 <p>Statistics and Data Management Unit<br>Western Mindanao State University</p>
             </div>
             <div class="footer-links">
-                <a href="#home">Home</a>
-                <a href="#about">About</a>
-                <a href="rde-database.php">RDE Outputs</a>
+                <img src="img/footerMap.png" alt="Map of WMSU Location" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 200px;">
             </div>
         </div>
         <div class="footer-bottom">
