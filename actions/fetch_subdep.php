@@ -326,7 +326,6 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Funding Source</th><td>{$row['funding_source']}</td></tr>";
                 $html .= "<tr><th>Approved Budget</th><td>{$row['approved_budget']}</td></tr>";
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['stat']}</span></td></tr>";
-                $html .= "<tr><th>Terminal Report</th><td>{$row['terminal_report']}</td></tr>";
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];

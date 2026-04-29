@@ -36,13 +36,20 @@ if (!is_dir($upload_dir)) { @mkdir($upload_dir, 0777, true); }
 // =========================================================
 // SAFE AUTO-INSTALLER FOR DATABASE TABLES
 // =========================================================
+
+// THE FIX: Added 'core_responsibilities' to the table creation and insertion
 $conn->query("CREATE TABLE IF NOT EXISTS `tbl_cms_about` (
-  `id` int(11) NOT NULL AUTO_INCREMENT, `about_text` text NOT NULL, `mission_text` text NOT NULL, `vision_text` text NOT NULL, PRIMARY KEY (`id`)
+  `id` int(11) NOT NULL AUTO_INCREMENT, 
+  `about_text` text NOT NULL, 
+  `mission_text` text NOT NULL, 
+  `vision_text` text NOT NULL, 
+  `core_responsibilities` text NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
 $chk = $conn->query("SELECT id FROM tbl_cms_about WHERE id=1");
 if($chk && $chk->num_rows == 0) {
-    $conn->query("INSERT INTO `tbl_cms_about` (`id`, `about_text`, `mission_text`, `vision_text`) VALUES (1, 'Under the Research Development and Evaluation Center (RDEC), the SDMU collects, manages, and analyzes data within the University.', 'SDMU is committed to providing appropriate statistical information and analyses while ensuring that the R&D data of the University are properly stored and managed.', 'SDMU aspires to become the leading hub of statistical expertise and data integrity within Western Mindanao State University.')");
+    $conn->query("INSERT INTO `tbl_cms_about` (`id`, `about_text`, `mission_text`, `vision_text`, `core_responsibilities`) VALUES (1, 'Under the Research Development and Evaluation Center (RDEC), the SDMU collects, manages, and analyzes data within the University.', 'SDMU is committed to providing appropriate statistical information and analyses while ensuring that the R&D data of the University are properly stored and managed.', 'SDMU aspires to become the leading hub of statistical expertise and data integrity within Western Mindanao State University.', '1. Manage and maintain the centralized R&D database.\n2. Ensure data accuracy and integrity across all submitted reports.\n3. Generate analytics and visualizations for university stakeholders.')");
 }
 
 $conn->query("CREATE TABLE IF NOT EXISTS `tbl_cms_carousel` (
@@ -61,7 +68,10 @@ if (isset($_POST['save_text'])) {
     $about = $conn->real_escape_string($_POST['about_text']);
     $mission = $conn->real_escape_string($_POST['mission_text']);
     $vision = $conn->real_escape_string($_POST['vision_text']);
-    $conn->query("UPDATE tbl_cms_about SET about_text='$about', mission_text='$mission', vision_text='$vision' WHERE id=1");
+    // THE FIX: Capture the new Core Responsibilities data
+    $core = $conn->real_escape_string($_POST['core_responsibilities']);
+    
+    $conn->query("UPDATE tbl_cms_about SET about_text='$about', mission_text='$mission', vision_text='$vision', core_responsibilities='$core' WHERE id=1");
     $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Landing Page text updated!</div>";
 }
 
@@ -147,7 +157,7 @@ if(isset($_GET['msg']) && $_GET['msg'] == 'deleted') {
 }
 
 // Fetch Text
-$cms_text = ['about_text'=>'', 'mission_text'=>'', 'vision_text'=>''];
+$cms_text = ['about_text'=>'', 'mission_text'=>'', 'vision_text'=>'', 'core_responsibilities'=>''];
 $res_txt = $conn->query("SELECT * FROM tbl_cms_about WHERE id=1");
 if ($res_txt && $res_txt->num_rows > 0) { $cms_text = $res_txt->fetch_assoc(); }
 
@@ -174,7 +184,7 @@ include('includes/header.php');
                 <form method="POST" action="manage_cms.php">
                     <div class="form-group">
                         <label class="font-weight-bold">About the Office</label>
-                        <textarea class="form-control bg-light" name="about_text" rows="5" required><?php echo htmlspecialchars($cms_text['about_text']); ?></textarea>
+                        <textarea class="form-control bg-light" name="about_text" rows="4" required><?php echo htmlspecialchars($cms_text['about_text']); ?></textarea>
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Our Mission</label>
@@ -183,6 +193,11 @@ include('includes/header.php');
                     <div class="form-group">
                         <label class="font-weight-bold">Our Vision</label>
                         <textarea class="form-control bg-light" name="vision_text" rows="3" required><?php echo htmlspecialchars($cms_text['vision_text']); ?></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Core Responsibilities</label>
+                        <textarea class="form-control bg-light" name="core_responsibilities" rows="5" placeholder="List responsibilities, one per line." required><?php echo htmlspecialchars($cms_text['core_responsibilities'] ?? ''); ?></textarea>
+                        <small class="text-muted">Use numbers or bullet points for a clean list format.</small>
                     </div>
                     <button type="submit" name="save_text" class="btn btn-primary btn-block"><i class="fas fa-save"></i> Save Text Updates</button>
                 </form>
@@ -298,7 +313,6 @@ include('includes/header.php');
                         </thead>
                         <tbody>
                             <?php 
-                            // THE FIX: image_path is now pulled from the database!
                             $news_q = $conn->query("SELECT id, title, image_path, date_published FROM tbl_cms_news ORDER BY date_published DESC");
                             if($news_q && $news_q->num_rows > 0) {
                                 while($n = $news_q->fetch_assoc()) {

@@ -19,9 +19,17 @@ $epCount = 0;
 $ep_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_extension_project_conducted"); 
 if($ep_query && $row = mysqli_fetch_assoc($ep_query)) { $epCount = $row['total']; }
 
+$publicationtotal = 0;
+$pub_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_publication");
+if($pub_query && $row = mysqli_fetch_assoc($pub_query)) { $publicationtotal = $row['total']; }
+
+$researchertotal = 0;
+$res_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_researchdata WHERE status = 1");
+if($res_query && $row = mysqli_fetch_assoc($res_query)) { $researchertotal = $row['total']; }
+
 // --- 2. CMS FETCH QUERIES ---
 
-// Fetch About, Mission, Vision
+// Fetch About, Mission, Vision, and Core Responsibilities
 $about_query = mysqli_query($conn, "SELECT * FROM tbl_cms_about LIMIT 1");
 $cms_about = mysqli_fetch_assoc($about_query);
 
@@ -118,16 +126,32 @@ if($news_query){
             </div>
             <div class="about-grid">
                 <div class="about-text scroll-reveal">
-                    <p class="lead"><?php echo isset($cms_about['about_text']) ? $cms_about['about_text'] : ''; ?></p>
+                    <p class="lead"><?php echo isset($cms_about['about_text']) ? nl2br(htmlspecialchars($cms_about['about_text'])) : ''; ?></p>
                     
-                    <h3>Core Responsibilities:</h3>
-                    <ul class="task-list">
-                        <li><strong>Demographic Profiling:</strong> Collects pertinent data including the demographic profile of teaching and non-teaching personnel.</li>
-                        <li><strong>Data Summarization:</strong> Presents data summaries with conclusions and recommendations.</li>
-                        <li><strong>Information Handling:</strong> Handles data processing, storage, retrieval, and the production of hard-copy information.</li>
-                        <li><strong>Database Management:</strong> Manages databases, encompassing consistent updating and data screening.</li>
-                        <li><strong>Statistical Analysis:</strong> Performs advanced statistical computations and analyses for R&D projects.</li>
+<?php if(!empty($cms_about['core_responsibilities'])): ?>
+                    <h3 style="margin-top: 30px;">Core Responsibilities:</h3>
+                    <ul class="task-list" style="margin-left: 20px; font-size: 1.05rem; color: #4a5568; line-height: 1.8;">
+                        <?php 
+                        // The Auto-Formatter: Safely turns raw CMS text into HTML bullets and bold text!
+                        $core_text = $cms_about['core_responsibilities'];
+                        $lines = explode("\n", trim($core_text));
+                        
+                        foreach($lines as $line) {
+                            $line = trim($line);
+                            if($line != '') {
+                                // If you type a colon (:), it makes the first part bold
+                                $parts = explode(":", $line, 2);
+                                if(count($parts) > 1) {
+                                    echo "<li style='margin-bottom: 8px;'><strong>" . htmlspecialchars(trim($parts[0])) . ":</strong> " . htmlspecialchars(trim($parts[1])) . "</li>";
+                                } else {
+                                    echo "<li style='margin-bottom: 8px;'>" . htmlspecialchars($line) . "</li>";
+                                }
+                            }
+                        }
+                        ?>
                     </ul>
+                    <?php endif; ?>
+
                 </div>
                 <div class="about-visuals scroll-reveal right">
                     <div class="vertical-carousel">
@@ -151,11 +175,11 @@ if($news_query){
             <div class="mv-grid">
                 <div class="mv-card scroll-reveal">
                     <h3>Our Mission</h3>
-                    <p><?php echo isset($cms_about['mission_text']) ? $cms_about['mission_text'] : ''; ?></p>
+                    <p><?php echo isset($cms_about['mission_text']) ? nl2br(htmlspecialchars($cms_about['mission_text'])) : ''; ?></p>
                 </div>
                 <div class="mv-card scroll-reveal delay-1">
                     <h3>Our Vision</h3>
-                    <p><?php echo isset($cms_about['vision_text']) ? $cms_about['vision_text'] : ''; ?></p>
+                    <p><?php echo isset($cms_about['vision_text']) ? nl2br(htmlspecialchars($cms_about['vision_text'])) : ''; ?></p>
                 </div>
             </div>
         </div>
@@ -199,7 +223,7 @@ if($news_query){
                 <div class="line"></div>
             </div>
             
-<div class="news-grid" id="newsGridContainer">
+            <div class="news-grid" id="newsGridContainer">
                 <?php 
                 foreach($news_items as $news): 
                     $formattedDate = date("F j, Y", strtotime($news['date_published']));
@@ -210,11 +234,11 @@ if($news_query){
                     </div>
                     <div class="news-content">
                         <span class="news-date"><?php echo $formattedDate; ?></span>
-                        <h3><a href="#"><?php echo $news['title']; ?></a></h3>
-                        <p><?php echo $news['summary']; ?></p>
+                        <h3><a href="#"><?php echo htmlspecialchars($news['title']); ?></a></h3>
+                        <p><?php echo htmlspecialchars($news['summary']); ?></p>
                         
                         <div class="hidden-full-content" style="display:none;">
-                            <?php echo htmlspecialchars($news['content']); ?>
+                            <?php echo nl2br(htmlspecialchars($news['content'])); ?>
                         </div>
 
                         <a href="#" class="read-more">Read Article &rarr;</a>
@@ -285,30 +309,26 @@ if($news_query){
 
         const itemsPerPage = 3;
         let currentPage = 1;
-        const totalPages = Math.ceil(cards.length / itemsPerPage);
+        const totalPages = Math.ceil(cards.length / itemsPerPage) || 1; 
 
-        // Hide pagination if there are 3 or fewer articles
         if (cards.length <= itemsPerPage) {
             paginationContainer.style.display = 'none';
         }
 
         function updateGrid() {
-            // 1. Hide all cards
             cards.forEach(card => card.style.display = 'none');
 
-            // 2. Calculate which ones to show
             const start = (currentPage - 1) * itemsPerPage;
             const end = start + itemsPerPage;
 
-// 3. Show them
             for (let i = start; i < end && i < cards.length; i++) {
-                cards[i].style.display = 'block'; // Restores original stacked layout
+                // THE FIX: We removed 'block' and changed it to an empty string.
+                // This clears our hidden style and lets your gorgeous CSS take over entirely!
+                cards[i].style.display = ''; 
             }
 
-            // 4. Update text and buttons
             indicator.textContent = `${currentPage} / ${totalPages}`;
             
-            // Disable/Enable styling for Prev button
             if (currentPage === 1) {
                 prevBtn.style.opacity = '0.4';
                 prevBtn.style.cursor = 'not-allowed';
@@ -317,7 +337,6 @@ if($news_query){
                 prevBtn.style.cursor = 'pointer';
             }
 
-            // Disable/Enable styling for Next button
             if (currentPage === totalPages) {
                 nextBtn.style.opacity = '0.4';
                 nextBtn.style.cursor = 'not-allowed';
@@ -327,7 +346,6 @@ if($news_query){
             }
         }
 
-        // Button Click Listeners
         prevBtn.addEventListener('click', function() {
             if (currentPage > 1) {
                 currentPage--;
@@ -342,7 +360,6 @@ if($news_query){
             }
         });
 
-        // Initialize the first view
         if (cards.length > 0) {
             updateGrid();
         }
