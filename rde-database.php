@@ -12,7 +12,7 @@ $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] :
 // --- DYNAMIC HEADER CONTENT ---
 $header_content = [
     'research' => [
-        'title' => 'Researches Conducted',
+        'title' => 'Researches',
         'desc'  => 'Explore the foundational research projects and studies undertaken by our university.'
     ],
     'publication' => [
@@ -28,7 +28,7 @@ $header_content = [
         'desc'  => 'View academic papers presented by our researchers at local, national, and international conferences.'
     ],
     'trainings' => [
-        'title' => 'Trainings Attended',
+        'title' => 'Trainings',
         'desc'  => 'Track the professional development, seminars, and capacity-building programs of our researchers.'
     ],
     'epc' => [
@@ -268,7 +268,7 @@ if ($tab !== 'hub') {
                 
                 <a href="?tab=research" class="hub-category-card">
                     <div class="hub-icon-wrapper"><i class="fas fa-microscope"></i></div>
-                    <h3>Researches Conducted</h3>
+                    <h3>Researches</h3>
                     <p>Explore the foundational research projects and studies undertaken by our university faculty and students.</p>
                     <span class="hub-explore-link">Explore Category <i class="fas fa-arrow-right"></i></span>
                 </a>
@@ -296,7 +296,7 @@ if ($tab !== 'hub') {
 
                 <a href="?tab=trainings" class="hub-category-card">
                     <div class="hub-icon-wrapper"><i class="fas fa-certificate"></i></div>
-                    <h3>Trainings Attended</h3>
+                    <h3>Trainings</h3>
                     <p>Track the professional development, seminars, and capacity-building programs of our researchers.</p>
                     <span class="hub-explore-link">Explore Category <i class="fas fa-arrow-right"></i></span>
                 </a>
@@ -333,11 +333,11 @@ if ($tab !== 'hub') {
                 <div class="filter-inputs-group">
                     <div class="filter-group">
                         <select name="tab" class="custom-select" onchange="this.form.submit()" style="border-color: var(--primary-color); font-weight: 600; color: var(--primary-color);">
-                            <option value="research" <?php if($tab == 'research') echo 'selected'; ?>>Research Conducted</option>
+                            <option value="research" <?php if($tab == 'research') echo 'selected'; ?>>Researches</option>
                             <option value="publication" <?php if($tab == 'publication') echo 'selected'; ?>>Academic Publications</option>
                             <option value="ip" <?php if($tab == 'ip') echo 'selected'; ?>>Intellectual Properties</option>
                             <option value="pp" <?php if($tab == 'pp') echo 'selected'; ?>>Paper Presentations</option>
-                            <option value="trainings" <?php if($tab == 'trainings') echo 'selected'; ?>>Trainings Attended</option>
+                            <option value="trainings" <?php if($tab == 'trainings') echo 'selected'; ?>>Trainings</option>
                             <option value="epc" <?php if($tab == 'epc') echo 'selected'; ?>>Extension Projects</option>
                             <option value="ext" <?php if($tab == 'ext') echo 'selected'; ?>>Extension Activities</option>
                         </select>
