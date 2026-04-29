@@ -9,7 +9,7 @@ $college = isset($_GET['college']) ? $_GET['college'] : 'all';
 $year = isset($_GET['year']) ? $_GET['year'] : 'all';
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 
-// --- NEW: DYNAMIC HEADER CONTENT ---
+// --- DYNAMIC HEADER CONTENT ---
 $header_content = [
     'research' => [
         'title' => 'Researches Conducted',
@@ -23,7 +23,6 @@ $header_content = [
         'title' => 'Intellectual Properties',
         'desc'  => 'Browse granted patents, utility models, and innovations registered under the university.'
     ],
-
     'pp' => [
         'title' => 'Paper Presentations',
         'desc'  => 'View academic papers presented by our researchers at local, national, and international conferences.'
@@ -42,19 +41,15 @@ $header_content = [
     ]
 ];
 
-// Fallback just in case an unknown tab is selected
 $current_header = isset($header_content[$tab]) ? $header_content[$tab] : [
     'title' => 'Research & Evaluation Outputs',
     'desc'  => 'Explore thousands of academic papers, intellectual properties, policies, and publications.'
 ];
 
 $DEFAULT_COVER = 'img/default_research_cover.png';
-
-// Items per page
 $limit = 12;
 $offset = ($page - 1) * $limit;
 
-// Helper to build URLs
 function build_url($new_tab, $search, $college, $year, $page_num = 1) {
     return "?tab=$new_tab&search=" . urlencode($search) . "&college=" . urlencode($college) . "&year=" . urlencode($year) . "&page=$page_num";
 }
@@ -127,31 +122,102 @@ if ($year != 'all' && $date_column != "") {
     $params[':year'] = "%$year%";
 }
 
-// Initialize pagination variables
+// Initialize variables
 $results = [];
+$featured_item = null;
+$trending_items = [];
+$grid_items = [];
 $current_page_count = 0;
 $total_pages = 0;
 $total_results = 0;
 
-// ONLY run queries if we are NOT on the hub page
+// 5. Fetch Data Logic
 if ($tab !== 'hub') {
-    // 5. Pagination Logic
-    $object->query = "SELECT COUNT(main.id) as total_rows FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where";
-    $object->execute($params);
-    $count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
-    $total_results = $count_result['total_rows'];
-    $total_pages = ceil($total_results / $limit);
+    
+    // Custom Logic for 'Research' tab to handle actual View Counts
+    if ($tab === 'research') {
+        
+        // 5a. Fetch Top Viewed (All-time)
+        $top_query = "SELECT main.*, rd.firstName, rd.familyName, rd.department, 
+                      (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research') as total_views
+                      FROM tbl_researchconducted main 
+                      LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
+                      $where 
+                      ORDER BY total_views DESC LIMIT 1";
+        $object->query = $top_query;
+        $object->execute($params);
+        if ($object->row_count() > 0) {
+            $featured_item = $object->statement->fetch(PDO::FETCH_ASSOC);
+        }
+        $exclude_ids = [];
+        if ($featured_item) $exclude_ids[] = $featured_item['id'];
 
-    if ($page > $total_pages && $total_pages > 0) {
-        $page = $total_pages;
-        $offset = ($page - 1) * $limit;
+        // 5b. Fetch Trending (Last 7 Days)
+        $exclude_str = !empty($exclude_ids) ? "AND main.id NOT IN (" . implode(',', $exclude_ids) . ")" : "";
+        $trend_query = "SELECT main.*, rd.firstName, rd.familyName, rd.department, 
+                        (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research' AND v.viewed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as recent_views,
+                        (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research') as total_views
+                        FROM tbl_researchconducted main 
+                        LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
+                        $where $exclude_str
+                        ORDER BY recent_views DESC LIMIT 3";
+        $object->query = $trend_query;
+        $object->execute($params);
+        $trending_items = $object->statement_result();
+
+        foreach($trending_items as $t) {
+            $exclude_ids[] = $t['id'];
+        }
+
+        // 5c. Fetch the Main Grid (Excluding Top and Trending to prevent duplicates)
+        $exclude_str_final = !empty($exclude_ids) ? "AND main.id NOT IN (" . implode(',', $exclude_ids) . ")" : "";
+        $grid_where = $where . " " . $exclude_str_final;
+
+        // Pagination for Grid
+        $object->query = "SELECT COUNT(main.id) as total_rows FROM tbl_researchconducted main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $grid_where";
+        $object->execute($params);
+        $count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
+        $total_results = $count_result['total_rows'];
+        $total_pages = ceil($total_results / $limit);
+
+        if ($page > $total_pages && $total_pages > 0) {
+            $page = $total_pages;
+            $offset = ($page - 1) * $limit;
+        }
+
+        // Updated Main Grid Query to include total_views
+        $object->query = "SELECT main.*, rd.firstName, rd.familyName, rd.department,
+                          (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research') as total_views
+                          FROM tbl_researchconducted main 
+                          LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
+                          $grid_where 
+                          ORDER BY main.id DESC LIMIT $limit OFFSET $offset";
+        $object->execute($params);
+        $grid_items = $object->statement_result();
+        $current_page_count = count($grid_items) + ($page == 1 ? count($trending_items) + ($featured_item ? 1 : 0) : 0);
+
+    } else {
+        // Standard Pagination Logic for other tabs
+        $object->query = "SELECT COUNT(main.id) as total_rows FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where";
+        $object->execute($params);
+        $count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
+        $total_results = $count_result['total_rows'];
+        $total_pages = ceil($total_results / $limit);
+
+        if ($page > $total_pages && $total_pages > 0) {
+            $page = $total_pages;
+            $offset = ($page - 1) * $limit;
+        }
+
+        // Updated other tabs query to include total_views dynamically based on $tab
+        $object->query = "SELECT main.*, rd.firstName, rd.familyName, rd.department,
+                          (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = '$tab') as total_views
+                          FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where ORDER BY main.id DESC LIMIT $limit OFFSET $offset";
+        $object->execute($params);
+        $results = $object->statement_result();
+        $grid_items = $results; // Make it compatible with grid
+        $current_page_count = $object->row_count();
     }
-
-    // 6. Execute the Main Query
-    $object->query = "SELECT main.*, rd.firstName, rd.familyName, rd.department FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where ORDER BY main.id DESC LIMIT $limit OFFSET $offset";
-    $object->execute($params);
-    $results = $object->statement_result();
-    $current_page_count = $object->row_count();
 }
 ?>
 
@@ -264,9 +330,7 @@ if ($tab !== 'hub') {
         <main class="db-container container fade-in-up delay-1">
             
             <form action="rde-database.php" method="GET" class="top-filter-bar">
-                
                 <div class="filter-inputs-group">
-                    
                     <div class="filter-group">
                         <select name="tab" class="custom-select" onchange="this.form.submit()" style="border-color: var(--primary-color); font-weight: 600; color: var(--primary-color);">
                             <option value="research" <?php if($tab == 'research') echo 'selected'; ?>>Research Conducted</option>
@@ -324,16 +388,11 @@ if ($tab !== 'hub') {
                     <?php if($current_page_count > 0): ?>
                         
                         <?php if ($tab === 'research'): ?>
-                            <?php
-                                // Split the results for the blog layout
-                                $featured_item = isset($results[0]) ? $results[0] : null;
-                                $trending_items = array_slice($results, 1, 3); // Gets items 2, 3, and 4
-                                $grid_items = array_slice($results, 4);        // Gets everything else
-                            ?>
-
+                            
+                            <?php if ($page == 1 && ($featured_item || !empty($trending_items))): ?>
                             <div class="research-blog-top">
                                 <?php if($featured_item): $row = $featured_item; ?>
-                                    <div class="featured-research-post data-card">
+                                    <div class="featured-research-post data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="research">
                                         
                                         <?php 
                                             $db_cover = trim($row['cover_photo'] ?? '');
@@ -368,7 +427,10 @@ if ($tab !== 'hub') {
 
                                             <div class="card-footer" style="margin-top: auto;">
                                                 <span class="college-tag"><i class="fas fa-university mr-1 text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
-                                                <span class="date-tag"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? date('Y', strtotime(str_replace('/', '-', $row['completed_date']))) : 'N/A'; ?></span>
+                                                <div>
+                                                    <span class="date-tag mr-2"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? date('Y', strtotime(str_replace('/', '-', $row['completed_date']))) : 'N/A'; ?></span>
+                                                    <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?> views</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -376,9 +438,9 @@ if ($tab !== 'hub') {
 
                                 <?php if(!empty($trending_items)): ?>
                                     <div class="trending-research-list">
-                                        <h4 class="trending-header">Also Trending</h4>
+                                        <h4 class="trending-header">Also Trending <span style="font-size: 0.8rem; font-weight: normal; float:right; margin-top:5px;">(Last 7 Days)</span></h4>
                                         <?php foreach($trending_items as $row): ?>
-                                            <div class="trending-card data-card">
+                                            <div class="trending-card data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="research">
                                                 
                                                 <?php 
                                                     $db_cover = trim($row['cover_photo'] ?? '');
@@ -397,8 +459,9 @@ if ($tab !== 'hub') {
                                                         </div>
                                                     </div>
 
-                                                    <div class="card-footer" style="padding-top: 5px; margin-top: 0;">
+                                                    <div class="card-footer" style="padding-top: 5px; margin-top: 0; align-items: center;">
                                                         <span class="college-tag" style="background: transparent; padding: 0;"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department']); ?></span>
+                                                        <span class="view-tag" style="font-size: 0.8rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -406,11 +469,12 @@ if ($tab !== 'hub') {
                                     </div>
                                 <?php endif; ?>
                             </div>
+                            <?php endif; ?>
 
                             <?php if(!empty($grid_items)): ?>
                                 <div class="db-results-grid">
                                     <?php foreach($grid_items as $row): ?>
-                                        <div class="hero-card data-card">
+                                        <div class="hero-card data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="research">
                                             
                                             <?php 
                                                 $db_cover = trim($row['cover_photo'] ?? '');
@@ -430,9 +494,12 @@ if ($tab !== 'hub') {
                                                     </div>
                                                 </div>
 
-                                                <div class="card-footer">
+                                                <div class="card-footer" style="align-items: center;">
                                                     <span class="college-tag"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department']); ?></span>
-                                                    <span class="date-tag"><?php echo !empty($row['completed_date']) ? date('Y', strtotime(str_replace('/', '-', $row['completed_date']))) : 'N/A'; ?></span>
+                                                    <div style="display:flex; align-items: center; gap: 10px;">
+                                                        <span class="date-tag"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? date('Y', strtotime(str_replace('/', '-', $row['completed_date']))) : 'N/A'; ?></span>
+                                                        <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -443,7 +510,7 @@ if ($tab !== 'hub') {
                         <?php else: ?>
                             <div class="db-results-grid">
                                 <?php foreach($results as $row): ?>
-                                    <div class="data-card">
+                                    <div class="data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $tab; ?>">
                                         <?php if(!empty($row[$type_column])): ?>
                                             <div class="card-badge"><?php echo htmlspecialchars($row[$type_column]); ?></div>
                                         <?php endif; ?>
@@ -510,18 +577,21 @@ if ($tab !== 'hub') {
                                             <?php endif; ?>
                                         </div>
 
-                                        <div class="card-footer">
+                                        <div class="card-footer" style="align-items: center;">
                                             <span class="college-tag">
                                                 <i class="fas fa-university mr-1 text-primary"></i>
                                                 <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?>
                                             </span>
-                                            <span class="date-tag">
-                                                <i class="far fa-calendar-alt mr-1"></i>
-                                                <?php 
-                                                $date_val = $row[$date_column] ?? '';
-                                                echo !empty($date_val) ? date('Y', strtotime(str_replace('/', '-', $date_val))) : 'N/A'; 
-                                                ?>
-                                            </span>
+                                            <div style="display:flex; align-items: center; gap: 10px;">
+                                                <span class="date-tag">
+                                                    <i class="far fa-calendar-alt mr-1"></i>
+                                                    <?php 
+                                                    $date_val = $row[$date_column] ?? '';
+                                                    echo !empty($date_val) ? date('Y', strtotime(str_replace('/', '-', $date_val))) : 'N/A'; 
+                                                    ?>
+                                                </span>
+                                                <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
+                                            </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -535,7 +605,7 @@ if ($tab !== 'hub') {
                                 <?php endif; ?>
 
                                 <?php 
-                                $max_links = 10; // Max number of page buttons to show
+                                $max_links = 10;
                                 $start_page = max(1, $page - floor($max_links / 2));
                                 $end_page = $start_page + $max_links - 1;
 
@@ -630,6 +700,52 @@ if ($tab !== 'hub') {
                     updateArrows(); 
                 }
             }
+        }
+    });
+    </script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let hoverTimer;
+        const cards = document.querySelectorAll('.rde-track-view');
+
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', (e) => {
+                if (card.dataset.viewed === 'true') return;
+
+                hoverTimer = setTimeout(() => {
+                    const itemId = card.dataset.id;
+                    const itemType = card.dataset.type;
+                    
+                    if(itemId && itemType) {
+                        logView(itemId, itemType);
+                        card.dataset.viewed = 'true'; 
+                    }
+                }, 3000); 
+            });
+
+            card.addEventListener('mouseleave', () => {
+                clearTimeout(hoverTimer);
+            });
+        });
+
+        function logView(id, type) {
+            // Strictly use 'actions/...' so it perfectly matches whatever folder rde-database.php is currently in.
+            fetch('actions/update_count.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `item_id=${id}&item_type=${type}`
+            })
+            .then(async response => {
+                // If the file STILL isn't found, this catches the HTML 404 page before it crashes the JSON parser
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`Server returned ${response.status}: ${text.substring(0, 50)}...`);
+                }
+                return response.json();
+            })
+            .then(data => console.log('View status:', data))
+            .catch(err => console.error('Error logging view:', err.message));
         }
     });
     </script>
