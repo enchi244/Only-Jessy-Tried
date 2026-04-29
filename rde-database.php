@@ -428,7 +428,7 @@ if ($tab !== 'hub') {
                                             <div class="card-footer" style="margin-top: auto;">
                                                 <span class="college-tag"><i class="fas fa-university mr-1 text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
                                                 <div>
-                                                    <span class="date-tag mr-2"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? date('Y', strtotime(str_replace('/', '-', $row['completed_date']))) : 'N/A'; ?></span>
+                                                    <span class="date-tag mr-2"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? htmlspecialchars($row['completed_date']) : 'N/A'; ?></span>
                                                     <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?> views</span>
                                                 </div>
                                             </div>
@@ -497,7 +497,7 @@ if ($tab !== 'hub') {
                                                 <div class="card-footer" style="align-items: center;">
                                                     <span class="college-tag"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department']); ?></span>
                                                     <div style="display:flex; align-items: center; gap: 10px;">
-                                                        <span class="date-tag"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? date('Y', strtotime(str_replace('/', '-', $row['completed_date']))) : 'N/A'; ?></span>
+                                                        <span class="date-tag"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? htmlspecialchars($row['completed_date']) : 'N/A'; ?></span>
                                                         <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
                                                     </div>
                                                 </div>
@@ -587,7 +587,7 @@ if ($tab !== 'hub') {
                                                     <i class="far fa-calendar-alt mr-1"></i>
                                                     <?php 
                                                     $date_val = $row[$date_column] ?? '';
-                                                    echo !empty($date_val) ? date('Y', strtotime(str_replace('/', '-', $date_val))) : 'N/A'; 
+                                                    echo (!empty($date_val)) ? htmlspecialchars($date_val) : 'N/A'; 
                                                     ?>
                                                 </span>
                                                 <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
