@@ -23,10 +23,7 @@ $header_content = [
         'title' => 'Intellectual Properties',
         'desc'  => 'Browse granted patents, utility models, and innovations registered under the university.'
     ],
-    'policy' => [
-        'title' => 'Research Policies',
-        'desc'  => 'Review the institutional policies and guidelines supporting our research ecosystem.'
-    ],
+
     'pp' => [
         'title' => 'Paper Presentations',
         'desc'  => 'View academic papers presented by our researchers at local, national, and international conferences.'
@@ -222,13 +219,6 @@ if ($tab !== 'hub') {
                     <span class="hub-explore-link">Explore Category <i class="fas fa-arrow-right"></i></span>
                 </a>
 
-                <a href="?tab=policy" class="hub-category-card">
-                    <div class="hub-icon-wrapper"><i class="fas fa-file-contract"></i></div>
-                    <h3>Research Policies</h3>
-                    <p>Review the institutional policies and guidelines supporting our robust research ecosystem.</p>
-                    <span class="hub-explore-link">Explore Category <i class="fas fa-arrow-right"></i></span>
-                </a>
-
                 <a href="?tab=pp" class="hub-category-card">
                     <div class="hub-icon-wrapper"><i class="fas fa-chalkboard-teacher"></i></div>
                     <h3>Paper Presentations</h3>
@@ -280,7 +270,6 @@ if ($tab !== 'hub') {
                             <option value="research" <?php if($tab == 'research') echo 'selected'; ?>>Research Conducted</option>
                             <option value="publication" <?php if($tab == 'publication') echo 'selected'; ?>>Academic Publications</option>
                             <option value="ip" <?php if($tab == 'ip') echo 'selected'; ?>>Intellectual Properties</option>
-                            <option value="policy" <?php if($tab == 'policy') echo 'selected'; ?>>Research Policies</option>
                             <option value="pp" <?php if($tab == 'pp') echo 'selected'; ?>>Paper Presentations</option>
                             <option value="trainings" <?php if($tab == 'trainings') echo 'selected'; ?>>Trainings Attended</option>
                             <option value="epc" <?php if($tab == 'epc') echo 'selected'; ?>>Extension Projects</option>
