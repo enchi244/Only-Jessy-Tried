@@ -48,7 +48,7 @@ if(isset($_POST["action"])) {
             if ($from_year === 'all' || $to_year === 'all') return true;
             $date_cols = ['user_created_on', 'date_paper', 'started_date', 'completed_date', 'start_date', 'publication_date', 'date_applied', 'date_granted', 'date_train'];
             foreach ($date_cols as $dc) {
-                if (isset($row[$dc]) && !empty(trim((string)$row[$dc]))) {
+                if (isset($row[$dc]) && !empty(trim((string)$row[$dc])) && strtolower(trim((string)$row[$dc])) !== 'null') {
                     $val_clean = trim((string)$row[$dc]);
                     if (preg_match('/^\d{2}-\d{4}$/', $val_clean)) { $val_clean = "01-" . $val_clean; }
                     $ts = strtotime($val_clean);
@@ -228,7 +228,17 @@ if(isset($_POST["action"])) {
                 $html .= "</td></tr>";
 
                 // 3. Intellectual Property 
-                $object->query = "SELECT title, type, date_granted, coauth, moa_file, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_ip_files WHERE ip_id = tbl_itelectualprop.id) AS file_cats FROM tbl_itelectualprop WHERE researcherID = '$id' AND status = 1";
+                $object->query = "
+                    SELECT title, type, date_granted, moa_file, 
+                           (SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') 
+                            FROM tbl_ip_collaborators col 
+                            JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                            WHERE col.ip_id = tbl_itelectualprop.id AND col.researcher_id != '$id') AS co_authors,
+                           (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_ip_files WHERE ip_id = tbl_itelectualprop.id) AS file_cats 
+                    FROM tbl_itelectualprop 
+                    WHERE (id IN (SELECT ip_id FROM tbl_ip_collaborators WHERE researcher_id = '$id')
+                       OR researcherID = '$id') AND status = 1
+                ";
                 $res3 = getSafeRows($object);
                 $html .= "<tr><th>Intellectual Property</th><td>";
                 if(count($res3) > 0) {
@@ -239,8 +249,13 @@ if(isset($_POST["action"])) {
                         if(!empty($r3['moa_file'])) $cats[] = 'Legacy MOA';
                         $moa_btn = format_file_badges(implode('||', $cats), $id, 'ip', $object->base_url);
                         
-                        $co_authors = !empty($r3['coauth']) ? "<br><small class='text-primary'><i class='fas fa-users mr-1'></i><strong>Co-Authors:</strong> {$r3['coauth']}</small>" : "";
-                        $html .= "<li class='mb-2'><strong>" . ($r3['title'] ?: 'Untitled IP') . "</strong> <span class='badge badge-info ml-1 mb-1'>{$r3['type']}</span> <br>{$moa_btn}{$co_authors}<br><small class='text-muted'>Granted: {$r3['date_granted']}</small></li>"; 
+                        $co_authors = !empty($r3['co_authors']) ? "<br><small class='text-primary'><i class='fas fa-users mr-1'></i><strong>Co-Authors:</strong> {$r3['co_authors']}</small>" : "";
+                        
+                        // THE FIX: Strict Date Checker for the combined view
+                        $raw_granted = isset($r3['date_granted']) ? trim($r3['date_granted']) : '';
+                        $granted_date = ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') ? $raw_granted : '<span class="badge badge-warning">Pending</span>';
+                        
+                        $html .= "<li class='mb-2'><strong>" . ($r3['title'] ?: 'Untitled IP') . "</strong> <span class='badge badge-info ml-1 mb-1'>{$r3['type']}</span> <br>{$moa_btn}{$co_authors}<br><small class='text-muted'>Granted: {$granted_date}</small></li>"; 
                     }
                     $html .= "</ul>";
                 } else { $html .= "<span class='text-muted'><em>No intellectual property found.</em></span>"; }
@@ -312,12 +327,13 @@ if(isset($_POST["action"])) {
                         WHERE col.research_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
                        (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_research_files WHERE research_id = r.id) AS file_cats
                 FROM tbl_researchconducted r 
-                JOIN tbl_researchdata d ON r.researcherID = d.id 
+                LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
                 WHERE r.id = '$id'
             ";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
-                $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
+                $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
+                $html .= "<tr><th>Lead Proponent</th><td>{$lead_name}</td></tr>";
                 if (!empty($row['co_authors'])) { $html .= "<tr><th>Co-Authors</th><td class='text-primary font-weight-bold'><i class='fas fa-users mr-1'></i>{$row['co_authors']}</td></tr>"; }
                 $html .= "<tr><th>Agenda Cluster</th><td>{$row['research_agenda_cluster']}</td></tr>";
                 $html .= "<tr><th>SDGs</th><td>{$row['sdgs']}</td></tr>";
@@ -343,12 +359,13 @@ if(isset($_POST["action"])) {
                         WHERE col.publication_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
                        (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_publication_files WHERE publication_id = r.id) AS file_cats
                 FROM tbl_publication r 
-                JOIN tbl_researchdata d ON r.researcherID = d.id 
+                LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
                 WHERE r.id = '$id'
             ";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
-                $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
+                $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
+                $html .= "<tr><th>Lead Proponent</th><td>{$lead_name}</td></tr>";
                 if (!empty($row['co_authors'])) { $html .= "<tr><th>Co-Authors</th><td class='text-primary font-weight-bold'><i class='fas fa-users mr-1'></i>{$row['co_authors']}</td></tr>"; }
                 $html .= "<tr><th>Journal</th><td>{$row['journal']}</td></tr>";
                 $html .= "<tr><th>Vol / Issue No.</th><td>{$row['vol_num_issue_num']}</td></tr>";
@@ -366,27 +383,91 @@ if(isset($_POST["action"])) {
             }
         }
         elseif($type == 'ip') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_ip_files WHERE ip_id = r.id) AS file_cats FROM tbl_itelectualprop r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
+            // THE FIX: LEFT JOIN prevents modal dropouts, and robust date checking catches "null" ghost strings!
+            $object->query = "
+                SELECT r.*, d.firstName, d.familyName, 
+                       (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
+                        FROM tbl_ip_collaborators col 
+                        JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
+                        WHERE col.ip_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
+                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_ip_files WHERE ip_id = r.id) AS file_cats 
+                FROM tbl_itelectualprop r 
+                LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
+                WHERE r.id = '$id'
+            ";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
-                $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
-                $html .= "<tr><th>Co-Authors</th><td>{$row['coauth']}</td></tr>";
+                
+                $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
+                $html .= "<tr><th>Lead Proponent</th><td>{$lead_name}</td></tr>";
+                
+                if (!empty($row['co_authors'])) { 
+                    $html .= "<tr><th>Co-Authors</th><td class='text-primary font-weight-bold'><i class='fas fa-users mr-1'></i>{$row['co_authors']}</td></tr>"; 
+                } elseif (!empty($row['coauth'])) {
+                    $html .= "<tr><th>Co-Authors</th><td>{$row['coauth']}</td></tr>";
+                }
+                
                 $html .= "<tr><th>Type</th><td>{$row['type']}</td></tr>";
-                $html .= "<tr><th>Date Applied</th><td>{$row['date_applied']}</td></tr>";
-                $html .= "<tr><th>Date Granted</th><td>{$row['date_granted']}</td></tr>";
+                
+                // THE FIX: The Bulletproof Date Checker specifically checking for 'null'
+                $raw_applied = isset($row['date_applied']) ? trim($row['date_applied']) : '';
+                $applied = ($raw_applied !== '' && $raw_applied !== '0000-00-00' && strtolower($raw_applied) !== 'null') ? htmlspecialchars($raw_applied) : '<span class="text-muted">N/A</span>';
+                $html .= "<tr><th>Date Applied</th><td>{$applied}</td></tr>";
+                
+// THE FIX: Applies to Date Granted as well
+                $raw_granted = isset($row['date_granted']) ? trim($row['date_granted']) : '';
+                $granted = ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') ? htmlspecialchars($raw_granted) : '<span class="badge badge-warning text-dark px-1">Pending</span>';
+                $html .= "<tr><th>Date Granted</th><td>{$granted}</td></tr>";
+                
+                // NEW: IP Validity Auto-Calculator for the Modal
+                $ip_status_badge = '<span class="badge badge-secondary">Unknown</span>';
+                if ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') {
+                    $granted_ts = strtotime(str_replace('/', '-', $raw_granted));
+                    $ip_type = strtolower(trim($row['type'] ?? ''));
+                    $duration_years = 0;
+                    $is_copyright = false;
+
+                    if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) {
+                        $duration_years = 20;
+                    } elseif (strpos($ip_type, 'industrial design') !== false) {
+                        $duration_years = 5;
+                    } elseif (strpos($ip_type, 'trademark') !== false) {
+                        $duration_years = 10;
+                    } elseif (strpos($ip_type, 'copyright') !== false) {
+                        $is_copyright = true;
+                    }
+
+                    if ($is_copyright) {
+                        $ip_status_badge = '<span class="badge badge-success"><i class="fas fa-shield-alt mr-1"></i> Valid (Lifetime)</span>';
+                    } elseif ($duration_years > 0 && $granted_ts !== false) {
+                        $expiry_ts = strtotime("+$duration_years years", $granted_ts);
+                        if (time() > $expiry_ts) {
+                            $ip_status_badge = '<span class="badge badge-danger"><i class="fas fa-times-circle mr-1"></i> Expired</span>';
+                        } else {
+                            $ip_status_badge = '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> Active / Valid</span>';
+                        }
+                    } else {
+                        $ip_status_badge = '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> Active</span>';
+                    }
+                } else {
+                    $ip_status_badge = '<span class="badge badge-warning text-dark"><i class="fas fa-hourglass-half mr-1"></i> Pending Approval</span>';
+                }
+                
+                $html .= "<tr><th>Validity Status</th><td>{$ip_status_badge}</td></tr>";
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
                 if(!empty($row['moa_file'])) $cats[] = 'Legacy MOA';
-                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'ip', $object->base_url) . "</td></tr>";
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'] ?? '', 'ip', $object->base_url) . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'paper_presentation') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_paper_files WHERE paper_id = r.id) AS file_cats FROM tbl_paperpresentation r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
+            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_paper_files WHERE paper_id = r.id) AS file_cats FROM tbl_paperpresentation r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
-                $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
+                $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
+                $html .= "<tr><th>Lead Proponent</th><td>{$lead_name}</td></tr>";
                 $html .= "<tr><th>Conference Title</th><td>{$row['conference_title']}</td></tr>";
                 $html .= "<tr><th>Conference Venue</th><td>{$row['conference_venue']}</td></tr>";
                 $html .= "<tr><th>Conference Organizer</th><td>{$row['conference_organizer']}</td></tr>";
@@ -402,10 +483,11 @@ if(isset($_POST["action"])) {
             }
         }
         elseif($type == 'trainings') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_training_files WHERE training_id = r.id) AS file_cats FROM tbl_trainingsattended r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
+            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_training_files WHERE training_id = r.id) AS file_cats FROM tbl_trainingsattended r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
-                $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
+                $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
+                $html .= "<tr><th>Lead Proponent</th><td>{$lead_name}</td></tr>";
                 $html .= "<tr><th>Type</th><td>{$row['type']}</td></tr>";
                 $html .= "<tr><th>Venue</th><td>{$row['venue']}</td></tr>";
                 $html .= "<tr><th>Date of Training</th><td>{$row['date_train']}</td></tr>";
@@ -422,10 +504,11 @@ if(isset($_POST["action"])) {
             }
         }
         elseif($type == 'extension') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_extension_files WHERE extension_id = r.id) AS file_cats FROM tbl_extension_project_conducted r JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
+            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_extension_files WHERE extension_id = r.id) AS file_cats FROM tbl_extension_project_conducted r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
-                $html .= "<tr><th>Lead Proponent</th><td>{$row['firstName']} {$row['familyName']}</td></tr>";
+                $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
+                $html .= "<tr><th>Lead Proponent</th><td>{$lead_name}</td></tr>";
                 $html .= "<tr><th>Start Date</th><td>{$row['start_date']}</td></tr>";
                 $html .= "<tr><th>Completed Date</th><td>{$row['completed_date']}</td></tr>";
                 $html .= "<tr><th>Funding Source</th><td>{$row['funding_source']}</td></tr>";
@@ -433,7 +516,6 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Target Beneficiaries</th><td>{$row['target_beneficiaries_communities']}</td></tr>";
                 $html .= "<tr><th>Partners</th><td>{$row['partners']}</td></tr>";
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['status_exct']}</span></td></tr>";
-                $html .= "<tr><th>Terminal Report</th><td>{$row['terminal_report']}</td></tr>";
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];

@@ -38,7 +38,18 @@ $object->execute();
 $publications = $object->statement_result();
 
 // UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD
-$object->query = "SELECT DISTINCT ip.* FROM tbl_itelectualprop ip LEFT JOIN tbl_ip_collaborators col ON ip.id = col.ip_id WHERE (ip.researcherID = '$researcher_id' OR col.researcher_id = '$researcher_id') AND ip.status = 1 ORDER BY ip.date_applied DESC";
+// UPDATED TO LEFT JOIN AND DYNAMIC CO-AUTHORS
+$object->query = "SELECT DISTINCT ip.*, 
+                         (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
+                          FROM tbl_ip_collaborators col2 
+                          JOIN tbl_researchdata d2 ON col2.researcher_id = d2.id 
+                          WHERE col2.ip_id = ip.id AND col2.researcher_id != '$researcher_id') AS dynamic_coauth
+                  FROM tbl_itelectualprop ip 
+                  LEFT JOIN tbl_ip_collaborators col ON ip.id = col.ip_id 
+                  WHERE (ip.researcherID = '$researcher_id' OR col.researcher_id = '$researcher_id') AND ip.status = 1 
+                  ORDER BY ip.date_applied DESC";
+$object->execute();
+$intellectual_props = $object->statement_result();
 $object->execute();
 $intellectual_props = $object->statement_result();
 
@@ -396,13 +407,55 @@ include('../../includes/header.php');
                                                     <button class="btn btn-sm btn-light text-danger delete_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-trash"></i></button>
                                                 </div>
                                                 <h6 class="font-weight-bold text-gray-800 pr-5"><?php echo htmlspecialchars($ip['title']); ?></h6>
-                                                <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Co-authors: <?php echo htmlspecialchars($ip['coauth']); ?></p>
+                                                <?php 
+                                                    // Use dynamic co-authors if available, otherwise fallback to the old text field
+                                                    $display_coauth = !empty($ip['dynamic_coauth']) ? htmlspecialchars($ip['dynamic_coauth']) : htmlspecialchars($ip['coauth']);
+                                                ?>
+                                                <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Co-authors: <?php echo !empty($display_coauth) ? $display_coauth : '<i class="text-muted font-italic">None</i>'; ?></p>
                                                 <div class="mt-3">
                                                     <span class="badge badge-warning text-dark px-2 py-1 mb-1"><i class="fas fa-certificate mr-1"></i> <?php echo htmlspecialchars($ip['type']); ?></span><br>
                                                    <?php if(!empty($ip['a_link'])): ?>
                                                         <a href="<?php echo htmlspecialchars($ip['a_link']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mb-1 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-external-link-alt mr-1"></i> View External Link</a><br>
                                                     <?php endif; ?>
-                                                    <small class="text-muted"><b>Applied:</b> <?php echo htmlspecialchars($ip['date_applied']); ?> | <b>Granted:</b> <?php echo htmlspecialchars($ip['date_granted']); ?></small>
+                                                    
+                                                    <?php
+// THE FIX: Strict Date Checker for "null" ghost strings!
+                                                    $raw_applied = isset($ip['date_applied']) ? trim($ip['date_applied']) : '';
+                                                    $applied_date = ($raw_applied !== '' && $raw_applied !== '0000-00-00' && strtolower($raw_applied) !== 'null') ? htmlspecialchars($raw_applied) : '<span class="text-muted font-italic">N/A</span>';
+
+                                                    $raw_granted = isset($ip['date_granted']) ? trim($ip['date_granted']) : '';
+                                                    $granted_date = ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') ? htmlspecialchars($raw_granted) : '<span class="badge badge-warning text-dark px-1">Pending</span>';
+                                                    
+                                                    // NEW: IP Validity Auto-Calculator for the Card
+                                                    $status_print = '';
+                                                    if ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') {
+                                                        $granted_ts = strtotime(str_replace('/', '-', $raw_granted));
+                                                        $ip_type = strtolower(trim($ip['type'] ?? ''));
+                                                        $duration_years = 0;
+                                                        $is_copyright = false;
+
+                                                        if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) { $duration_years = 20; } 
+                                                        elseif (strpos($ip_type, 'industrial design') !== false) { $duration_years = 5; } 
+                                                        elseif (strpos($ip_type, 'trademark') !== false) { $duration_years = 10; } 
+                                                        elseif (strpos($ip_type, 'copyright') !== false) { $is_copyright = true; }
+
+                                                        if ($is_copyright) {
+                                                            $status_print = ' | <b class="text-success">Status:</b> <span class="text-success font-weight-bold">Valid (Lifetime)</span>';
+                                                        } elseif ($duration_years > 0 && $granted_ts !== false) {
+                                                            $expiry_ts = strtotime("+$duration_years years", $granted_ts);
+                                                            if (time() > $expiry_ts) {
+                                                                $status_print = ' | <b class="text-danger">Status:</b> <span class="text-danger font-weight-bold">Expired</span>';
+                                                            } else {
+                                                                $status_print = ' | <b class="text-success">Status:</b> <span class="text-success font-weight-bold">Active</span>';
+                                                            }
+                                                        } else {
+                                                            $status_print = ' | <b class="text-success">Status:</b> <span class="text-success font-weight-bold">Active</span>';
+                                                        }
+                                                    }
+                                                    ?>
+                                                    <small class="text-muted d-block mt-2 pt-2 border-top">
+                                                        <b>Applied:</b> <?php echo $applied_date; ?> | <b>Granted:</b> <?php echo $granted_date; ?> <?php echo $status_print; ?>
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
