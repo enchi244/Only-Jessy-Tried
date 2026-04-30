@@ -131,7 +131,7 @@ class rms
     // UNIVERSAL FILE UPLOAD & MANAGEMENT SYSTEM
     // =========================================================================
 
-    public function handle_generic_files($files, $categories, $record_id, $upload_dir, $db_path_prefix, $file_table, $fk_column) {
+    public function handle_generic_files($files, $categories, $entity_id, $upload_dir, $db_path_prefix, $entity_type) {
         if(isset($files['name']) && is_array($files['name'])) {
             if (!file_exists($upload_dir)) { mkdir($upload_dir, 0755, true); }
             
@@ -148,10 +148,10 @@ class rms
                     
                     if(move_uploaded_file($files['tmp_name'][$index], $target_file)) {
                         $fname = addslashes(basename($original_name));
-                        $rid = intval($record_id);
+                        $eid = intval($entity_id);
                         
-                        $this->query = "INSERT INTO $file_table ($fk_column, file_category, file_name, file_path) 
-                                        VALUES ('$rid', '$category', '$fname', '$db_path')";
+                        $this->query = "INSERT INTO tbl_rde_files (entity_type, entity_id, file_category, file_name, file_path) 
+                                        VALUES ('$entity_type', '$eid', '$category', '$fname', '$db_path')";
                         $this->execute();
                     }
                 }
@@ -159,48 +159,127 @@ class rms
         }
     }
 
-    public function update_generic_has_files($record_id, $parent_table, $file_table, $fk_column) {
-        $rid = intval($record_id);
-        
-        $this->query = "SELECT COUNT(*) as file_count FROM $file_table WHERE $fk_column = '$rid'";
-        $this->execute();
-        $result = $this->get_result();
-        
-        $file_count = 0;
-        foreach($result as $row) { $file_count = $row['file_count']; }
-        
-        $status = ($file_count > 0) ? 'With' : 'None';
-        
-        $this->query = "UPDATE $parent_table SET has_files = '$status' WHERE id = '$rid'";
-        $this->execute();
-    }
-
-    public function delete_generic_file($file_id, $file_table, $parent_table, $fk_column, $physical_path_prefix) {
+    public function delete_generic_file($file_id, $physical_path_prefix) {
         $fid = intval($file_id);
-        $this->query = "SELECT $fk_column, file_path FROM $file_table WHERE id = '$fid'";
+        $this->query = "SELECT file_path FROM tbl_rde_files WHERE id = '$fid'";
         $file_data = $this->get_result();
         
         $file_deleted = false;
-        $record_id = null;
         
         foreach($file_data as $row) {
             $file_deleted = true;
-            $record_id = $row[$fk_column];
-            
             $physical_path = $physical_path_prefix . $row['file_path'];
             if(file_exists($physical_path)) { unlink($physical_path); }
         }
         
         if($file_deleted) {
-            $this->query = "DELETE FROM $file_table WHERE id = '$fid'";
+            $this->query = "DELETE FROM tbl_rde_files WHERE id = '$fid'";
             $this->execute();
-            
-            if ($record_id) {
-                $this->update_generic_has_files($record_id, $parent_table, $file_table, $fk_column);
-            }
             return true;
         }
         return false;
+    }
+
+    public function uploadCoverPhoto($fileArray, $physical_upload_dir, $db_path_prefix) {
+        if (!isset($fileArray['error']) || is_array($fileArray['error']) || $fileArray['error'] !== UPLOAD_ERR_OK) {
+            return false;
+        }
+
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($fileArray['tmp_name']);
+
+        if (!in_array($mimeType, $allowedMimeTypes)) {
+            return false; 
+        }
+
+        if (!file_exists($physical_upload_dir)) { 
+            mkdir($physical_upload_dir, 0755, true); 
+        }
+
+        $extension = pathinfo($fileArray['name'], PATHINFO_EXTENSION);
+        $newFileName = uniqid('cover_', true) . '.' . $extension;
+        $destination = rtrim($physical_upload_dir, '/') . '/' . $newFileName;
+
+        if (move_uploaded_file($fileArray['tmp_name'], $destination)) {
+            return rtrim($db_path_prefix, '/') . '/' . $newFileName; 
+        }
+
+        return false;
+    }
+
+    public function update_generic_has_files($record_id, $parent_table, $file_table, $fk_column) {
+        // Deprecated: has_files column was removed in Phase 1.
+        // Keeping this empty function here prevents fatal errors on unpatched modules.
+        return true;
+    }
+
+    public function getRdeDisplayData($pdo, $tableName, $itemType, $dateColumn = 'id') {
+        $excludeIds = [];
+        $defaultImage = 'img/default_research_cover.png'; // Your default fallback image
+
+        // 1. Get Top 1 and Next 3 Trending based on views
+        $popularSql = "SELECT t.*, COUNT(v.id) as view_count 
+                       FROM {$tableName} t 
+                       LEFT JOIN tbl_rde_views v ON t.id = v.item_id AND v.item_type = :item_type 
+                       WHERE t.status = 1
+                       GROUP BY t.id 
+                       ORDER BY view_count DESC, t.id DESC 
+                       LIMIT 4";
+                       
+        $stmt = $pdo->prepare($popularSql);
+        $stmt->execute(['item_type' => $itemType]);
+        $popularItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $topItem = [];
+        $trendingItems = [];
+
+        if (!empty($popularItems)) {
+            $topItem[] = array_shift($popularItems); // Grabs the #1 item
+            $trendingItems = $popularItems;          // Grabs the #2, #3, #4 items
+            
+            // Save these IDs so we don't duplicate them in the "Newest" section
+            $excludeIds[] = $topItem[0]['id'];
+            foreach ($trendingItems as $trend) {
+                $excludeIds[] = $trend['id'];
+            }
+        }
+
+        // 2. Get the Newest items, excluding the ones we already grabbed above
+        $newSql = "SELECT * FROM {$tableName} WHERE status = 1";
+        $params = [];
+
+        if (!empty($excludeIds)) {
+            $placeholders = implode(',', array_fill(0, count($excludeIds), '?'));
+            $newSql .= " AND id NOT IN ($placeholders)";
+            $params = $excludeIds;
+        }
+
+        $newSql .= " ORDER BY {$dateColumn} DESC";
+        
+        $stmtNew = $pdo->prepare($newSql);
+        $stmtNew->execute($params);
+        $newItems = $stmtNew->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. APPLY DEFAULT IMAGES: Loop through all arrays and ensure cover_photo is never empty
+        if (!empty($topItem[0]) && empty($topItem[0]['cover_photo'])) {
+            $topItem[0]['cover_photo'] = $defaultImage;
+        }
+        
+        foreach ($trendingItems as $key => $item) {
+            if (empty($item['cover_photo'])) $trendingItems[$key]['cover_photo'] = $defaultImage;
+        }
+        
+        foreach ($newItems as $key => $item) {
+            if (empty($item['cover_photo'])) $newItems[$key]['cover_photo'] = $defaultImage;
+        }
+
+        // Return the perfectly formatted data
+        return [
+            'top' => $topItem,
+            'trending' => $trendingItems,
+            'new' => $newItems
+        ];
     }
 
     // =========================================================================

@@ -54,6 +54,57 @@ function build_url($new_tab, $search, $college, $year, $page_num = 1) {
     return "?tab=$new_tab&search=" . urlencode($search) . "&college=" . urlencode($college) . "&year=" . urlencode($year) . "&page=$page_num";
 }
 
+// Helper function to generate the unique "Drawer" details for each card based on the tab
+function getDrawerHtml($tab, $row, $object) {
+    $html = '<div class="card-details-drawer"><div class="drawer-grid">';
+    
+    if ($tab == 'research') {
+        $object->query = "SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') as co_authors FROM tbl_research_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.research_id = '".$row['id']."' AND col.researcher_id != '".$row['researcherID']."'";
+        $object->execute();
+        $co_res = $object->statement->fetch(PDO::FETCH_ASSOC);
+        $co_authors = !empty($co_res['co_authors']) ? $co_res['co_authors'] : 'None';
+        $html .= '<div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> '.htmlspecialchars($co_authors).'</div>';
+        $html .= '<div><i class="fas fa-bullseye text-success"></i> <strong>SDGs:</strong> '.htmlspecialchars($row['sdgs'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-layer-group text-info"></i> <strong>Cluster:</strong> '.htmlspecialchars($row['research_agenda_cluster'] ?? 'N/A').'</div>';
+    } 
+    elseif ($tab == 'publication') {
+        $object->query = "SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') as co_authors FROM tbl_publication_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.publication_id = '".$row['id']."' AND col.researcher_id != '".$row['researcherID']."'";
+        $object->execute();
+        $co_res = $object->statement->fetch(PDO::FETCH_ASSOC);
+        $co_authors = !empty($co_res['co_authors']) ? $co_res['co_authors'] : 'None';
+        $html .= '<div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> '.htmlspecialchars($co_authors).'</div>';
+        $html .= '<div class="full-width"><i class="fas fa-book-open text-danger"></i> <strong>Journal:</strong> '.htmlspecialchars($row['journal'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-barcode text-secondary"></i> <strong>ISSN/ISBN:</strong> '.htmlspecialchars($row['issn_isbn'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-hashtag text-info"></i> <strong>Vol/Issue:</strong> '.htmlspecialchars($row['vol_num_issue_num'] ?? 'N/A').'</div>';
+    } 
+    elseif ($tab == 'ip') {
+        $html .= '<div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> '.htmlspecialchars($row['coauth'] ?? 'None').'</div>';
+        $html .= '<div><i class="far fa-calendar-check text-success"></i> <strong>Granted:</strong> '.htmlspecialchars($row['date_granted'] ?? 'Pending').'</div>';
+    } 
+    elseif ($tab == 'pp') {
+        $html .= '<div class="full-width"><i class="fas fa-building text-primary"></i> <strong>Organizer:</strong> '.htmlspecialchars($row['conference_organizer'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-map-marker-alt text-danger"></i> <strong>Venue:</strong> '.htmlspecialchars($row['conference_venue'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-globe text-info"></i> <strong>Level:</strong> '.htmlspecialchars($row['conference_title'] ?? 'N/A').'</div>';
+    } 
+    elseif ($tab == 'trainings') {
+        $html .= '<div class="full-width"><i class="fas fa-building text-primary"></i> <strong>Sponsor:</strong> '.htmlspecialchars($row['sponsor_org'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-map-marker-alt text-danger"></i> <strong>Venue:</strong> '.htmlspecialchars($row['venue'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-clock text-warning"></i> <strong>Hours:</strong> '.htmlspecialchars($row['totnh'] ?? '0').'</div>';
+    } 
+    elseif ($tab == 'epc') {
+        $html .= '<div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Beneficiaries:</strong> '.htmlspecialchars($row['target_beneficiaries_communities'] ?? 'N/A').'</div>';
+        $html .= '<div class="full-width"><i class="fas fa-handshake text-info"></i> <strong>Partners:</strong> '.htmlspecialchars($row['partners'] ?? 'None').'</div>';
+    } 
+    elseif ($tab == 'ext') {
+        $html .= '<div class="full-width"><i class="fas fa-info-circle text-primary"></i> <strong>Description:</strong> '.htmlspecialchars($row['description'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-user-tie text-info"></i> <strong>Lead:</strong> '.htmlspecialchars($row['proj_lead'] ?? 'N/A').'</div>';
+        $html .= '<div><i class="fas fa-users text-warning"></i> <strong>Assist:</strong> '.htmlspecialchars($row['assist_coordinators'] ?? 'None').'</div>';
+    }
+    
+    $html .= '</div></div>';
+    return $html;
+}
+
 // 2. Fetch Colleges for the Dropdown
 $object->query = "SELECT category_name FROM product_category_table WHERE category_status = 'Enable' ORDER BY category_name ASC";
 $object->execute();
@@ -62,50 +113,33 @@ $colleges_list = $object->statement_result();
 // 3. Determine Table and Columns based on Tab
 $table = "";
 $date_column = "";
-$type_column = ""; 
 
 if ($tab == 'research') {
     $table = "tbl_researchconducted";
     $date_column = "completed_date";
-    $type_column = "stat";
 } elseif ($tab == 'publication') {
     $table = "tbl_publication";
     $date_column = "publication_date";
-    $type_column = "indexing"; 
 } elseif ($tab == 'ip') {
     $table = "tbl_itelectualprop";
     $date_column = "date_applied";
-    $type_column = "type";
-} elseif ($tab == 'policy') {  
-    $table = "tbl_research_policy";
-    $date_column = "date_implemented";
-    $type_column = ""; 
 } elseif ($tab == 'trainings') {
     $table = "tbl_trainingsattended";
     $date_column = "date_train";
-    $type_column = "lvl";
 } elseif ($tab == 'pp') {
     $table = "tbl_paperpresentation";
     $date_column = "date_paper";
-    $type_column = "type_pp";
 } elseif ($tab == 'epc') {
     $table = "tbl_extension_project_conducted";
     $date_column = "start_date";
-    $type_column = "status_exct";
 } elseif ($tab == 'ext') {
     $table = "tbl_ext";
     $date_column = "period_implement";
-    $type_column = "stat";
 }
 
 // 4. Build the Database Query Filters
-$where = " WHERE rd.status = 1 "; 
+$where = " WHERE rd.status = 1 AND main.status = 1 "; 
 $params = [];
-
-$tables_with_status = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_research_policy', 'tbl_extension_project_conducted', 'tbl_ext'];
-if (in_array($table, $tables_with_status)) {
-    $where .= " AND main.status = 1 ";
-}
 
 if ($search != '') {
     $where .= " AND (main.title LIKE :search OR rd.familyName LIKE :search OR rd.firstName LIKE :search) ";
@@ -123,7 +157,6 @@ if ($year != 'all' && $date_column != "") {
 }
 
 // Initialize variables
-$results = [];
 $featured_item = null;
 $trending_items = [];
 $grid_items = [];
@@ -131,93 +164,81 @@ $current_page_count = 0;
 $total_pages = 0;
 $total_results = 0;
 
-// 5. Fetch Data Logic
-if ($tab !== 'hub') {
+// 5. Fetch Data Logic (Applied natively to ALL tabs)
+// 5. Fetch Data Logic (Applied natively to ALL tabs)
+if ($tab !== 'hub' && $table !== '') {
     
-    // Custom Logic for 'Research' tab to handle actual View Counts
-    if ($tab === 'research') {
-        
-        // 5a. Fetch Top Viewed (All-time)
-        $top_query = "SELECT main.*, rd.firstName, rd.familyName, rd.department, 
-                      (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research') as total_views
-                      FROM tbl_researchconducted main 
-                      LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
-                      $where 
-                      ORDER BY total_views DESC LIMIT 1";
-        $object->query = $top_query;
-        $object->execute($params);
-        if ($object->row_count() > 0) {
-            $featured_item = $object->statement->fetch(PDO::FETCH_ASSOC);
-        }
-        $exclude_ids = [];
-        if ($featured_item) $exclude_ids[] = $featured_item['id'];
-
-        // 5b. Fetch Trending (Last 7 Days)
-        $exclude_str = !empty($exclude_ids) ? "AND main.id NOT IN (" . implode(',', $exclude_ids) . ")" : "";
-        $trend_query = "SELECT main.*, rd.firstName, rd.familyName, rd.department, 
-                        (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research' AND v.viewed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as recent_views,
-                        (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research') as total_views
-                        FROM tbl_researchconducted main 
-                        LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
-                        $where $exclude_str
-                        ORDER BY recent_views DESC LIMIT 3";
-        $object->query = $trend_query;
-        $object->execute($params);
-        $trending_items = $object->statement_result();
-
-        foreach($trending_items as $t) {
-            $exclude_ids[] = $t['id'];
-        }
-
-        // 5c. Fetch the Main Grid (Excluding Top and Trending to prevent duplicates)
-        $exclude_str_final = !empty($exclude_ids) ? "AND main.id NOT IN (" . implode(',', $exclude_ids) . ")" : "";
-        $grid_where = $where . " " . $exclude_str_final;
-
-        // Pagination for Grid
-        $object->query = "SELECT COUNT(main.id) as total_rows FROM tbl_researchconducted main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $grid_where";
-        $object->execute($params);
-        $count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
-        $total_results = $count_result['total_rows'];
-        $total_pages = ceil($total_results / $limit);
-
-        if ($page > $total_pages && $total_pages > 0) {
-            $page = $total_pages;
-            $offset = ($page - 1) * $limit;
-        }
-
-        // Updated Main Grid Query to include total_views
-        $object->query = "SELECT main.*, rd.firstName, rd.familyName, rd.department,
-                          (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = 'research') as total_views
-                          FROM tbl_researchconducted main 
-                          LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
-                          $grid_where 
-                          ORDER BY main.id DESC LIMIT $limit OFFSET $offset";
-        $object->execute($params);
-        $grid_items = $object->statement_result();
-        $current_page_count = count($grid_items) + ($page == 1 ? count($trending_items) + ($featured_item ? 1 : 0) : 0);
-
-    } else {
-        // Standard Pagination Logic for other tabs
-        $object->query = "SELECT COUNT(main.id) as total_rows FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where";
-        $object->execute($params);
-        $count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
-        $total_results = $count_result['total_rows'];
-        $total_pages = ceil($total_results / $limit);
-
-        if ($page > $total_pages && $total_pages > 0) {
-            $page = $total_pages;
-            $offset = ($page - 1) * $limit;
-        }
-
-        // Updated other tabs query to include total_views dynamically based on $tab
-        $object->query = "SELECT main.*, rd.firstName, rd.familyName, rd.department,
-                          (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = '$tab') as total_views
-                          FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $where ORDER BY main.id DESC LIMIT $limit OFFSET $offset";
-        $object->execute($params);
-        $results = $object->statement_result();
-        $grid_items = $results; // Make it compatible with grid
-        $current_page_count = $object->row_count();
+    // 5a. Fetch Top Viewed (All-time)
+    $top_query = "SELECT main.*, rd.firstName, rd.familyName, rd.department, 
+                  (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = :tab_type1) as total_views
+                  FROM $table main 
+                  LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
+                  $where 
+                  ORDER BY total_views DESC LIMIT 1";
+    
+    $object->query = $top_query;
+    $top_params = $params; // Clone the base filters (search, college, year)
+    $top_params[':tab_type1'] = $tab;
+    $object->execute($top_params);
+    
+    if ($object->row_count() > 0) {
+        $featured_item = $object->statement->fetch(PDO::FETCH_ASSOC);
     }
+    
+    $exclude_ids = [];
+    if ($featured_item) $exclude_ids[] = $featured_item['id'];
+
+    // 5b. Fetch Trending (Last 7 Days)
+    $exclude_str = !empty($exclude_ids) ? "AND main.id NOT IN (" . implode(',', $exclude_ids) . ")" : "";
+    $trend_query = "SELECT main.*, rd.firstName, rd.familyName, rd.department, 
+                    (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = :tab_type2 AND v.viewed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as recent_views,
+                    (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = :tab_type3) as total_views
+                    FROM $table main 
+                    LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
+                    $where $exclude_str
+                    ORDER BY recent_views DESC, total_views DESC LIMIT 3";
+                    
+    $object->query = $trend_query;
+    $trend_params = $params; // Clone the base filters again
+    $trend_params[':tab_type2'] = $tab;
+    $trend_params[':tab_type3'] = $tab;
+    $object->execute($trend_params);
+    $trending_items = $object->statement_result();
+
+    foreach($trending_items as $t) {
+        $exclude_ids[] = $t['id'];
+    }
+
+    // 5c. Fetch the Main Grid (Excluding Top and Trending to prevent duplicates)
+    $exclude_str_final = !empty($exclude_ids) ? "AND main.id NOT IN (" . implode(',', $exclude_ids) . ")" : "";
+    
+    $grid_where = $where . " " . $exclude_str_final;
+
+    // Pagination for Grid
+    $object->query = "SELECT COUNT(main.id) as total_rows FROM $table main LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id $grid_where";
+    $object->execute($params); // Safe: $params only contains search, college, and year
+    $count_result = $object->statement->fetch(PDO::FETCH_ASSOC);
+    $total_results = $count_result['total_rows'];
+    $total_pages = ceil($total_results / $limit);
+
+    if ($page > $total_pages && $total_pages > 0) {
+        $page = $total_pages;
+        $offset = ($page - 1) * $limit;
+    }
+
+    $grid_params = $params; // Clone one last time
+    $grid_params[':tab_type4'] = $tab;
+    
+    $object->query = "SELECT main.*, rd.firstName, rd.familyName, rd.department,
+                      (SELECT COUNT(*) FROM tbl_rde_views v WHERE v.item_id = main.id AND v.item_type = :tab_type4) as total_views
+                      FROM $table main 
+                      LEFT JOIN tbl_researchdata rd ON main.researcherID = rd.id 
+                      $grid_where 
+                      ORDER BY main.id DESC LIMIT $limit OFFSET $offset";
+    $object->execute($grid_params);
+    $grid_items = $object->statement_result();
+    
+    $current_page_count = count($grid_items) + ($page == 1 ? count($trending_items) + ($featured_item ? 1 : 0) : 0);
 }
 ?>
 
@@ -387,256 +408,104 @@ if ($tab !== 'hub') {
 
                     <?php if($current_page_count > 0): ?>
                         
-                        <?php if ($tab === 'research'): ?>
-                            
-                            <?php if ($page == 1 && ($featured_item || !empty($trending_items))): ?>
-                            <div class="research-blog-top">
-                                <?php if($featured_item): $row = $featured_item; ?>
-                                    <div class="featured-research-post data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="research">
+                        <!-- 1. TOP VIEWED LOGIC -->
+                        <?php if ($page == 1 && ($featured_item || !empty($trending_items))): ?>
+                        <div class="research-blog-top">
+                            <?php if($featured_item): $row = $featured_item; ?>
+                                <div class="featured-research-post data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $tab; ?>" <?php if($tab == 'publication' && !empty($row['abstract'])) echo 'data-abstract="'.htmlspecialchars($row['abstract']).'"'; ?>>
+                                    
+                                    <?php 
+                                        $db_cover = trim($row['cover_photo'] ?? '');
+                                        $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : $DEFAULT_COVER; 
+                                    ?>
+                                    <div class="post-image-large" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;">
+                                        <div class="card-badge"><i class="fas fa-fire"></i> Top Viewed</div>
+                                    </div>
+                                    
+                                    <div class="post-content">
+                                        <h2 style="font-size: 2rem; font-family: 'Playfair Display', serif; color: var(--dark-bg); margin-bottom: 15px; line-height: 1.2;">
+                                            <?php echo htmlspecialchars($row['title']); ?>
+                                        </h2>
                                         
-                                        <?php 
-                                            $db_cover = trim($row['cover_photo'] ?? '');
-                                            $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : 'img/default_research_cover.png'; 
-                                        ?>
-                                        <div class="post-image-large" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;">
-                                            <div class="card-badge"><i class="fas fa-fire"></i> Top Viewed</div>
-                                        </div>
+                                        <p class="author-line" style="font-size: 1.1rem; margin-bottom: 15px;">
+                                            <i class="fas fa-user-circle text-primary"></i> <strong>Author/Lead:</strong> <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
+                                        </p>
                                         
-                                        <div class="post-content">
-                                            <h2 style="font-size: 2rem; font-family: 'Playfair Display', serif; color: var(--dark-bg); margin-bottom: 15px; line-height: 1.2;">
-                                                <?php echo htmlspecialchars($row['title']); ?>
-                                            </h2>
-                                            
-                                            <p class="author-line" style="font-size: 1.1rem; margin-bottom: 15px;">
-                                                <i class="fas fa-user-circle text-primary"></i> <strong>Author/Lead:</strong> <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
-                                            </p>
-                                            
-                                            <div class="card-details-drawer">
-                                                <?php
-                                                $object->query = "SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') as co_authors FROM tbl_research_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.research_id = '".$row['id']."' AND col.researcher_id != '".$row['researcherID']."'";
-                                                $object->execute();
-                                                $co_res = $object->statement->fetch(PDO::FETCH_ASSOC);
-                                                $co_authors = !empty($co_res['co_authors']) ? $co_res['co_authors'] : 'None';
-                                                ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> <?php echo htmlspecialchars($co_authors); ?></div>
-                                                    <div><i class="fas fa-bullseye text-success"></i> <strong>SDGs:</strong> <?php echo htmlspecialchars($row['sdgs'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-layer-group text-info"></i> <strong>Cluster:</strong> <?php echo htmlspecialchars($row['research_agenda_cluster'] ?? 'N/A'); ?></div>
-                                                </div>
-                                            </div>
+                                        <!-- Call the dynamic drawer function -->
+                                        <?php echo getDrawerHtml($tab, $row, $object); ?>
 
-                                            <div class="card-footer" style="margin-top: auto;">
-                                                <span class="college-tag"><i class="fas fa-university mr-1 text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
-                                                <div>
-                                                    <span class="date-tag mr-2"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? htmlspecialchars($row['completed_date']) : 'N/A'; ?></span>
-                                                    <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?> views</span>
-                                                </div>
+                                        <div class="card-footer" style="margin-top: auto;">
+                                            <span class="college-tag"><i class="fas fa-university mr-1 text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
+                                            <div>
+                                                <span class="date-tag mr-2"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row[$date_column]) ? htmlspecialchars($row[$date_column]) : 'N/A'; ?></span>
+                                                <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?> views</span>
                                             </div>
                                         </div>
                                     </div>
-                                <?php endif; ?>
-
-                                <?php if(!empty($trending_items)): ?>
-                                    <div class="trending-research-list">
-                                        <h4 class="trending-header">Also Trending <span style="font-size: 0.8rem; font-weight: normal; float:right; margin-top:5px;">(Last 7 Days)</span></h4>
-                                        <?php foreach($trending_items as $row): ?>
-                                            <div class="trending-card data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="research">
-                                                
-                                                <?php 
-                                                    $db_cover = trim($row['cover_photo'] ?? '');
-                                                    $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : 'img/default_research_cover.png'; 
-                                                ?>
-                                                <div class="trending-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>                                                
-                                                <div class="trending-content">
-                                                    <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                                                    <p class="author-line" style="font-size: 0.85rem; margin-bottom: 10px;">
-                                                        <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
-                                                    </p>
-                                                    
-                                                    <div class="card-details-drawer">
-                                                        <div class="drawer-grid">
-                                                            <div class="full-width"><i class="fas fa-layer-group text-info"></i> <strong>Cluster:</strong> <?php echo htmlspecialchars($row['research_agenda_cluster'] ?? 'N/A'); ?></div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="card-footer" style="padding-top: 5px; margin-top: 0; align-items: center;">
-                                                        <span class="college-tag" style="background: transparent; padding: 0;"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department']); ?></span>
-                                                        <span class="view-tag" style="font-size: 0.8rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+                                </div>
                             <?php endif; ?>
 
-                            <?php if(!empty($grid_items)): ?>
-                                <div class="db-results-grid">
-                                    <?php foreach($grid_items as $row): ?>
-                                        <div class="hero-card data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="research">
+                            <!-- 2. TRENDING ITEMS LOGIC -->
+                            <?php if(!empty($trending_items)): ?>
+                                <div class="trending-research-list">
+                                    <h4 class="trending-header">Also Trending <span style="font-size: 0.8rem; font-weight: normal; float:right; margin-top:5px;">(Last 7 Days)</span></h4>
+                                    <?php foreach($trending_items as $row): ?>
+                                        <div class="trending-card data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $tab; ?>" <?php if($tab == 'publication' && !empty($row['abstract'])) echo 'data-abstract="'.htmlspecialchars($row['abstract']).'"'; ?>>
                                             
                                             <?php 
                                                 $db_cover = trim($row['cover_photo'] ?? '');
-                                                $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : 'img/default_research_cover.png'; 
+                                                $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : $DEFAULT_COVER; 
                                             ?>
-                                            <div class="hero-card-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>                                            
-                                            <div class="hero-card-content">
+                                            <div class="trending-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>                                                
+                                            <div class="trending-content">
                                                 <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                                                <p class="author-line">
-                                                    <strong>Author:</strong> <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
+                                                <p class="author-line" style="font-size: 0.85rem; margin-bottom: 10px;">
+                                                    <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
                                                 </p>
                                                 
-                                                <div class="card-details-drawer">
-                                                    <div class="drawer-grid">
-                                                        <div><i class="fas fa-bullseye text-success"></i> <strong>SDGs:</strong> <?php echo htmlspecialchars($row['sdgs'] ?? 'N/A'); ?></div>
-                                                        <div class="full-width"><i class="fas fa-layer-group text-info"></i> <strong>Cluster:</strong> <?php echo htmlspecialchars($row['research_agenda_cluster'] ?? 'N/A'); ?></div>
-                                                    </div>
-                                                </div>
+                                                <?php echo getDrawerHtml($tab, $row, $object); ?>
 
-                                                <div class="card-footer" style="align-items: center;">
-                                                    <span class="college-tag"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department']); ?></span>
-                                                    <div style="display:flex; align-items: center; gap: 10px;">
-                                                        <span class="date-tag"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row['completed_date']) ? htmlspecialchars($row['completed_date']) : 'N/A'; ?></span>
-                                                        <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
-                                                    </div>
+                                                <div class="card-footer" style="padding-top: 5px; margin-top: 0; align-items: center;">
+                                                    <span class="college-tag" style="background: transparent; padding: 0;"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
+                                                    <span class="view-tag" style="font-size: 0.8rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
                                                 </div>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
 
-                        <?php else: ?>
+                        <!-- 3. NEWEST (MAIN GRID) LOGIC -->
+                        <?php if(!empty($grid_items)): ?>
                             <div class="db-results-grid">
-                                <?php foreach($results as $row): ?>
-                                    <div class="data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $tab; ?>" <?php if($tab == 'publication' && !empty($row['abstract'])) echo 'data-abstract="'.htmlspecialchars($row['abstract']).'"'; ?>>
-                                        <?php if(!empty($row[$type_column])): ?>
-                                            <div class="card-badge"><?php echo htmlspecialchars($row[$type_column]); ?></div>
-                                        <?php endif; ?>
+                                <?php foreach($grid_items as $row): ?>
+                                    <div class="hero-card data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $tab; ?>" <?php if($tab == 'publication' && !empty($row['abstract'])) echo 'data-abstract="'.htmlspecialchars($row['abstract']).'"'; ?>>
                                         
-                                        <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                                        
-                                        <p class="author-line">
-                                            <strong>Author/Lead:</strong> <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
-                                        </p>
-                                        
-                                        <div class="card-details-drawer">
-                                            <?php if($tab == 'publication'): ?>
-                                                <?php
-                                                $object->query = "SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') as co_authors FROM tbl_publication_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.publication_id = '".$row['id']."' AND col.researcher_id != '".$row['researcherID']."'";
-                                                $object->execute();
-                                                $co_res = $object->statement->fetch(PDO::FETCH_ASSOC);
-                                                $co_authors = !empty($co_res['co_authors']) ? $co_res['co_authors'] : 'None';
-                                                ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> <?php echo htmlspecialchars($co_authors); ?></div>
-                                                    <div class="full-width"><i class="fas fa-book-open text-danger"></i> <strong>Journal:</strong> <?php echo htmlspecialchars($row['journal'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-barcode text-secondary"></i> <strong>ISSN/ISBN:</strong> <?php echo htmlspecialchars($row['issn_isbn'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-hashtag text-info"></i> <strong>Vol/Issue:</strong> <?php echo htmlspecialchars($row['vol_num_issue_num'] ?? 'N/A'); ?></div>
-                                                </div>
+                                        <?php 
+                                            $db_cover = trim($row['cover_photo'] ?? '');
+                                            $cover_img = !empty($db_cover) ? htmlspecialchars($db_cover) : $DEFAULT_COVER; 
+                                        ?>
+                                        <div class="hero-card-image" style="background-image: url('<?php echo $cover_img; ?>'); background-size: cover; background-position: center;"></div>                                            
+                                        <div class="hero-card-content">
+                                            <h3><?php echo htmlspecialchars($row['title']); ?></h3>
+                                            <p class="author-line">
+                                                <strong>Author:</strong> <?php echo htmlspecialchars($row['firstName'] . ' ' . $row['familyName']); ?>
+                                            </p>
+                                            
+                                            <?php echo getDrawerHtml($tab, $row, $object); ?>
 
-                                            <?php elseif($tab == 'ip'): ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Co-Authors:</strong> <?php echo htmlspecialchars($row['coauth'] ?? 'None'); ?></div>
-                                                    <div><i class="far fa-calendar-check text-success"></i> <strong>Granted:</strong> <?php echo htmlspecialchars($row['date_granted'] ?? 'Pending'); ?></div>
+                                            <div class="card-footer" style="align-items: center;">
+                                                <span class="college-tag"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
+                                                <div style="display:flex; align-items: center; gap: 10px;">
+                                                    <span class="date-tag"><i class="far fa-calendar-alt mr-1"></i> <?php echo !empty($row[$date_column]) ? htmlspecialchars($row[$date_column]) : 'N/A'; ?></span>
+                                                    <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
                                                 </div>
-
-                                            <?php elseif($tab == 'policy'): ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-align-left text-primary"></i> <strong>Abstract:</strong> <?php echo htmlspecialchars($row['abstract'] ?? 'N/A'); ?></div>
-                                                    <div class="full-width"><i class="fas fa-info-circle text-info"></i> <strong>Description:</strong> <?php echo htmlspecialchars($row['description'] ?? 'N/A'); ?></div>
-                                                </div>
-
-                                            <?php elseif($tab == 'pp'): ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-building text-primary"></i> <strong>Organizer:</strong> <?php echo htmlspecialchars($row['conference_organizer'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-map-marker-alt text-danger"></i> <strong>Venue:</strong> <?php echo htmlspecialchars($row['conference_venue'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-globe text-info"></i> <strong>Level:</strong> <?php echo htmlspecialchars($row['conference_title'] ?? 'N/A'); ?></div>
-                                                </div>
-
-                                            <?php elseif($tab == 'trainings'): ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-building text-primary"></i> <strong>Sponsor:</strong> <?php echo htmlspecialchars($row['sponsor_org'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-map-marker-alt text-danger"></i> <strong>Venue:</strong> <?php echo htmlspecialchars($row['venue'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-clock text-warning"></i> <strong>Hours:</strong> <?php echo htmlspecialchars($row['totnh'] ?? '0'); ?></div>
-                                                </div>
-
-                                            <?php elseif($tab == 'epc'): ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-users text-primary"></i> <strong>Beneficiaries:</strong> <?php echo htmlspecialchars($row['target_beneficiaries_communities'] ?? 'N/A'); ?></div>
-                                                    <div class="full-width"><i class="fas fa-handshake text-info"></i> <strong>Partners:</strong> <?php echo htmlspecialchars($row['partners'] ?? 'None'); ?></div>
-                                                </div>
-
-                                            <?php elseif($tab == 'ext'): ?>
-                                                <div class="drawer-grid">
-                                                    <div class="full-width"><i class="fas fa-info-circle text-primary"></i> <strong>Description:</strong> <?php echo htmlspecialchars($row['description'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-user-tie text-info"></i> <strong>Lead:</strong> <?php echo htmlspecialchars($row['proj_lead'] ?? 'N/A'); ?></div>
-                                                    <div><i class="fas fa-users text-warning"></i> <strong>Assist:</strong> <?php echo htmlspecialchars($row['assist_coordinators'] ?? 'None'); ?></div>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-
-                                        <div class="card-footer" style="align-items: center;">
-                                            <span class="college-tag">
-                                                <i class="fas fa-university mr-1 text-primary"></i>
-                                                <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?>
-                                            </span>
-                                            <div style="display:flex; align-items: center; gap: 10px;">
-                                                <span class="date-tag">
-                                                    <i class="far fa-calendar-alt mr-1"></i>
-                                                    <?php 
-                                                    $date_val = $row[$date_column] ?? '';
-                                                    echo (!empty($date_val)) ? htmlspecialchars($date_val) : 'N/A'; 
-                                                    ?>
-                                                </span>
-                                                <span class="view-tag" style="font-size: 0.85rem; color: #666; font-weight: 600;"><i class="fas fa-eye mr-1"></i> <?php echo $row['total_views'] ?? 0; ?></span>
                                             </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
-                            </div> <?php endif; ?> 
-                            
-                        <?php if($total_pages > 1): ?>
-                            <div class="pagination-container">
-                                
-                                <?php if($page > 1): ?>
-                                    <a href="<?php echo build_url($tab, $search, $college, $year, $page - 1); ?>" class="page-btn page-btn-outline">&laquo; Prev</a>
-                                <?php endif; ?>
-
-                                <?php 
-                                $max_links = 10;
-                                $start_page = max(1, $page - floor($max_links / 2));
-                                $end_page = $start_page + $max_links - 1;
-
-                                if ($end_page > $total_pages) {
-                                    $end_page = $total_pages;
-                                    $start_page = max(1, $end_page - $max_links + 1);
-                                }
-                                ?>
-
-                                <?php if($start_page > 1): ?>
-                                    <a href="<?php echo build_url($tab, $search, $college, $year, 1); ?>" class="page-btn page-btn-outline">1</a>
-                                    <?php if($start_page > 2): ?>
-                                        <span class="page-btn-dots">...</span>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-
-                                <?php for($i = $start_page; $i <= $end_page; $i++): ?>
-                                    <a href="<?php echo build_url($tab, $search, $college, $year, $i); ?>" class="page-btn <?php echo ($i == $page) ? 'page-btn-active' : 'page-btn-outline'; ?>"><?php echo $i; ?></a>
-                                <?php endfor; ?>
-
-                                <?php if($end_page < $total_pages): ?>
-                                    <?php if($end_page < $total_pages - 1): ?>
-                                        <span class="page-btn-dots">...</span>
-                                    <?php endif; ?>
-                                    <a href="<?php echo build_url($tab, $search, $college, $year, $total_pages); ?>" class="page-btn page-btn-outline"><?php echo $total_pages; ?></a>
-                                <?php endif; ?>
-
-                                <?php if($page < $total_pages): ?>
-                                    <a href="<?php echo build_url($tab, $search, $college, $year, $page + 1); ?>" class="page-btn page-btn-outline">Next &raquo;</a>
-                                <?php endif; ?>
-                                
                             </div>
                         <?php endif; ?>
 
@@ -644,6 +513,49 @@ if ($tab !== 'hub') {
                         <div class="data-card">
                             <h3>No Results Found</h3>
                             <p>We couldn't find any records matching your search and filters. Please try adjusting them.</p>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if($total_pages > 1): ?>
+                        <div class="pagination-container">
+                            
+                            <?php if($page > 1): ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, $page - 1); ?>" class="page-btn page-btn-outline">&laquo; Prev</a>
+                            <?php endif; ?>
+
+                            <?php 
+                            $max_links = 10;
+                            $start_page = max(1, $page - floor($max_links / 2));
+                            $end_page = $start_page + $max_links - 1;
+
+                            if ($end_page > $total_pages) {
+                                $end_page = $total_pages;
+                                $start_page = max(1, $end_page - $max_links + 1);
+                            }
+                            ?>
+
+                            <?php if($start_page > 1): ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, 1); ?>" class="page-btn page-btn-outline">1</a>
+                                <?php if($start_page > 2): ?>
+                                    <span class="page-btn-dots">...</span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <?php for($i = $start_page; $i <= $end_page; $i++): ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, $i); ?>" class="page-btn <?php echo ($i == $page) ? 'page-btn-active' : 'page-btn-outline'; ?>"><?php echo $i; ?></a>
+                            <?php endfor; ?>
+
+                            <?php if($end_page < $total_pages): ?>
+                                <?php if($end_page < $total_pages - 1): ?>
+                                    <span class="page-btn-dots">...</span>
+                                <?php endif; ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, $total_pages); ?>" class="page-btn page-btn-outline"><?php echo $total_pages; ?></a>
+                            <?php endif; ?>
+
+                            <?php if($page < $total_pages): ?>
+                                <a href="<?php echo build_url($tab, $search, $college, $year, $page + 1); ?>" class="page-btn page-btn-outline">Next &raquo;</a>
+                            <?php endif; ?>
+                            
                         </div>
                     <?php endif; ?>
 
@@ -788,39 +700,6 @@ if ($tab !== 'hub') {
 }
 </style>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    // 1. Inject Tooltip Div into DOM
-    const tooltip = document.createElement('div');
-    tooltip.className = 'abstract-tooltip fade-in-up';
-    tooltip.innerHTML = '<h6><i class="fas fa-quote-left mr-2"></i>Abstract Sneak Peek</h6><div class="tooltip-content"></div>';
-    document.body.appendChild(tooltip);
-    
-    const tooltipContent = tooltip.querySelector('.tooltip-content');
-    const pubCards = document.querySelectorAll('.data-card[data-type="publication"]');
-    
-    // 2. Attach Hover Events
-    pubCards.forEach(card => {
-        card.addEventListener('mouseenter', (e) => {
-            const abstractText = card.getAttribute('data-abstract');
-            if (abstractText && abstractText.trim() !== '') {
-                tooltipContent.textContent = abstractText;
-                tooltip.classList.add('visible');
-            }
-        });
-        
-        card.addEventListener('mousemove', (e) => {
-            // Track cursor exactly
-            tooltip.style.left = e.clientX + 'px';
-            tooltip.style.top = e.clientY + 'px';
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            tooltip.classList.remove('visible');
-        });
-    });
-});
-</script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     

@@ -1,5 +1,5 @@
 <?php
-//publication_action.php
+// actions/publication_action.php
 include('../../../core/rms.php');
 $object = new rms();
 
@@ -23,21 +23,76 @@ if (!function_exists('parse_legacy_date_php')) {
 }
 
 if(isset($_POST["action_publication"])) {
+    
+    // -------------------------------------------------------------------------
+    // 1. FETCH ALL (MASTER TABLE)
+    // -------------------------------------------------------------------------
+    if($_POST["action_publication"] == 'fetch_all') {
+        $order_column = array('primary_familyName', 'pub.title', 'pub.journal', 'pub.publication_date', 'pub.issn_isbn');
+        $main_query = "
+            SELECT pub.*, 
+                    (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') FROM tbl_publication_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.publication_id = pub.id) AS all_authors,
+                   pd.id AS author_db_id, pd.familyName AS primary_familyName, pd.academic_rank, pd.program AS primary_discipline
+            FROM tbl_publication pub
+            LEFT JOIN tbl_researchdata pd ON (pd.id = pub.lead_author_id OR pd.id = pub.researcherID OR pd.researcherID = pub.researcherID)
+        ";
+        
+        $search_query = " WHERE pub.status = 1 "; // HIDE TRASH
+        if (isset($_POST["search"]["value"]) && !empty($_POST["search"]["value"])) {
+            $search_value = $_POST["search"]["value"];
+            $search_query .= "AND (pub.title LIKE '%" . $search_value . "%' OR pd.familyName LIKE '%" . $search_value . "%') ";
+        }
+        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY pub.id DESC ";
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
+        
+        $object->query = $main_query . $search_query . $order_query;
+        $object->execute();
+        $filtered_rows = $object->row_count();
+        $object->query .= $limit_query;
+        $result = $object->get_result();
+        $object->query = $main_query;
+        $object->execute();
+        $total_rows = $object->row_count();
+        $data = array();
+        
+        foreach($result as $row) {
+            $sub_array = array();
+            $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
+            $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown Lead</span>";
+            $co_authors = $row["all_authors"] ? $row["all_authors"] : "<span class='text-muted'>None</span>";
+            $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-1 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
+            $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1 mb-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
+            $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span>' . $rank_badge . '</div>' . $discipline_badge . '<div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
+            
+            $sub_array[] = $author_display;
+            $sub_array[] = $row["title"];
+            $sub_array[] = $row["journal"];
+            $sub_array[] = parse_legacy_date_php($row["publication_date"]);
+            $sub_array[] = $row["issn_isbn"];
+            $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_publication" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$author_db_id.'&tab=degree" class="btn d-none"></a></div>';
+            $data[] = $sub_array;
+        }
+        echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
+        exit;
+    }
 
+    // -------------------------------------------------------------------------
+    // 2. FETCH SINGLE PROFILE TABLE (WITH FILE COUNT)
+    // -------------------------------------------------------------------------
     if($_POST["action_publication"] == 'fetch') {
-        $order_column = array('p.title', 'p.start', 'p.end', 'p.journal', 'p.vol_num_issue_num', 'p.issn_isbn', 'p.indexing', 'p.publication_date', 'p.has_files');
-        $main_query = "SELECT p.* FROM tbl_publication p JOIN tbl_publication_collaborators col ON p.id = col.publication_id";
+        $order_column = array('p.title', 'p.start', 'p.end', 'p.journal', 'p.vol_num_issue_num', 'p.issn_isbn', 'p.indexing', 'p.publication_date');
+        
+        // DRY Change: Calculate file_count dynamically from tbl_rde_files
+        $main_query = "SELECT p.*, (SELECT COUNT(id) FROM tbl_rde_files WHERE entity_id = p.id AND entity_type = 'publication') as file_count FROM tbl_publication p JOIN tbl_publication_collaborators col ON p.id = col.publication_id";
         
         $search_query = " WHERE col.researcher_id = '".$_POST["rid"]."' AND p.status = 1 "; 
-
         if (isset($_POST["search"]["value"]) && !empty($_POST["search"]["value"])) {
             $search_value = $_POST["search"]["value"];
             $search_query .= "AND (p.title LIKE '%" . $search_value . "%' OR p.journal LIKE '%" . $search_value . "%' ) ";
         }
         $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY p.id DESC ";
-        $limit_query = "";
-        if($_POST["length"] != -1) { $limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length']; }
-
+        $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
+        
         $object->query = $main_query . $search_query . $order_query;
         $object->execute();
         $filtered_rows = $object->row_count();
@@ -46,10 +101,10 @@ if(isset($_POST["action_publication"])) {
         $object->query = $main_query . $search_query;
         $object->execute();
         $total_rows = $object->row_count();
-
         $data = array();
+        
         foreach($result as $row) {
-            $file_badge = ($row["has_files"] == 'With') ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
+            $file_badge = ($row["file_count"] > 0) ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
             $sub_array = array();
             $sub_array[] = $row["title"];
             $sub_array[] = parse_legacy_date_php($row["start"]);
@@ -64,19 +119,27 @@ if(isset($_POST["action_publication"])) {
             $data[] = $sub_array;
         }
         echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
+        exit;
     }
 
+    // -------------------------------------------------------------------------
+    // 3. ADD RECORD
+    // -------------------------------------------------------------------------
     if($_POST["action_publication"] == 'Add') {
-        $error = ''; $success = '';
         $fpublication_date = date("Y-m-d", strtotime($_POST['publication_date']));
         $lead_author_id = $_POST['lead_author_id'];
-        $has_files = (isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) ? 'With' : 'None';
+
+        $cover_photo = '';
+        if (isset($_FILES["cover_photo"]["name"]) && $_FILES["cover_photo"]["name"] != '') {
+            $upload_result = $object->uploadCoverPhoto($_FILES['cover_photo'], '../../../uploads/covers/', 'uploads/covers/');
+            if ($upload_result) { $cover_photo = $upload_result; }
+        }
 
         $data = array(
             ':researcherID'        => $lead_author_id, 
             ':lead_author_id'      => $lead_author_id,
             ':title'               => $_POST['title_pub'],
-            ':abstract'            => $_POST['abstract_pub'], // Added abstract
+            ':abstract'            => $_POST['abstract_pub'], 
             ':start'               => date("Y-m-d", strtotime($_POST['start'])),
             ':end'                 => date("Y-m-d", strtotime($_POST['end'])),
             ':journal'             => $_POST['journal'],
@@ -84,37 +147,41 @@ if(isset($_POST["action_publication"])) {
             ':issn_isbn'           => $_POST['issn_isbn'],
             ':indexing'            => $_POST['indexing'],
             ':publication_date'    => $fpublication_date,
-            ':has_files'           => $has_files
+            ':cover_photo'         => $cover_photo
         );
-
-        $object->query = "INSERT INTO tbl_publication (researcherID, lead_author_id, title, abstract, start, end, journal, vol_num_issue_num, issn_isbn, indexing, publication_date, has_files, status) VALUES (:researcherID, :lead_author_id, :title, :abstract, :start, :end, :journal, :vol_num_issue_num, :issn_isbn, :indexing, :publication_date, :has_files, 1)";
+        
+        $object->query = "INSERT INTO tbl_publication (researcherID, lead_author_id, title, abstract, start, end, journal, vol_num_issue_num, issn_isbn, indexing, publication_date, cover_photo, status) VALUES (:researcherID, :lead_author_id, :title, :abstract, :start, :end, :journal, :vol_num_issue_num, :issn_isbn, :indexing, :publication_date, :cover_photo, 1)";
         $object->execute($data);
         $new_pub_id = $object->connect->lastInsertId();
-
+        
         $collaborators = isset($_POST['collaborators_pub']) ? $_POST['collaborators_pub'] : [];
         if (!in_array($lead_author_id, $collaborators)) { $collaborators[] = $lead_author_id; }
         foreach($collaborators as $res_id) {
             $object->query = "INSERT INTO tbl_publication_collaborators (publication_id, researcher_id) VALUES (:pid, :uid)";
             $object->execute([':pid' => $new_pub_id, ':uid' => $res_id]);
         }
-
-        // PHASE 3: Universal Engine
-        if($has_files == 'With') {
+        
+        // DRY FILE UPLOAD
+        if(isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) {
             $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
-            $object->handle_generic_files($_FILES['research_files'], $categories, $new_pub_id, '../../../uploads/research_files/', 'uploads/research_files/', 'tbl_publication_files', 'publication_id');
+            $object->handle_generic_files($_FILES['research_files'], $categories, $new_pub_id, '../../../uploads/documents/', 'uploads/documents/', 'publication');
         }
-
-        $success = '<div class="alert alert-success">Publication Added</div>';
-        echo json_encode(array('error' => $error, 'success' => $success));
+        
+        echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Publication Added</div>'));
+        exit;
     }
 
+    // -------------------------------------------------------------------------
+    // 4. FETCH SINGLE (MODAL DATA)
+    // -------------------------------------------------------------------------
     if($_POST["action_publication"] == 'fetch_single') {
         $object->query = "SELECT * FROM tbl_publication WHERE id = '".$_POST["publicationID"]."'";
         $result = $object->get_result();
         $data = array();
+        
         foreach($result as $row) {
             $data['title'] = $row["title"];
-            $data['abstract_pub'] = $row["abstract"]; // Added abstract
+            $data['abstract_pub'] = $row["abstract"]; 
             $data['start'] = parse_legacy_date_php($row["start"]);
             $data['end'] = parse_legacy_date_php($row["end"]);
             $data['journal'] = $row["journal"];
@@ -123,35 +190,51 @@ if(isset($_POST["action_publication"])) {
             $data['indexing'] = $row["indexing"];
             $data['publication_date'] = parse_legacy_date_php($row["publication_date"]);
             $data['lead_author_id'] = $row["lead_author_id"];
-            $data['has_files'] = $row["has_files"];
+            
+            // Fix: Add the missing cover photo logic with proper pathing
+            $db_cover = trim($row["cover_photo"] ?? '');
+            $data['cover_photo'] = empty($db_cover) ? 'img/default_research_cover.png' : $db_cover;
         }
-
+        
         $object->query = "SELECT researcher_id FROM tbl_publication_collaborators WHERE publication_id = '".$_POST["publicationID"]."'";
         $collab_result = $object->get_result();
         $collab_array = [];
         foreach($collab_result as $c) { $collab_array[] = $c['researcher_id']; }
         $data['collaborators'] = $collab_array;
-
-        $object->query = "SELECT id, file_category, file_name, file_path FROM tbl_publication_files WHERE publication_id = '".$_POST["publicationID"]."'";
+        
+        // Fetch files from unified table
+        $object->query = "SELECT id, file_category, file_name, file_path FROM tbl_rde_files WHERE entity_id = '".$_POST["publicationID"]."' AND entity_type = 'publication'";
         $file_result = $object->get_result();
         $files_array = [];
         foreach($file_result as $f) {
             $files_array[] = array('id' => $f['id'], 'category' => $f['file_category'], 'name' => $f['file_name'], 'path' => '../../' . $f['file_path']);
         }
         $data['existing_files'] = $files_array;
+        
         echo json_encode($data);
+        exit;
     }
 
+    // -------------------------------------------------------------------------
+    // 5. EDIT RECORD
+    // -------------------------------------------------------------------------
     if ($_POST["action_publication"] == 'Edit') {
-        $publication_datep = date("Y-m-d", strtotime($_POST['publication_date']));  
-        $error = ''; $success = '';
+        $publication_datep = date("Y-m-d", strtotime($_POST['publication_date']));
         $pub_id = intval($_POST['hidden_publicationID']);
         $lead_author_id = $_POST['lead_author_id'];
+        
+        $cover_photo_query = "";
+        if (isset($_FILES["cover_photo"]["name"]) && $_FILES["cover_photo"]["name"] != '') {
+            $upload_result = $object->uploadCoverPhoto($_FILES['cover_photo'], '../../../uploads/covers/', 'uploads/covers/');
+            if ($upload_result) {
+                $cover_photo_query = ", cover_photo = '" . $upload_result . "'";
+            }
+        }
 
         $data = array(
             ':lead_author_id' => $lead_author_id,
             ':title' => $_POST['title_pub'],
-            ':abstract' => $_POST['abstract_pub'], // Added abstract
+            ':abstract' => $_POST['abstract_pub'],
             ':start' => date("Y-m-d", strtotime($_POST['start'])),
             ':end' => date("Y-m-d", strtotime($_POST['end'])),
             ':journal' => $_POST['journal'],
@@ -161,36 +244,35 @@ if(isset($_POST["action_publication"])) {
             ':publication_date' => $publication_datep,
             ':hidden_publicationID' => $pub_id
         );
-
-        $object->query = "UPDATE tbl_publication SET lead_author_id = :lead_author_id, title = :title, abstract = :abstract, start = :start, end = :end, journal = :journal, vol_num_issue_num = :vol_num_issue_num, issn_isbn = :issn_isbn, indexing = :indexing, publication_date = :publication_date WHERE id = :hidden_publicationID";
+        
+        $object->query = "UPDATE tbl_publication SET lead_author_id = :lead_author_id, title = :title, abstract = :abstract, start = :start, end = :end, journal = :journal, vol_num_issue_num = :vol_num_issue_num, issn_isbn = :issn_isbn, indexing = :indexing, publication_date = :publication_date $cover_photo_query WHERE id = :hidden_publicationID";
         $object->execute($data);
-
+        
         $object->query = "DELETE FROM tbl_publication_collaborators WHERE publication_id = :pid";
         $object->execute([':pid' => $pub_id]);
-
+        
         $collaborators = isset($_POST['collaborators_pub']) ? $_POST['collaborators_pub'] : [];
         if (!in_array($lead_author_id, $collaborators)) { $collaborators[] = $lead_author_id; }
         foreach($collaborators as $res_id) {
             $object->query = "INSERT INTO tbl_publication_collaborators (publication_id, researcher_id) VALUES (:pid, :uid)";
             $object->execute([':pid' => $pub_id, ':uid' => $res_id]);
         }
-
-        // PHASE 3: Universal Engine 
+        
+        // DRY FILE UPLOAD
         if(isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) {
             $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
-            $object->handle_generic_files($_FILES['research_files'], $categories, $pub_id, '../../../uploads/research_files/', 'uploads/research_files/', 'tbl_publication_files', 'publication_id');
+            $object->handle_generic_files($_FILES['research_files'], $categories, $pub_id, '../../../uploads/documents/', 'uploads/documents/', 'publication');
         }
-
-        // Sync Status Dynamically
-        $object->update_generic_has_files($pub_id, 'tbl_publication', 'tbl_publication_files', 'publication_id');
-
-        $success = '<div class="alert alert-success">Publication Updated</div>';
-        echo json_encode(array('error' => $error, 'success' => $success));
+        
+        echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Publication Updated</div>'));
+        exit;
     }
 
+    // -------------------------------------------------------------------------
+    // 6. DELETE FILE
+    // -------------------------------------------------------------------------
     if($_POST["action_publication"] == 'delete_file') {
-        // PHASE 3: One-liner delete
-        $success = $object->delete_generic_file($_POST['file_id'], 'tbl_publication_files', 'tbl_publication', 'publication_id', '../../../');
+        $success = $object->delete_generic_file($_POST['file_id'], '../../../');
         if($success) {
             echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
         } else {
@@ -199,59 +281,15 @@ if(isset($_POST["action_publication"])) {
         exit;
     }
 
+    // -------------------------------------------------------------------------
+    // 7. DELETE RECORD
+    // -------------------------------------------------------------------------
     if($_POST["action_publication"] == 'delete') {
         $pid = intval($_POST["publicationID"]);
         $object->query = "UPDATE tbl_publication SET status = 0 WHERE id = '".$pid."'";
         $object->execute();
         echo '<div class="alert alert-success">Publication moved to Recycle Bin</div>';
+        exit;
     }
-}
-
-if(isset($_POST["action_publication"]) && $_POST["action_publication"] == 'fetch_all') {
-    $order_column = array('primary_familyName', 'pub.title', 'pub.journal', 'pub.publication_date', 'pub.issn_isbn');
-    $main_query = "
-        SELECT pub.*, 
-               (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') FROM tbl_publication_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.publication_id = pub.id) AS all_authors,
-               pd.id AS author_db_id, pd.familyName AS primary_familyName, pd.academic_rank, pd.program AS primary_discipline
-        FROM tbl_publication pub
-        LEFT JOIN tbl_researchdata pd ON (pd.id = pub.lead_author_id OR pd.id = pub.researcherID OR pd.researcherID = pub.researcherID)
-    ";
-    
-    $search_query = " WHERE pub.status = 1 "; // HIDE TRASH
-
-    if (isset($_POST["search"]["value"]) && !empty($_POST["search"]["value"])) {
-        $search_value = $_POST["search"]["value"];
-        $search_query .= "AND (pub.title LIKE '%" . $search_value . "%' OR pd.familyName LIKE '%" . $search_value . "%') ";
-    }
-    $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY pub.id DESC ";
-    $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'] : "";
-
-    $object->query = $main_query . $search_query . $order_query;
-    $object->execute();
-    $filtered_rows = $object->row_count();
-    $object->query .= $limit_query;
-    $result = $object->get_result();
-    $object->query = $main_query;
-    $object->execute();
-    $total_rows = $object->row_count();
-
-    $data = array();
-    foreach($result as $row) {
-        $sub_array = array();
-        $author_db_id = $row["author_db_id"] ? $row["author_db_id"] : 0; 
-        $primary_author = $row["primary_familyName"] ? $row["primary_familyName"] : "<span class='text-danger'>Unknown Lead</span>";
-        $co_authors = $row["all_authors"] ? $row["all_authors"] : "<span class='text-muted'>None</span>";
-        $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-1 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
-        $discipline_badge = !empty($row["primary_discipline"]) ? '<div class="small text-muted mt-1 mb-1"><i class="fas fa-book-reader mr-1"></i> ' . htmlspecialchars($row["primary_discipline"]) . '</div>' : '';
-        $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span>' . $rank_badge . '</div>' . $discipline_badge . '<div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
-        $sub_array[] = $author_display;
-        $sub_array[] = $row["title"];
-        $sub_array[] = $row["journal"];
-        $sub_array[] = parse_legacy_date_php($row["publication_date"]);
-        $sub_array[] = $row["issn_isbn"];
-        $sub_array[] = '<div align="center"><button type="button" class="btn btn-danger btn-sm delete_master_publication" data-id="'.$row["id"].'" title="Delete"><i class="far fa-trash-alt"></i></button><a href="view_researcher.php?id='.$author_db_id.'&tab=degree" class="btn d-none"></a></div>';
-        $data[] = $sub_array;
-    }
-    echo json_encode(array("draw" => intval($_POST["draw"]), "recordsTotal" => $total_rows, "recordsFiltered" => $filtered_rows, "data" => $data));
 }
 ?>

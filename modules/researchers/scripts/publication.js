@@ -109,6 +109,9 @@ $('#add_publication').click(function () {
     $('#publicationModal .existing-files-container').html('');
 
     $('#modal_title').text('Add Publication');  
+    $('#publicationModal .cover-photo-input').val('');
+    $('#publicationModal .preview-img').attr('src', '../../img/default_research_cover.png');
+    $('#publicationModal .cover-photo-preview').show();
     $('#action_publication').val('Add');
     
     // FIX: Safely grab the researcher ID from multiple potential sources
@@ -191,6 +194,9 @@ $(document).on('click', '.edit_button_publication', function(){
                 $('#publicationModal .existing-files-container').html(filesHtml);
             }
 
+            // Load existing cover photo
+            $('#publicationModal .preview-img').attr('src', '../../' + data.cover_photo);
+            $('#publicationModal .cover-photo-preview').show();
             $('#modal_title').text('Edit Publication');
             $('#action_publication').val('Edit');
             $('#submit_button_publication').val('Edit');

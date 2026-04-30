@@ -312,16 +312,38 @@ $(document).ready(function() {
     $(document).on('click', '.delete_master_extension_project', function() { triggerMasterDelete("actions/extension_project_action.php", { extensionID: $(this).data('id'), action_extension: 'delete' }); });
     $(document).on('click', '.delete_master_ext', function() { triggerMasterDelete("actions/extension_action.php", { extID: $(this).data('id'), action_ext: 'delete' }); });
 
-    // Global Modal Fix
+    // ==========================================
+    // GLOBAL MODAL BEHAVIORS
+    // ==========================================
+    
+    // Global Modal Fix (Scroll reset & backdrop)
     $('.modal').on('hidden.bs.modal', function() {
         if ($('.modal.show').length > 0) { $('body').addClass('modal-open'); }
-        $('#researcherModal .modal-body').scrollTop(0); // Updated ID
+        $('#researcherModal .modal-body').scrollTop(0);
     });
     
+    // Global Image Preview Handler for all Cover Photos
+    $(document).on('change', '.cover-photo-input', function(){
+        var previewContainer = $(this).siblings('.cover-photo-preview');
+        var previewImg = previewContainer.find('.preview-img');
+        var reader = new FileReader();
+        
+        reader.onload = function(e) {
+            previewImg.attr('src', e.target.result);
+            previewContainer.slideDown();
+        }
+        
+        if(this.files[0]) {
+            reader.readAsDataURL(this.files[0]);
+        } else {
+            previewContainer.slideUp();
+        }
+    });
+
     // Trigger table refresh when dropdown filters change
     $('#filter_rank, #filter_program').on('change', function() {
         if ($.fn.DataTable.isDataTable('#researcher_table')) {
             $('#researcher_table').DataTable().ajax.reload();
         }
     });
-});
+}); // <-- This is the final closing bracket of the file

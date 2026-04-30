@@ -102,6 +102,9 @@ $('#add_intellectualprop').click(function(){
     
     $('#modal_title_ip').html('<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;"><i class="fas fa-lightbulb"></i></div> Add Intellectual Property');
     $('#action_intellectualprop').val('Add');
+    $('#intellectualpropModal .cover-photo-input').val('');
+    $('#intellectualpropModal .preview-img').attr('src', '../../img/default_research_cover.png');
+    $('#intellectualpropModal .cover-photo-preview').show();
     $('#submit_button_intellectualprop').val('Save Data');
     $('#form_message_ip').html('');
 
@@ -197,6 +200,9 @@ $(document).on('click', '.edit_button_intellectualprop', function () {
                 $('#intellectualpropModal .existing-files-container').html(filesHtml);
             }
 
+            // Load existing cover photo
+            $('#intellectualpropModal .preview-img').attr('src', '../../' + data.cover_photo);
+            $('#intellectualpropModal .cover-photo-preview').show();
             $('#modal_title').text('Edit Intellectual Property');
             $('#action_intellectualprop').val('Edit');
             $('#submit_button_intellectualprop').val('Edit');

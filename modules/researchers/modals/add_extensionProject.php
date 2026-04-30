@@ -25,6 +25,14 @@
                             </div>
 
                             <div class="form-group mb-3">
+                                <label><i class="fas fa-image mr-2 text-primary"></i>Cover Photo (Optional)</label>
+                                <input type="file" name="cover_photo" class="form-control-file cover-photo-input" accept="image/jpeg, image/png, image/jpg, image/webp" />
+                                <div class="cover-photo-preview mt-2 text-center" style="display:none; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                    <img src="" class="preview-img img-fluid rounded shadow-sm" style="max-height: 180px; object-fit: cover;" />
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
                                 <label for="linked_research_projects"><i class="fas fa-flask mr-2 text-primary"></i>Based on Research Projects (Optional)</label>
                                 <select name="linked_research_projects[]" id="linked_research_projects" class="form-control select2-multi" multiple="multiple" style="width: 100%;">
                                     <?php

@@ -175,31 +175,35 @@ $(document).ready(function() {
         var fileId = btn.attr('data-file-id');
         var row = $('#file_row_' + fileId);
         
-        Swal.fire({
-            title: 'Delete this file?',
-            text: "You won't be able to revert this!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#e74a3b',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-                $.ajax({
-                    url: "actions/researchpolicy_action.php",
-                    method: "POST",
-                    data: { action_policy: 'delete_file', file_id: fileId },
-                    dataType: "json",
-                    success: function(data) {
-                        if(data.status === 'success') {
-                            row.fadeOut(300, function() { $(this).remove(); });
-                        } 
-                    }
-                });
-            }
-        });
+        // THE FIX: Scope this strictly to the Policy Modal
+        if(btn.closest('#policyModal').length > 0) {
+            Swal.fire({
+                title: 'Delete this file?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e74a3b',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                    $.ajax({
+                        url: "actions/researchpolicy_action.php",
+                        method: "POST",
+                        data: { action_policy: 'delete_file', file_id: fileId },
+                        dataType: "json",
+                        success: function(data) {
+                            if(data.status === 'success') {
+                                row.fadeOut(300, function() { $(this).remove(); });
+                            } 
+                        }
+                    });
+                }
+            });
+        }
     });
 });
+
 
 // Live Word Counter for Policy Abstract
 $(document).on('input', '#abstract', function() {

@@ -126,6 +126,9 @@ $('#add_extension_project').click(function () {
 
     $('#modal_title').text('Add Extension Project');  
     $('#action_extension').val('Add');
+    $('#extensionProjectModal .cover-photo-input').val('');
+    $('#extensionProjectModal .preview-img').attr('src', '../../img/default_research_cover.png');
+    $('#extensionProjectModal .cover-photo-preview').show();
     
     // FIX: Safely grab the researcher ID from multiple potential sources
     // This guarantees the ID is found whether in the Master List or the Profile Page
@@ -202,7 +205,9 @@ $(document).on('click', '.edit_button_extension_project', function () {
                 });
                 $('#extensionProjectModal .existing-files-container').html(filesHtml);
             }
-
+            // Load existing cover photo
+            $('#extensionProjectModal .preview-img').attr('src', '../../' + data.cover_photo);
+            $('#extensionProjectModal .cover-photo-preview').show();
             $('#modal_title').text('Edit Extension Project');
             $('#action_extension').val('Edit');
             $('#submit_button_extension').html('Save Changes');

@@ -1,6 +1,6 @@
 <?php
-// paper_presentation_action.php
-include('../../../core/rms.php'); 
+// actions/paper_presentation_action.php
+include('../../../core/rms.php');
 $object = new rms();
 
 if (!function_exists('parse_legacy_date_php')) {
@@ -23,19 +23,19 @@ if (!function_exists('parse_legacy_date_php')) {
 }
 
 if (isset($_POST["action_paper_presentation"])) {
-
+    
     if ($_POST["action_paper_presentation"] == 'fetch_all') {
-        $order_column = array('tbl_researchdata.familyName', 'tbl_paperpresentation.title', 'tbl_paperpresentation.conference_title', 'tbl_paperpresentation.conference_venue', 'tbl_paperpresentation.date_paper');
-        $main_query = "SELECT tbl_paperpresentation.*, tbl_researchdata.id AS author_db_id, tbl_researchdata.firstName, tbl_researchdata.familyName, tbl_researchdata.middleName, tbl_researchdata.Suffix, tbl_researchdata.academic_rank, tbl_researchdata.program AS primary_discipline FROM tbl_paperpresentation LEFT JOIN tbl_researchdata ON tbl_paperpresentation.researcherID = tbl_researchdata.id";        
-        $search_query = " WHERE tbl_paperpresentation.status = 1 "; // HIDE TRASH
+        $order_column = array('primary_familyName', 'pp.title', 'pp.conference_title', 'pp.conference_venue', 'pp.date_paper');
+        $main_query = "SELECT pp.*, pd.id AS author_db_id, pd.firstName, pd.familyName, pd.middleName, pd.Suffix, pd.academic_rank, pd.program AS primary_discipline FROM tbl_paperpresentation pp LEFT JOIN tbl_researchdata pd ON pp.researcherID = pd.id";
+        $search_query = " WHERE pp.status = 1 "; 
         
         if (isset($_POST["search"]["value"])) {
             $search_value = addslashes($_POST["search"]["value"]);
-            $search_query .= "AND (tbl_paperpresentation.title LIKE '%" . $search_value . "%' OR tbl_researchdata.familyName LIKE '%" . $search_value . "%') ";
+            $search_query .= "AND (pp.title LIKE '%" . $search_value . "%' OR pd.familyName LIKE '%" . $search_value . "%') ";
         }
-        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY tbl_paperpresentation.id DESC ";
+        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY pp.id DESC ";
         $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . intval($_POST['start']) . ', ' . intval($_POST['length']) : "";
-
+        
         $object->query = $main_query . $search_query . $order_query;
         $object->execute();
         $filtered_rows = $object->row_count();
@@ -44,8 +44,8 @@ if (isset($_POST["action_paper_presentation"])) {
         $object->query = $main_query;
         $object->execute();
         $total_rows = $object->row_count();
-
         $data = array();
+        
         foreach ($result as $row) {
             $sub_array = array();
             $author_name = $row["familyName"] ? htmlspecialchars($row["familyName"].", ".$row["firstName"]." ".trim($row["middleName"]." ".$row["Suffix"])) : "Unknown Author";
@@ -64,18 +64,17 @@ if (isset($_POST["action_paper_presentation"])) {
     }
 
     if ($_POST["action_paper_presentation"] == 'fetch') {
-        $order_column = array('title', 'conference_title', 'conference_venue', 'conference_organizer', 'date_paper', 'type', 'discipline', 'has_files');
-        $main_query = "SELECT * FROM tbl_paperpresentation";
+        $order_column = array('title', 'conference_title', 'conference_venue', 'conference_organizer', 'date_paper', 'type', 'discipline');
+        $main_query = "SELECT pp.*, (SELECT COUNT(id) FROM tbl_rde_files WHERE entity_id = pp.id AND entity_type = 'pp') as file_count FROM tbl_paperpresentation pp";
+        $search_query = " WHERE pp.researcherID = '" . intval($_POST["rid"]) . "' AND pp.status = 1 "; 
         
-        $search_query = " WHERE researcherID = '" . intval($_POST["rid"]) . "' AND status = 1 "; 
-
         if (isset($_POST["search"]["value"])) {
             $search_value = addslashes($_POST["search"]["value"]);
-            $search_query .= "AND (title LIKE '%" . $search_value . "%' OR conference_title LIKE '%" . $search_value . "%') ";
+            $search_query .= "AND (pp.title LIKE '%" . $search_value . "%' OR pp.conference_title LIKE '%" . $search_value . "%') ";
         }
-        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY id ASC ";  
+        $order_query = isset($_POST["order"]) ? "ORDER BY " . $order_column[$_POST["order"]["0"]["column"]] . " " . $_POST["order"]["0"]["dir"] . " " : "ORDER BY pp.id ASC "; 
         $limit_query = ($_POST["length"] != -1) ? 'LIMIT ' . intval($_POST['start']) . ', ' . intval($_POST['length']) : "";
-
+        
         $object->query = $main_query . $search_query . $order_query;
         $object->execute();
         $filtered_rows = $object->row_count();
@@ -84,10 +83,10 @@ if (isset($_POST["action_paper_presentation"])) {
         $object->query = $main_query . $search_query;
         $object->execute();
         $total_rows = $object->row_count();
-
         $data = array();
+        
         foreach ($result as $row) {
-            $file_badge = ($row["has_files"] == 'With') ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
+            $file_badge = ($row["file_count"] > 0) ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
             $sub_array = array();
             $sub_array[] = htmlspecialchars($row["title"]);
             $sub_array[] = htmlspecialchars($row["conference_title"]);
@@ -105,14 +104,17 @@ if (isset($_POST["action_paper_presentation"])) {
     }
 
     if ($_POST["action_paper_presentation"] == 'Add') {
-        $error = ''; $success = '';
         $date_applied = date("Y-m-d", strtotime($_POST['date_paper'])); 
-        $has_files = (isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) ? 'With' : 'None';
-
         $a_link_str = '';
         if(isset($_POST['a_link']) && is_array($_POST['a_link'])) {
             $valid_links = array_filter(array_map('trim', $_POST['a_link']));
             $a_link_str = implode("\n", $valid_links);
+        }
+
+        $cover_photo = '';
+        if (isset($_FILES["cover_photo"]["name"]) && $_FILES["cover_photo"]["name"] != '') {
+            $upload_result = $object->uploadCoverPhoto($_FILES['cover_photo'], '../../../uploads/covers/', 'uploads/covers/');
+            if ($upload_result) { $cover_photo = $upload_result; }
         }
 
         $data = array(
@@ -124,21 +126,19 @@ if (isset($_POST["action_paper_presentation"])) {
             ':date_paper' => $date_applied,
             ':type_pp' => $_POST['type_pp'],
             ':discipline' => $_POST['discipline'],
-            ':has_files' => $has_files,
+            ':cover_photo' => $cover_photo,
             ':a_link' => $a_link_str
         );
-        $object->query = "INSERT INTO tbl_paperpresentation (researcherID, title, conference_title, conference_venue, conference_organizer, date_paper, type, discipline, has_files, a_link, status) VALUES (:researcherID, :title, :conference_title, :conference_venue, :conference_organizer, :date_paper, :type_pp, :discipline, :has_files, :a_link, 1)";
+        
+        $object->query = "INSERT INTO tbl_paperpresentation (researcherID, title, conference_title, conference_venue, conference_organizer, date_paper, type, discipline, cover_photo, a_link, status) VALUES (:researcherID, :title, :conference_title, :conference_venue, :conference_organizer, :date_paper, :type_pp, :discipline, :cover_photo, :a_link, 1)";
         $object->execute($data);
         $new_pp_id = $object->connect->lastInsertId();
 
-        // PHASE 3: Universal Engine
-        if($has_files == 'With') {
+        if(isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) {
             $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
-            $object->handle_generic_files($_FILES['research_files'], $categories, $new_pp_id, '../../../uploads/research_files/', 'uploads/research_files/', 'tbl_paper_files', 'paper_id');
+            $object->handle_generic_files($_FILES['research_files'], $categories, $new_pp_id, '../../../uploads/documents/', 'uploads/documents/', 'pp');
         }
-
-        $success = '<div class="alert alert-success">Paper Presentation Added</div>';
-        echo json_encode(array('error' => $error, 'success' => $success));
+        echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Paper Presentation Added</div>'));
         exit;
     }
 
@@ -146,6 +146,7 @@ if (isset($_POST["action_paper_presentation"])) {
         $object->query = "SELECT * FROM tbl_paperpresentation WHERE id = '" . intval($_POST["paperPresentationID"]) . "'";
         $result = $object->get_result();
         $data = array();
+        
         foreach ($result as $row) {
             $data['title'] = htmlspecialchars_decode($row["title"]);
             $data['conference_title'] = htmlspecialchars_decode($row["conference_title"]);
@@ -154,33 +155,42 @@ if (isset($_POST["action_paper_presentation"])) {
             $data['date_paper'] = parse_legacy_date_php($row["date_paper"]); 
             $data['type'] = $row["type"];
             $data['discipline'] = $row["discipline"];
-            $data['has_files'] = $row["has_files"];
+            $data['cover_photo'] = $row["cover_photo"];
             $data['a_link'] = $row["a_link"];
+            
+            $db_cover = trim($row["cover_photo"] ?? '');
+            $data['cover_photo'] = empty($db_cover) ? 'img/default_research_cover.png' : $db_cover;
         }
 
-        $object->query = "SELECT id, file_category, file_name, file_path FROM tbl_paper_files WHERE paper_id = '".$_POST["paperPresentationID"]."'";
+        $object->query = "SELECT id, file_category, file_name, file_path FROM tbl_rde_files WHERE entity_id = '".$_POST["paperPresentationID"]."' AND entity_type = 'pp'";
         $file_result = $object->get_result();
         $files_array = [];
         foreach($file_result as $f) {
             $files_array[] = array('id' => $f['id'], 'category' => htmlspecialchars_decode($f['file_category']), 'name' => htmlspecialchars_decode($f['file_name']), 'path' => '../../' . $f['file_path']);
         }
         $data['existing_files'] = $files_array;
+        
         echo json_encode($data);
         exit;
     }
 
     if ($_POST["action_paper_presentation"] == 'Edit') {
-        $error = ''; $success = '';
         $date_paperu = date("Y-m-d", strtotime($_POST['date_paper'])); 
         $pp_id = intval($_POST['hidden_paperPresentationID']);
-
         $a_link_str = '';
         if(isset($_POST['a_link']) && is_array($_POST['a_link'])) {
             $valid_links = array_filter(array_map('trim', $_POST['a_link']));
             $a_link_str = implode("\n", $valid_links);
         }
 
-        // PREEMPTIVE BUG FIX: Removed ':has_files' from $data so it doesn't overwrite DB
+        $cover_photo_query = "";
+        if (isset($_FILES["cover_photo"]["name"]) && $_FILES["cover_photo"]["name"] != '') {
+            $upload_result = $object->uploadCoverPhoto($_FILES['cover_photo'], '../../../uploads/covers/', 'uploads/covers/');
+            if ($upload_result) {
+                $cover_photo_query = ", cover_photo = '" . $upload_result . "'";
+            }
+        }
+
         $data = array(
             ':title' => $_POST['title_pp'],
             ':conference_title' => $_POST['conference_title'],
@@ -192,27 +202,21 @@ if (isset($_POST["action_paper_presentation"])) {
             ':a_link' => $a_link_str,
             ':hidden_paperPresentationID' => $pp_id
         );
-
-        $object->query = "UPDATE tbl_paperpresentation SET title = :title, conference_title = :conference_title, conference_venue = :conference_venue, conference_organizer = :conference_organizer, date_paper = :date_paper, type = :type, discipline = :discipline, a_link = :a_link WHERE id = :hidden_paperPresentationID";
+        
+        $object->query = "UPDATE tbl_paperpresentation SET title = :title, conference_title = :conference_title, conference_venue = :conference_venue, conference_organizer = :conference_organizer, date_paper = :date_paper, type = :type, discipline = :discipline, a_link = :a_link $cover_photo_query WHERE id = :hidden_paperPresentationID";
         $object->execute($data);
 
-        // PHASE 3: Universal Engine
         if(isset($_FILES['research_files']['name']) && is_array($_FILES['research_files']['name']) && !empty($_FILES['research_files']['name'][0])) {
             $categories = isset($_POST['file_categories']) ? $_POST['file_categories'] : [];
-            $object->handle_generic_files($_FILES['research_files'], $categories, $pp_id, '../../../uploads/research_files/', 'uploads/research_files/', 'tbl_paper_files', 'paper_id');
+            $object->handle_generic_files($_FILES['research_files'], $categories, $pp_id, '../../../uploads/documents/', 'uploads/documents/', 'pp');
         }
 
-        // Sync Status Dynamically 
-        $object->update_generic_has_files($pp_id, 'tbl_paperpresentation', 'tbl_paper_files', 'paper_id');
-
-        $success = '<div class="alert alert-success">Paper Presentation Updated</div>';
-        echo json_encode(array('error' => $error, 'success' => $success));
+        echo json_encode(array('error' => '', 'success' => '<div class="alert alert-success">Paper Presentation Updated</div>'));
         exit;
     }
 
     if($_POST["action_paper_presentation"] == 'delete_file') {
-        // PHASE 3: One-liner delete
-        $success = $object->delete_generic_file($_POST['file_id'], 'tbl_paper_files', 'tbl_paperpresentation', 'paper_id', '../../../');
+        $success = $object->delete_generic_file($_POST['file_id'], '../../../');
         if($success) {
             echo json_encode(['status' => 'success', 'message' => 'File deleted.']);
         } else {

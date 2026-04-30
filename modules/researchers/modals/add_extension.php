@@ -46,6 +46,14 @@
                             </div>
 
                             <div class="form-group mb-4">
+                                <label><i class="fas fa-image mr-2 text-primary"></i>Cover Photo (Optional)</label>
+                                <input type="file" name="cover_photo" class="form-control-file cover-photo-input" accept="image/jpeg, image/png, image/jpg, image/webp" />
+                                <div class="cover-photo-preview mt-2 text-center" style="display:none; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                    <img src="" class="preview-img img-fluid rounded shadow-sm" style="max-height: 180px; object-fit: cover;" />
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-4">
                                 <label for="linked_extension_project"><i class="fas fa-project-diagram mr-2 text-primary"></i>Based on Extension Project <span class="text-danger">*</span></label>
                                 <select name="linked_extension_project" id="linked_extension_project" class="form-control select2-single" style="width: 100%;" required>
                                     <option value="">Select an Extension Project...</option>

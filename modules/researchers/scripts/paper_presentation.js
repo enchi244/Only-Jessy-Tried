@@ -100,6 +100,9 @@ $('#add_paper_presentation').click(function () {
 
     $('#modal_title').html('<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm pink" style="width: 40px; height: 40px; font-size: 1rem;"><i class="fas fa-microphone-alt"></i></div> Add Paper Presentation');  
     $('#action_paper_presentation').val('Add');
+    $('#paperPresentationModal .cover-photo-input').val('');
+    $('#paperPresentationModal .preview-img').attr('src', '../../img/default_research_cover.png');
+    $('#paperPresentationModal .cover-photo-preview').show();
     
     // ==========================================
     // THE FIX: Bulletproof ID Fetcher
@@ -191,7 +194,9 @@ $(document).on('click', '.edit_button_paper_presentation', function () {
                 });
                 $('#paperPresentationModal .existing-files-container').html(filesHtml);
             }
-
+            // Load existing cover photo
+            $('#paperPresentationModal .preview-img').attr('src', '../../' + data.cover_photo);
+            $('#paperPresentationModal .cover-photo-preview').show();
             $('#modal_title').text('Edit Paper Presentation');
             $('#action_paper_presentation').val('Edit');
             $('#submit_button_paper_presentation').val('Edit');

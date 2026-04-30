@@ -177,6 +177,10 @@ $('#add_extension').click(function () {
     
     $('#modal_title').text('Add Extension');
     $('#action_ext').val('Add');
+    // Reset image preview to default
+    $('#extModal .cover-photo-input').val('');
+    $('#extModal .preview-img').attr('src', '../../img/default_research_cover.png');
+    $('#extModal .cover-photo-preview').show();
     
     // FIX: Safely grab the researcher ID from multiple potential sources
     var rid = $('#researcherModala').data('id') || $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');  
@@ -209,6 +213,9 @@ $(document).on('click', '.edit_button_ext', function () {
         data: { extID: extID, action_ext: 'fetch_single' },
         dataType: 'JSON',
         success: function (data) {
+            // Load existing cover photo
+            $('#extModal .preview-img').attr('src', '../../' + data.cover_photo);
+            $('#extModal .cover-photo-preview').show();
             $('#modal_title').text('Edit Extension');
             $('#action_ext').val('Edit');
             $('#submit_button_ext').val('Edit');

@@ -25,6 +25,14 @@
                             </div>
 
                             <div class="form-group mb-3">
+                                <label><i class="fas fa-image mr-2 text-primary"></i>Cover Photo (Optional)</label>
+                                <input type="file" name="cover_photo" class="form-control-file cover-photo-input" accept="image/jpeg, image/png, image/jpg, image/webp" />
+                                <div class="cover-photo-preview mt-2 text-center" style="display:none; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                    <img src="" class="preview-img img-fluid rounded shadow-sm" style="max-height: 180px; object-fit: cover;" />
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
                                 <label for="discipline"><i class="fas fa-book-reader mr-2 text-primary"></i>Discipline / Program</label>
                                 <select name="discipline" id="discipline" class="form-control" required>
                                     <option value="">Select Major Discipline or Program</option>
