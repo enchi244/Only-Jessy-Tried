@@ -47,10 +47,14 @@ try {
         // -------------------------------------------------------------------------
         if($_POST["action_researchedconducted"] == 'fetch_all') {
             $order_column = array('primary_familyName', 'rc.title', 'rc.research_agenda_cluster', 'rc.sdgs', 'rc.stat');
+            
+            // FIX: Added policy_id and policy_title subqueries here!
             $main_query = "
                 SELECT rc.*, 
                         (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') FROM tbl_research_collaborators col JOIN tbl_researchdata d ON col.researcher_id = d.id WHERE col.research_id = rc.id) AS all_authors,
-                       pd.id AS author_db_id, pd.familyName AS primary_familyName, pd.academic_rank, pd.program AS primary_discipline
+                       pd.id AS author_db_id, pd.familyName AS primary_familyName, pd.academic_rank, pd.program AS primary_discipline,
+                       (SELECT id FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_id,
+                       (SELECT title FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_title
                 FROM tbl_researchconducted rc
                 LEFT JOIN tbl_researchdata pd ON (pd.id = rc.lead_researcher_id OR pd.id = rc.researcherID OR pd.researcherID = rc.researcherID)
             ";
@@ -83,7 +87,14 @@ try {
                 $author_display = '<div class="mb-1"><span class="badge badge-primary px-2 py-1 mr-1">Lead</span> <span class="font-weight-bold text-gray-800">' . $primary_author . '</span>' . $rank_badge . '</div>' . $discipline_badge . '<div class="small text-muted" style="line-height: 1.2;"><i class="fas fa-users mr-1"></i> ' . $co_authors . '</div>';
                 
                 $sub_array[] = $author_display;
-                $sub_array[] = htmlspecialchars($row["title"]);
+
+                // FIX: Render the Badge for the Master Table!
+                $title_display = htmlspecialchars($row["title"]);
+                if (!empty($row["policy_id"])) {
+                    $title_display .= '<br><a href="view_researcher.php?id='.$author_db_id.'&tab=policy&open_id='.$row["policy_id"].'" class="badge badge-warning mt-1 shadow-sm text-dark isolate-click" title="View Policy: '.htmlspecialchars($row["policy_title"]).'"><i class="fas fa-file-contract"></i> Linked Policy</a>';
+                }
+                $sub_array[] = $title_display;
+
                 $sub_array[] = htmlspecialchars($row["research_agenda_cluster"]);
                 $sub_array[] = htmlspecialchars($row["sdgs"]);
                 $sub_array[] = htmlspecialchars($row["stat"]);
@@ -101,8 +112,12 @@ try {
             $rid = intval($_POST["rid"]);
             $order_column = array('rc.id', 'rc.title', 'rc.research_agenda_cluster', 'rc.sdgs', 'rc.started_date', 'rc.completed_date', 'rc.funding_source', 'rc.approved_budget', 'rc.stat');
             
-            // We use a subquery to count actual files in the new tbl_rde_files table!
-            $main_query = "SELECT rc.*, (SELECT COUNT(id) FROM tbl_rde_files WHERE entity_id = rc.id AND entity_type = 'research') as file_count FROM tbl_researchconducted rc JOIN tbl_research_collaborators col ON rc.id = col.research_id";
+            $main_query = "SELECT rc.*, 
+                           (SELECT COUNT(id) FROM tbl_rde_files WHERE entity_id = rc.id AND entity_type = 'research') as file_count,
+                           (SELECT id FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_id,
+                           (SELECT title FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_title
+                           FROM tbl_researchconducted rc 
+                           JOIN tbl_research_collaborators col ON rc.id = col.research_id";
             
             $search_query = " WHERE col.researcher_id = '$rid' AND rc.status = 1 "; 
             if (isset($_POST["search"]["value"]) && !empty($_POST["search"]["value"])) {
@@ -123,11 +138,17 @@ try {
             $data = array();
             
             foreach($result as $row) {
-                // Determine file badge based on the new file_count logic
                 $file_badge = ($row["file_count"] > 0) ? '<span class="badge badge-success px-2 py-1"><i class="fas fa-paperclip mr-1"></i> Files</span>' : '<span class="badge badge-secondary px-2 py-1">None</span>';
                 
                 $sub_array = array();
-                $sub_array[] = htmlspecialchars($row["title"]);
+                
+                // Render the Badge for the Profile Table!
+                $title_display = htmlspecialchars($row["title"]);
+                if (!empty($row["policy_id"])) {
+                    $title_display .= '<br><a href="view_researcher.php?id='.$rid.'&tab=policy&open_id='.$row["policy_id"].'" class="badge badge-warning mt-1 shadow-sm text-dark isolate-click" title="View Policy: '.htmlspecialchars($row["policy_title"]).'"><i class="fas fa-file-contract"></i> Linked Policy</a>';
+                }
+                $sub_array[] = $title_display;
+                
                 $sub_array[] = htmlspecialchars($row["research_agenda_cluster"]);
                 $sub_array[] = htmlspecialchars($row["sdgs"]);
                 $sub_array[] = parse_legacy_date_php($row["started_date"]);
@@ -292,10 +313,9 @@ try {
         }
 
         // -------------------------------------------------------------------------
-        // 7. DELETE SINGLE FILE (THE FIX!)
+        // 7. DELETE SINGLE FILE
         // -------------------------------------------------------------------------
         if($_POST["action_researchedconducted"] == 'delete_file') {
-            // Using the 2-parameter function correctly
             $success = $object->delete_generic_file($_POST['file_id'], '../../../');
             
             if($success) {

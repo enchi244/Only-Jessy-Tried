@@ -27,8 +27,14 @@ $researcher_data = $object->statement->fetch(PDO::FETCH_ASSOC);
 // Format the name nicely
 $full_name = trim($researcher_data['firstName'] . ' ' . $researcher_data['middleName'] . ' ' . $researcher_data['familyName'] . ' ' . $researcher_data['Suffix']);
 
-// UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD
-$object->query = "SELECT DISTINCT rc.* FROM tbl_researchconducted rc LEFT JOIN tbl_research_collaborators col ON rc.id = col.research_id WHERE (rc.researcherID = '$researcher_id' OR col.researcher_id = '$researcher_id') ORDER BY rc.started_date DESC";
+// UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD (WITH POLICY CHECK)
+$object->query = "SELECT DISTINCT rc.*,
+                         (SELECT id FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_id,
+                         (SELECT title FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_title
+                  FROM tbl_researchconducted rc 
+                  LEFT JOIN tbl_research_collaborators col ON rc.id = col.research_id 
+                  WHERE (rc.researcherID = '$researcher_id' OR col.researcher_id = '$researcher_id') AND rc.status = 1 
+                  ORDER BY rc.started_date DESC";
 $object->execute();
 $research_conducted = $object->statement_result();
 
@@ -37,7 +43,6 @@ $object->query = "SELECT DISTINCT p.* FROM tbl_publication p LEFT JOIN tbl_publi
 $object->execute();
 $publications = $object->statement_result();
 
-// UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD
 // UPDATED TO LEFT JOIN AND DYNAMIC CO-AUTHORS
 $object->query = "SELECT DISTINCT ip.*, 
                          (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
@@ -50,18 +55,16 @@ $object->query = "SELECT DISTINCT ip.*,
                   ORDER BY ip.date_applied DESC";
 $object->execute();
 $intellectual_props = $object->statement_result();
-$object->execute();
-$intellectual_props = $object->statement_result();
 
 $object->query = "SELECT p.*, rc.title as linked_research FROM tbl_research_policy p LEFT JOIN tbl_researchconducted rc ON p.research_conducted_id = rc.id WHERE p.researcherID = '$researcher_id' AND p.status = 1 ORDER BY p.date_implemented DESC";
 $object->execute();
 $policies = $object->statement_result();
 
-$object->query = "SELECT * FROM tbl_paperpresentation WHERE researcherID = '$researcher_id' ORDER BY date_paper DESC";
+$object->query = "SELECT * FROM tbl_paperpresentation WHERE researcherID = '$researcher_id' AND status = 1 ORDER BY date_paper DESC";
 $object->execute();
 $presentations = $object->statement_result();
 
-$object->query = "SELECT * FROM tbl_trainingsattended WHERE researcherID = '$researcher_id' ORDER BY date_train DESC";
+$object->query = "SELECT * FROM tbl_trainingsattended WHERE researcherID = '$researcher_id' AND status = 1 ORDER BY date_train DESC";
 $object->execute();
 $trainings = $object->statement_result();
 
@@ -69,7 +72,7 @@ $object->query = "SELECT *, (SELECT COUNT(l.id) FROM tbl_extension_activity_link
 $object->execute();
 $ext_projects = $object->statement_result();
 
-$object->query = "SELECT * FROM tbl_ext WHERE researcherID = '$researcher_id' ORDER BY period_implement DESC";
+$object->query = "SELECT * FROM tbl_ext WHERE researcherID = '$researcher_id' AND (status = 1 OR status IS NULL) ORDER BY period_implement DESC";
 $object->execute();
 $extensions = $object->statement_result();
 
@@ -96,7 +99,7 @@ include('../../includes/header.php');
     .nav-pills .nav-link:hover { background-color: #eaecf4; }
     .nav-pills .nav-link.active, .nav-pills .show>.nav-link { background-color: #f23e5d; color: white; box-shadow: 0 4px 6px rgba(242, 62, 93, 0.2); }
 
-    /* Clean Inner Nav Tabs styling (UPDATED to include rcInnerTabs) */
+    /* Clean Inner Nav Tabs styling */
     #epcInnerTabs .nav-link, #rcInnerTabs .nav-link {
         color: #5a5c69;
         border: none;
@@ -140,7 +143,7 @@ include('../../includes/header.php');
         bottom: 40px;
         right: 40px;
         z-index: 1000;
-        display: none; /* Hidden by default until a non-profile tab is selected */
+        display: none; 
     }
     .fab-btn {
         width: 65px;
@@ -299,7 +302,16 @@ include('../../includes/header.php');
                                                         <div class="float-right isolate-click">
                                                             <button class="btn btn-sm btn-link text-danger delete_button_researchconducted" data-id="<?php echo $rc['id']; ?>"><i class="fas fa-trash"></i></button>
                                                         </div>
-                                                        <h6 class="font-weight-bold text-gray-800 mb-1"><?php echo htmlspecialchars($rc['title']); ?></h6>
+                                                        <h6 class="font-weight-bold text-gray-800 mb-0"><?php echo htmlspecialchars($rc['title']); ?></h6>
+                                                        
+                                                        <?php if (!empty($rc["policy_id"])): ?>
+                                                            <a href="?id=<?php echo htmlspecialchars($researcher_id); ?>&tab=policy&open_id=<?php echo $rc['policy_id']; ?>" class="badge badge-warning mt-1 mb-2 shadow-sm text-dark isolate-click" title="View Policy: <?php echo htmlspecialchars($rc["policy_title"]); ?>">
+                                                                <i class="fas fa-file-contract"></i> Linked Policy
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <div class="mb-2"></div>
+                                                        <?php endif; ?>
+
                                                         <p class="text-muted small mb-2">
                                                             <i class="fas fa-bullseye mr-1"></i> SDG: <?php echo htmlspecialchars($rc['sdgs']); ?> | 
                                                             <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($rc['funding_source']); ?> (₱<?php echo number_format((float)$rc['approved_budget'], 2); ?>)
@@ -338,7 +350,8 @@ include('../../includes/header.php');
                                                     <span class="badge badge-danger px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Implemented: <?php echo htmlspecialchars($pol['date_implemented']); ?></span>
                                                     
                                                     <?php
-                                                    $object->query = "SELECT * FROM tbl_policy_files WHERE policy_id = '".$pol['id']."'";
+                                                    // FIX: Fetch files from the new DRY tbl_rde_files table!
+                                                    $object->query = "SELECT file_name, file_category AS category FROM tbl_rde_files WHERE entity_id = '".$pol['id']."' AND entity_type = 'policy'";
                                                     $object->execute();
                                                     $policy_files = $object->statement_result();
                                                     if(count($policy_files) > 0): 
@@ -346,7 +359,7 @@ include('../../includes/header.php');
                                                             <a href="../../uploads/documents/<?php echo htmlspecialchars($file['file_name']); ?>" target="_blank" class="badge badge-light border px-2 py-1 mr-1 isolate-click shadow-sm" style="text-decoration: none;">
                                                                 <i class="fas fa-file-download mr-1 text-primary"></i> <?php echo htmlspecialchars($file['category']); ?>
                                                             </a>
-                                                    <?php 
+                                                        <?php 
                                                         endforeach; 
                                                     endif; ?>
                                                 </div>
@@ -419,14 +432,12 @@ include('../../includes/header.php');
                                                     <?php endif; ?>
                                                     
                                                     <?php
-// THE FIX: Strict Date Checker for "null" ghost strings!
                                                     $raw_applied = isset($ip['date_applied']) ? trim($ip['date_applied']) : '';
                                                     $applied_date = ($raw_applied !== '' && $raw_applied !== '0000-00-00' && strtolower($raw_applied) !== 'null') ? htmlspecialchars($raw_applied) : '<span class="text-muted font-italic">N/A</span>';
 
                                                     $raw_granted = isset($ip['date_granted']) ? trim($ip['date_granted']) : '';
                                                     $granted_date = ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') ? htmlspecialchars($raw_granted) : '<span class="badge badge-warning text-dark px-1">Pending</span>';
                                                     
-                                                    // NEW: IP Validity Auto-Calculator for the Card
                                                     $status_print = '';
                                                     if ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') {
                                                         $granted_ts = strtotime(str_replace('/', '-', $raw_granted));
@@ -602,8 +613,15 @@ include('../../includes/header.php');
                                                             <button type="button" onclick="$('#inner-ext-tab').tab('show');" class="badge <?php echo ($ep['ext_count'] > 0) ? 'badge-info' : 'badge-secondary'; ?> px-2 py-1 mr-2 border-0 isolate-click" <?php echo ($ep['ext_count'] == 0) ? 'disabled title="No extensions linked"' : 'title="View Activities"'; ?>>
                                                                 <i class="fas fa-hands-helping mr-1"></i> Extension Activities (<?php echo $ep['ext_count']; ?>)
                                                             </button>
-                                                            <?php if(!empty($ep['terminal_report_file'])): ?>
-                                                                <a href="../../uploads/documents/<?php echo htmlspecialchars($ep['terminal_report_file']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-2 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-file-download mr-1"></i> Download Report</a>
+                                                            
+                                                            <?php
+                                                            // FETCH TERMINAL REPORT FROM DRY TABLE
+                                                            $object->query = "SELECT file_name FROM tbl_rde_files WHERE entity_id = '".$ep['id']."' AND entity_type = 'epc' AND file_category = 'Terminal Report' LIMIT 1";
+                                                            $object->execute();
+                                                            $term_file = $object->statement->fetch(PDO::FETCH_ASSOC);
+                                                            
+                                                            if($term_file): ?>
+                                                                <a href="../../uploads/documents/<?php echo htmlspecialchars($term_file['file_name']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mr-2 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-file-download mr-1"></i> Download Report</a>
                                                             <?php else: ?>
                                                                 <span class="badge badge-light border px-2 py-1 mr-2"><i class="fas fa-file-alt mr-1 text-muted"></i>Report: <?php echo !empty($ep['terminal_report']) ? htmlspecialchars($ep['terminal_report']) : 'N/A'; ?></span>
                                                             <?php endif; ?>
@@ -879,25 +897,23 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Check the URL for a 'tab' parameter
+    // Check the URL for 'tab' and 'open_id' parameters
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab');
+    const openId = urlParams.get('open_id');
     
     if (activeTab) {
         if (activeTab === 'ext') {
-            // If URL requested the old 'ext' tab, redirect the click to the new parent EPC tab
             let mainLink = document.querySelector('.custom-tab-btn[href="#epc"]');
             if (mainLink) mainLink.click();
             
-            // Then manually select the inner Extension tab via Bootstrap
             setTimeout(function() {
                 if(typeof $ !== 'undefined') {
                     $('#inner-ext-tab').tab('show');
                 }
-                mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (mainLink) mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 300);
         } else if (activeTab === 'policy') {
-            // Redirect URL parameter 'policy' to the new inner RC tab
             let mainLink = document.querySelector('.custom-tab-btn[href="#education"]');
             if (mainLink) mainLink.click();
             
@@ -905,7 +921,23 @@ document.addEventListener("DOMContentLoaded", function() {
                 if(typeof $ !== 'undefined') {
                     $('#inner-policy-tab').tab('show');
                 }
-                mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (mainLink) mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // NEW: If there is an open_id, find the policy card and click it!
+                if (openId) {
+                    setTimeout(function() {
+                        let targetCard = document.querySelector('.edit_button_policy[data-id="' + openId + '"]');
+                        if (targetCard) {
+                            // Visually highlight it briefly
+                            targetCard.style.transition = "all 0.3s ease";
+                            targetCard.style.boxShadow = "0 0 15px rgba(242, 62, 93, 0.5)";
+                            
+                            // Scroll to it and trigger the click to open the modal
+                            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            targetCard.click();
+                        }
+                    }, 400); // Wait for the tab animation to finish before clicking
+                }
             }, 300);
         } else {
             let tabLink = document.querySelector('.custom-tab-btn[href="#' + activeTab + '"]');
