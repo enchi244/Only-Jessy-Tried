@@ -1,24 +1,22 @@
 <?php
 // update_researcher.php
-
 include('../../../core/rms.php');
-
 $object = new rms();
 
-// Ensure session is started if Get_user_name relies on it
-if(!isset($_SESSION)) {
-    session_start();
-}
-
+if(!isset($_SESSION)) { session_start(); }
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action_rd = $_POST['action_rd'] ?? '';
-
+    
     if ($action_rd == 'update') {
         $error = '';
         $success = '';
-    
+        
+        // Data Integrity Check: If they changed department AWAY from 'Others', force the units field to wipe clean
+        $dept = $_POST['department'] ?? '';
+        $units = ($dept === 'Others') ? ($_POST['departments_units'] ?? '') : '';
+
         // 1. Prepare data array 
         $update_data = array(
             ':id'                     => $_POST['hidden_id_rd'] ?? '',
@@ -27,7 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':firstName'              => strtoupper($_POST['firstName'] ?? ''),
             ':middleName'             => strtoupper($_POST['middleName'] ?? ''),
             ':Suffix'                 => strtoupper($_POST['Suffix'] ?? ''),
-            ':department'             => $_POST['department'] ?? '',
+            ':department'             => $dept,
+            ':departments_units'      => strtoupper($units), // <-- ADDED
             ':program'                => $_POST['program'] ?? '',
             ':academic_rank'          => $_POST['academic_rank'] ?? '',
             ':bachelor_degree'        => strtoupper($_POST['bachelor_degree'] ?? ''),
@@ -44,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':postYearGraduate'       => strtoupper($_POST['postYearGraduate'] ?? ''),
             ':user'                   => $object->Get_user_name($_SESSION['user_id'])
         );
-    
+
         // 2. Execute SQL Query
         $object->query = "
             UPDATE tbl_researchdata 
@@ -54,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 middleName = :middleName,
                 Suffix = :Suffix,
                 department = :department,
+                departments_units = :departments_units, 
                 program = :program,
                 academic_rank = :academic_rank, 
                 bachelor_degree = :bachelor_degree,
@@ -71,19 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 user = :user
             WHERE id = :id
         ";
-
-        // Call execute directly. If it fails, rms.php kills the script. 
-        // If it passes this line, it was successful.
-        $object->execute($update_data);
         
+        $object->execute($update_data);
         $success = '<div class="alert alert-success">Research Data Updated</div>';
-    
-        $output = array(
-            'error'   => $error,
-            'success' => $success
-        );
-    
-        echo json_encode($output);
+
+        echo json_encode(array('error' => $error, 'success' => $success));
     }
 }
 ?>

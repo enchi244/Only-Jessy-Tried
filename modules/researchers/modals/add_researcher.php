@@ -16,7 +16,6 @@
                 
                 <div class="modal-body px-4" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
                     <span id="form_message_rm"></span>
-
                     <div class="form-group mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label for="researcherID" class="m-0"><i class="fas fa-id-badge mr-2 text-primary"></i>Researcher ID</label>
@@ -28,7 +27,6 @@
                         </div>
                         <input type="text" name="researcherID" id="researcherID" class="form-control bg-light" placeholder="Auto-generated ID" maxlength="50" readonly required />
                     </div>
-
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-user mr-2 text-secondary"></i>Personal Information</h6>
                     <div class="form-group row mb-4">
                         <div class="col-md-3 mb-2">
@@ -48,13 +46,12 @@
                             <input type="text" name="Suffix" id="Suffix" class="form-control" placeholder="E.g. Jr, Sr, III" maxlength="10" />
                         </div>
                     </div>
-
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-building mr-2 text-secondary"></i>Academic Assignment</h6>
                     <div class="form-group row mb-4">
-                        <div class="col-md-4 mb-2">
-                            <label for="department">Select Department</label>
+                        <div class="col-md-3 mb-2">
+                            <label for="department">Select College</label>
                             <select name="department" id="department" class="form-control" required data-parsley-trigger="change">
-                                <option value="">Select Department</option>
+                                <option value="">Select College</option>
                                 <?php
                                 $object->query = "SELECT category_name FROM product_category_table WHERE category_status = 'Enable' ORDER BY category_name ASC";
                                 $category_result = $object->get_result();
@@ -62,9 +59,14 @@
                                     echo '<option value="'.$category["category_name"].'">'.$category["category_name"].'</option>';
                                 }
                                 ?>
+                                <option value="Others">Others</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
+                            <label for="departments_units">Department/Unit</label>
+                            <input type="text" name="departments_units" id="departments_units" class="form-control" placeholder="Specify if 'Others'" disabled />
+                        </div>
+                        <div class="col-md-3 mb-2">
                             <label for="program">Major Discipline</label>
                             <select name="program" id="program" class="form-control" required data-parsley-trigger="change">
                                 <option value="">Select Program</option>
@@ -77,7 +79,7 @@
                                 ?>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
                             <label for="academic_rank">Academic Rank</label>
                             <select name="academic_rank" id="academic_rank" class="form-control" required data-parsley-trigger="change">
                                 <option value="">Select Rank</option>
@@ -104,7 +106,6 @@
                             </select>
                         </div>
                     </div>
-
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-graduation-cap mr-2 text-secondary"></i>Educational Background</h6>
                     
                     <div class="form-group row mb-3">
@@ -121,7 +122,6 @@
                             <input type="text" name="bachelor_YearGraduated" id="bachelor_YearGraduated" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
-
                     <div class="form-group row mb-3">
                         <div class="col-md-4 mb-2">
                             <label>Master's Degree</label>
@@ -136,7 +136,6 @@
                             <input type="text" name="masterYearGraduated" id="masterYearGraduated" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
-
                     <div class="form-group row mb-3">
                         <div class="col-md-4 mb-2">
                             <label>Doctorate Degree</label>
@@ -151,7 +150,6 @@
                             <input type="text" name="doctorateYearGraduate" id="doctorateYearGraduate" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
-
                     <div class="form-group row mb-3">
                         <div class="col-md-4 mb-2">
                             <label>Post-Doctorate</label>
@@ -166,8 +164,7 @@
                             <input type="text" name="postYearGraduate" id="postYearGraduate" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
-
-                </div> 
+                </div>
                 
                 <div class="modal-footer border-top-0 pt-3">
                     <input type="hidden" name="hidden_id" id="hidden_id" />
@@ -184,6 +181,8 @@
 document.addEventListener("DOMContentLoaded", function() {
     const idInput = document.getElementById('researcherID');
     const toggleSwitch = document.getElementById('toggleCustomID');
+    const deptSelect = document.getElementById('department');
+    const deptUnitsInput = document.getElementById('departments_units');
 
     // Handle Custom ID Toggle
     toggleSwitch.addEventListener('change', function() {
@@ -194,6 +193,17 @@ document.addEventListener("DOMContentLoaded", function() {
         } else {
             idInput.readOnly = true;
             idInput.classList.add('bg-light');
+        }
+    });
+
+    // Handle Department/Units Toggle
+    deptSelect.addEventListener('change', function() {
+        if (this.value === 'Others') {
+            deptUnitsInput.disabled = false;
+            deptUnitsInput.focus();
+        } else {
+            deptUnitsInput.disabled = true;
+            deptUnitsInput.value = ''; // Wipe out value if they switch away
         }
     });
 
@@ -208,7 +218,7 @@ document.addEventListener("DOMContentLoaded", function() {
             
             if (!toggleSwitch.checked) {
                 const year = new Date().getFullYear();
-                const randomNum = Math.floor(10000 + Math.random() * 90000); 
+                const randomNum = Math.floor(10000 + Math.random() * 90000);
                 idInput.value = 'RES-' + year + '-' + randomNum;
                 idInput.readOnly = true;
                 idInput.classList.add('bg-light');
@@ -230,6 +240,9 @@ document.addEventListener("DOMContentLoaded", function() {
         $('#action').val('Add');
         $('#hidden_id').val('');
         toggleSwitch.checked = false;
+        
+        // Reset the dynamic dropdown UI
+        deptUnitsInput.disabled = true;
     });
 
     // Auto-Capitalize Inputs
@@ -244,7 +257,7 @@ document.addEventListener("DOMContentLoaded", function() {
     fieldsToCapitalize.forEach(function(fieldId) {
         const input = document.getElementById(fieldId);
         if (input) {
-            input.classList.add('text-uppercase'); 
+            input.classList.add('text-uppercase');
             input.addEventListener('input', function() {
                 const start = this.selectionStart;
                 const end = this.selectionEnd;

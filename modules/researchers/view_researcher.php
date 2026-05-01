@@ -179,7 +179,14 @@ include('../../includes/header.php');
         <h2 class="mb-1 font-weight-bold"><?php echo htmlspecialchars($full_name); ?></h2>
         <div class="mb-2">
             <span class="badge badge-light text-danger px-3 py-2 rounded-pill mr-2 shadow-sm">
-                <i class="fas fa-building mr-1"></i> <?php echo htmlspecialchars($researcher_data['department']); ?>
+                <i class="fas fa-building mr-1"></i> 
+                <?php 
+                    $dept_display = htmlspecialchars($researcher_data['department']);
+                    if ($dept_display === 'Others' && !empty($researcher_data['departments_units'])) {
+                        $dept_display = htmlspecialchars($researcher_data['departments_units']);
+                    }
+                    echo $dept_display; 
+                ?>
             </span>
             <span class="badge badge-light text-primary px-3 py-2 rounded-pill shadow-sm">
                 <i class="fas fa-graduation-cap mr-1"></i> <?php echo htmlspecialchars($researcher_data['program']); ?>

@@ -184,7 +184,8 @@ $(document).ready(function() {
                 $('#firstName').val(data.firstName); 
                 $('#middleName').val(data.middleName); 
                 $('#Suffix').val(data.Suffix); 
-                $('#department').val(data.department); 
+                $('#department').val(data.department).trigger('change'); 
+                $('#departments_units').val(data.departments_units);
                 $('#program').val(data.program); 
                 $('#academic_rank').val(data.academic_rank); 
                 $('#bachelor_degree').val(data.bachelor_degree); 
