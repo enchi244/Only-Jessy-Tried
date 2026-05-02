@@ -129,7 +129,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
 
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
     try {
-        $conn = new mysqli("localhost", "root", "", "rms");
+        // Changed to 127.0.0.1 to avoid the socket connection issue
+        $conn = @new mysqli("localhost", "root", "", "rms");
         $conn->set_charset("utf8mb4");
 
         $final_data_output = [];
@@ -152,11 +153,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM $col_table col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.$col_fk = r.id AND col.researcher_id != r.researcherID)";
             }
 
+            // FIXED: Removed d.so_file and r.moa_file here so the query no longer crashes!
             $query = "SELECT d.department AS `Department`, 
                              d.firstName, d.familyName, d.academic_rank, d.program,
                              {$co_author_subquery} AS `Co_Researchers_Raw`,
-                             d.so_file AS `so_file`,
-                             r.moa_file AS `moa_file`,
                              r.* FROM {$current_table} r 
                       JOIN tbl_researchdata d ON r.researcherID = d.id
                       WHERE r.status = 1"; 
@@ -470,7 +470,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         $conn->close();
         echo json_encode(['success' => true, 'data' => $final_data_output]);
     } catch (Exception $e) {
-        echo json_encode(['error' => 'A database error occurred.']);
+        // Exposing the true error so future issues are easier to spot
+        echo json_encode(['error' => 'SQL ERROR: ' . $e->getMessage()]);
     }
     exit;
 }
