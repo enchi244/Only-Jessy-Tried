@@ -14,6 +14,26 @@ if (!$object->is_master_user()) {
     exit;
 }
 
+// --- NEW: FETCH CATEGORY NAMES FOR THE HTML DROPDOWN ---
+$cat_names = [
+    'cat_research' => 'Research Conducted',
+    'cat_publication' => 'Publications',
+    'cat_ext' => 'Extension Projects',
+    'cat_ip' => 'Intellectual Property',
+    'cat_pp' => 'Paper Presentations',
+    'cat_train' => 'Trainings Attended'
+];
+try {
+    $object->query = "SELECT setting_key, setting_value FROM tbl_site_settings WHERE setting_key LIKE 'cat_%'";
+    $object->execute();
+    foreach($object->statement_result() as $row) {
+        if(!empty($row['setting_value'])) {
+            $cat_names[$row['setting_key']] = $row['setting_value'];
+        }
+    }
+} catch (Exception $e) {}
+
+
 // ==============================================================================
 // AJAX SECURE DYNAMIC DATA PREVIEW HANDLER (MULTI-SELECT SUPPORT)
 // ==============================================================================
@@ -118,20 +138,35 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         'tbl_trainingsattended' => 'date_train'
     ];
 
-    $friendly_modules = [
-        'tbl_researchconducted' => 'Research Conducted',
-        'tbl_publication' => 'Publications',
-        'tbl_itelectualprop' => 'Intellectual Property',
-        'tbl_paperpresentation' => 'Paper Presentations',
-        'tbl_trainingsattended' => 'Trainings Attended',
-        'tbl_extension_project_conducted' => 'Extension Projects'
-    ];
-
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
     try {
-        // Changed to 127.0.0.1 to avoid the socket connection issue
         $conn = @new mysqli("localhost", "root", "", "rms");
         $conn->set_charset("utf8mb4");
+
+        // --- NEW: FETCH DB CATEGORY NAMES FOR THE EXPORT TABLE ---
+        $friendly_modules = [
+            'tbl_researchconducted' => 'Research Conducted',
+            'tbl_publication' => 'Publications',
+            'tbl_itelectualprop' => 'Intellectual Property',
+            'tbl_paperpresentation' => 'Paper Presentations',
+            'tbl_trainingsattended' => 'Trainings Attended',
+            'tbl_extension_project_conducted' => 'Extension Projects'
+        ];
+        try {
+            $cat_q = $conn->query("SELECT setting_key, setting_value FROM tbl_site_settings WHERE setting_key LIKE 'cat_%'");
+            if($cat_q) {
+                while($r = $cat_q->fetch_assoc()) {
+                    if(!empty($r['setting_value'])) {
+                        if($r['setting_key'] == 'cat_research') $friendly_modules['tbl_researchconducted'] = $r['setting_value'];
+                        if($r['setting_key'] == 'cat_publication') $friendly_modules['tbl_publication'] = $r['setting_value'];
+                        if($r['setting_key'] == 'cat_ip') $friendly_modules['tbl_itelectualprop'] = $r['setting_value'];
+                        if($r['setting_key'] == 'cat_pp') $friendly_modules['tbl_paperpresentation'] = $r['setting_value'];
+                        if($r['setting_key'] == 'cat_train') $friendly_modules['tbl_trainingsattended'] = $r['setting_value'];
+                        if($r['setting_key'] == 'cat_ext') $friendly_modules['tbl_extension_project_conducted'] = $r['setting_value'];
+                    }
+                }
+            }
+        } catch (Exception $e) {}
 
         $final_data_output = [];
         $is_multi_module = count($tables_to_process) > 1;
@@ -216,9 +251,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
             
             while ($row = $result->fetch_assoc()) {
                 
-                // =========================================================================
-                // THE FIX: Strict Bounding Date Filter
-                // =========================================================================
                 $date_matched = false;
                 if ($is_all_time) {
                     $date_matched = true;
@@ -243,7 +275,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         }
                     } else {
                         if ($row_start_ts !== false && $row_end_ts !== false) {
-                            // STRICT BOUNDS: Must start inside AND end inside the selected years
                             if ($row_start_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) {
                                 $date_matched = true;
                             }
@@ -258,7 +289,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         }
                     }
                 }
-                // =========================================================================
 
                 $has_status = in_array($current_table, ['tbl_researchconducted', 'tbl_extension_project_conducted']);
                 $status_matched = true; 
@@ -286,7 +316,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $rank_badge = !empty($row["academic_rank"]) ? '<span class="badge badge-success px-2 py-1 ml-2 align-text-top" style="font-size:0.65rem;"><i class="fas fa-award"></i> ' . htmlspecialchars($row["academic_rank"]) . '</span>' : '';
                 $discipline_text = !empty($row["program"]) ? '<div class="small text-muted mt-1"><i class="fas fa-book-reader"></i> ' . htmlspecialchars($row["program"]) . '</div>' : '';
                 
-                // THE FIX: Combine into one "Authors" block, keeping the Lead tag for distinction
                 $lead_html = "<div class='mb-2'><span class='font-weight-bold text-gray-800' style='font-size:0.95rem;'>" . htmlspecialchars($row["firstName"] . " " . $row["familyName"]) . " <span class='text-danger font-weight-bold' style='font-size:0.7rem;'>(Lead)</span></span>" . $rank_badge . $discipline_text . "</div>";
 
                 $co_html = "";
@@ -305,12 +334,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                     }
                 }
                 
-                // Assign everything to a single key
                 $clean_row['Authors'] = $lead_html . $co_html;
 
-                // =========================================================================
-                // UPGRADED: IP Validity Auto-Calculator (Exact System Match)
-                // =========================================================================
                 if ($current_table == 'tbl_itelectualprop') {
                     $ip_status = "N/A";
                     if (!empty($row['date_granted']) && $row['date_granted'] != '0000-00-00' && $row['date_granted'] != 'null') {
@@ -319,7 +344,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         $duration_years = 0;
                         $is_copyright = false;
                         
-                        // Matches your exact system dropdown list
                         if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) {
                             $duration_years = 20;
                         } elseif (strpos($ip_type, 'industrial design') !== false) {
@@ -340,7 +364,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                                 $ip_status = "Active / Valid";
                             }
                         } else {
-                            // Safely handles "basics" or any unknown typos without expiring them
                             $ip_status = "Active"; 
                         }
                     } else {
@@ -348,16 +371,12 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                     }
                     $row['ip_validity_status'] = $ip_status;
                 }
-                // =========================================================================
 
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
                     
                     if (in_array($kl, ['id', 'researcherid', 'lead_author_id', 'lead_researcher_id', 'status', 'department', 'college', 'firstname', 'familyname', 'academic_rank', 'program', 'co_researchers_raw', 'lead_proponent', 'co_authors', 'so_file', 'moa_file', 'has_files', 'file', 'terminal_report_file', 'attachments', 'coauth', 'terminal_report'])) continue;
                     
-                    // =========================================================================
-                    // THE FIX: The "Magic Replacer" V2 (Crash-Proof!)
-                    // =========================================================================
                     if (trim((string)$v) === 'Legacy Replaced') {
                         $real_data = '';
                         $cat = '';
@@ -400,7 +419,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                             $v = 'See Attached Files'; 
                         }
                     }
-                    // =========================================================================
                     
                     $friendly_k = isset($label_map[$kl]) ? $label_map[$kl] : $k;
                     $clean_row[$friendly_k] = htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -441,7 +459,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         
                         foreach ($group as $k => $v) {
                             $kl = strtolower($k);
-                            // THE FIX: Removed the date exclusion! Now ALL dates flow directly into the details.
                             if ($v !== '' && !in_array($kl, ['title', 'authors', 'lead_proponent', 'co_authors', 'department', 'college', 'record_id', 'raw_type', 'action'])) {
                                 $extra_details[] = "<div style='margin-bottom: 3px; line-height: 1.3;'><span style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$k}:</span> <span style='color:#12263f; font-weight:600; font-size:12px;'>{$v}</span></div> ";
                             }
@@ -451,12 +468,11 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                             'Record_ID' => $group['Record_ID'],
                             'Raw_Type' => $group['Raw_Type'],
                             'Action' => $action_btn,
-                            'Category' => $module_category, // Updated to "Category"
+                            'Category' => $module_category, 
                             'Title' => $group['Title'] ?? $group['title'] ?? 'N/A',
                             'College' => $group['College'] ?? 'N/A',
                             'Authors' => $group['Authors'] ?? 'N/A', 
-                            // THE FIX: Deleted the 'Date' column entirely
-                            'Details' => implode("", $extra_details) // THE FIX: Renamed to just "Details"
+                            'Details' => implode("", $extra_details)
                         ];
                     } else {
                         $out_group = ['Action' => $action_btn] + $group;
@@ -470,7 +486,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         $conn->close();
         echo json_encode(['success' => true, 'data' => $final_data_output]);
     } catch (Exception $e) {
-        // Exposing the true error so future issues are easier to spot
         echo json_encode(['error' => 'SQL ERROR: ' . $e->getMessage()]);
     }
     exit;
@@ -584,28 +599,28 @@ include('../../includes/header.php');
                                     <label class="custom-control-label" for="repp_all">Select All Categories</label>
                                 </div>
                                 <div class="custom-control custom-checkbox mb-2">
-                                    <input type="checkbox" class="custom-control-input check-item" id="repp_pub" value="tbl_publication" checked>
-                                    <label class="custom-control-label" for="repp_pub">Publications</label>
+                                    <input type="checkbox" class="custom-control-input check-item" id="repp_rc" value="tbl_researchconducted" checked>
+                                    <label class="custom-control-label" for="repp_rc"><?php echo htmlspecialchars($cat_names['cat_research']); ?></label>
                                 </div>
                                 <div class="custom-control custom-checkbox mb-2">
-                                    <input type="checkbox" class="custom-control-input check-item" id="repp_rc" value="tbl_researchconducted" checked>
-                                    <label class="custom-control-label" for="repp_rc">Research Conducted</label>
+                                    <input type="checkbox" class="custom-control-input check-item" id="repp_pub" value="tbl_publication" checked>
+                                    <label class="custom-control-label" for="repp_pub"><?php echo htmlspecialchars($cat_names['cat_publication']); ?></label>
                                 </div>
                                 <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input check-item" id="repp_ext" value="tbl_extension_project_conducted" checked>
-                                    <label class="custom-control-label" for="repp_ext">Extension Projects</label>
+                                    <label class="custom-control-label" for="repp_ext"><?php echo htmlspecialchars($cat_names['cat_ext']); ?></label>
                                 </div>
                                 <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input check-item" id="repp_ip" value="tbl_itelectualprop" checked>
-                                    <label class="custom-control-label" for="repp_ip">Intellectual Property</label>
+                                    <label class="custom-control-label" for="repp_ip"><?php echo htmlspecialchars($cat_names['cat_ip']); ?></label>
                                 </div>
                                 <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input check-item" id="repp_pp" value="tbl_paperpresentation" checked>
-                                    <label class="custom-control-label" for="repp_pp">Paper Presentations</label>
+                                    <label class="custom-control-label" for="repp_pp"><?php echo htmlspecialchars($cat_names['cat_pp']); ?></label>
                                 </div>
                                 <div class="custom-control custom-checkbox mb-0">
                                     <input type="checkbox" class="custom-control-input check-item" id="repp_train" value="tbl_trainingsattended" checked>
-                                    <label class="custom-control-label" for="repp_train">Trainings Attended</label>
+                                    <label class="custom-control-label" for="repp_train"><?php echo htmlspecialchars($cat_names['cat_train']); ?></label>
                                 </div>
                             </div>
                         </div>

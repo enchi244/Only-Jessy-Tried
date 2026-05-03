@@ -33,32 +33,6 @@ if(isset($_GET['edit_news'])) {
 $upload_dir = 'uploads/cms/';
 if (!is_dir($upload_dir)) { @mkdir($upload_dir, 0777, true); }
 
-// =========================================================
-// SAFE AUTO-INSTALLER FOR DATABASE TABLES
-// =========================================================
-
-// THE FIX: Added 'core_responsibilities' to the table creation and insertion
-$conn->query("CREATE TABLE IF NOT EXISTS `tbl_cms_about` (
-  `id` int(11) NOT NULL AUTO_INCREMENT, 
-  `about_text` text NOT NULL, 
-  `mission_text` text NOT NULL, 
-  `vision_text` text NOT NULL, 
-  `core_responsibilities` text NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-$chk = $conn->query("SELECT id FROM tbl_cms_about WHERE id=1");
-if($chk && $chk->num_rows == 0) {
-    $conn->query("INSERT INTO `tbl_cms_about` (`id`, `about_text`, `mission_text`, `vision_text`, `core_responsibilities`) VALUES (1, 'Under the Research Development and Evaluation Center (RDEC), the SDMU collects, manages, and analyzes data within the University.', 'SDMU is committed to providing appropriate statistical information and analyses while ensuring that the R&D data of the University are properly stored and managed.', 'SDMU aspires to become the leading hub of statistical expertise and data integrity within Western Mindanao State University.', '1. Manage and maintain the centralized R&D database.\n2. Ensure data accuracy and integrity across all submitted reports.\n3. Generate analytics and visualizations for university stakeholders.')");
-}
-
-$conn->query("CREATE TABLE IF NOT EXISTS `tbl_cms_carousel` (
-  `id` int(11) NOT NULL AUTO_INCREMENT, `image_path` varchar(255) NOT NULL, `alt_text` varchar(255) NOT NULL, PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-$conn->query("CREATE TABLE IF NOT EXISTS `tbl_cms_news` (
-  `id` int(11) NOT NULL AUTO_INCREMENT, `title` varchar(255) NOT NULL, `summary` text NOT NULL, `content` longtext NOT NULL, `image_path` varchar(255) NOT NULL, `date_published` date NOT NULL, PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
 // =========================================================
 // FORM ACTIONS
@@ -68,7 +42,6 @@ if (isset($_POST['save_text'])) {
     $about = $conn->real_escape_string($_POST['about_text']);
     $mission = $conn->real_escape_string($_POST['mission_text']);
     $vision = $conn->real_escape_string($_POST['vision_text']);
-    // THE FIX: Capture the new Core Responsibilities data
     $core = $conn->real_escape_string($_POST['core_responsibilities']);
     
     $conn->query("UPDATE tbl_cms_about SET about_text='$about', mission_text='$mission', vision_text='$vision', core_responsibilities='$core' WHERE id=1");
@@ -99,45 +72,63 @@ if (isset($_POST['add_news']) && !empty($_FILES['n_image']['name'])) {
         $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ News article published!</div>";
     }
 }
+
 // 3B. Update News
 if (isset($_POST['update_news'])) {
-
     $id = (int)$_POST['news_id'];
     $title = $conn->real_escape_string($_POST['title']);
     $summary = $conn->real_escape_string($_POST['summary']);
     $content = $conn->real_escape_string($_POST['content']);
     $date = $conn->real_escape_string($_POST['date_published']);
 
-    // If new image uploaded
     if (!empty($_FILES['n_image']['name'])) {
-
         $filename = "news_" . time() . "_" . basename($_FILES["n_image"]["name"]);
         $target = $upload_dir . $filename;
 
         if (move_uploaded_file($_FILES["n_image"]["tmp_name"], $target)) {
-
-            // delete old image
             $old = $conn->query("SELECT image_path FROM tbl_cms_news WHERE id=$id")->fetch_assoc();
-            if($old && file_exists($old['image_path'])) {
-                unlink($old['image_path']);
-            }
+            if($old && file_exists($old['image_path'])) { unlink($old['image_path']); }
 
             $conn->query("UPDATE tbl_cms_news 
                 SET title='$title', summary='$summary', content='$content', image_path='$target', date_published='$date'
                 WHERE id=$id");
         }
-
     } else {
-        // No image change
         $conn->query("UPDATE tbl_cms_news 
             SET title='$title', summary='$summary', content='$content', date_published='$date'
             WHERE id=$id");
     }
-
     $msg = "<div class='alert alert-info alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✏️ News updated successfully!</div>";
 }
 
-// 4. Deletions
+// 4. Save Header Logos
+if (isset($_POST['upload_logos'])) {
+    $logos_to_process = ['logo_wmsu', 'logo_rdec', 'logo_third'];
+    foreach ($logos_to_process as $logo_key) {
+        if (isset($_FILES[$logo_key]) && $_FILES[$logo_key]['error'] == 0) {
+            $filename = $logo_key . "_" . time() . "_" . basename($_FILES[$logo_key]["name"]);
+            $target = $upload_dir . $filename;
+            if (move_uploaded_file($_FILES[$logo_key]["tmp_name"], $target)) {
+                $conn->query("UPDATE tbl_site_settings SET setting_value='$target' WHERE setting_key='$logo_key'");
+            }
+        }
+    }
+    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Logos updated successfully!</div>";
+}
+
+// NEW: 5. Save Category Names
+if (isset($_POST['save_category_names'])) {
+    $cats = ['cat_research', 'cat_publication', 'cat_ext', 'cat_ip', 'cat_pp', 'cat_train'];
+    foreach($cats as $c) {
+        if(isset($_POST[$c])) {
+            $val = $conn->real_escape_string($_POST[$c]);
+            $conn->query("UPDATE tbl_site_settings SET setting_value='$val' WHERE setting_key='$c'");
+        }
+    }
+    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Report Categories renamed successfully!</div>";
+}
+
+// 6. Deletions
 if (isset($_GET['del_car'])) {
     $id = (int)$_GET['del_car'];
     $res = $conn->query("SELECT image_path FROM tbl_cms_carousel WHERE id=$id");
@@ -160,6 +151,23 @@ if(isset($_GET['msg']) && $_GET['msg'] == 'deleted') {
 $cms_text = ['about_text'=>'', 'mission_text'=>'', 'vision_text'=>'', 'core_responsibilities'=>''];
 $res_txt = $conn->query("SELECT * FROM tbl_cms_about WHERE id=1");
 if ($res_txt && $res_txt->num_rows > 0) { $cms_text = $res_txt->fetch_assoc(); }
+
+// Fetch Current Settings (Logos & Categories)
+$site_settings = [];
+$set_res = $conn->query("SELECT setting_key, setting_value FROM tbl_site_settings");
+if($set_res) {
+    while($r = $set_res->fetch_assoc()) {
+        $site_settings[$r['setting_key']] = $r['setting_value'];
+    }
+}
+// Default fallbacks for categories if they are somehow empty
+$cat_research = !empty($site_settings['cat_research']) ? $site_settings['cat_research'] : 'Research Conducted';
+$cat_pub = !empty($site_settings['cat_publication']) ? $site_settings['cat_publication'] : 'Publications';
+$cat_ext = !empty($site_settings['cat_ext']) ? $site_settings['cat_ext'] : 'Extension Projects';
+$cat_ip = !empty($site_settings['cat_ip']) ? $site_settings['cat_ip'] : 'Intellectual Property';
+$cat_pp = !empty($site_settings['cat_pp']) ? $site_settings['cat_pp'] : 'Paper Presentations';
+$cat_train = !empty($site_settings['cat_train']) ? $site_settings['cat_train'] : 'Trainings Attended';
+
 
 // =========================================================
 // INCLUDE TEMPLATE HEADER
@@ -207,6 +215,79 @@ include('includes/header.php');
 
     <div class="col-lg-6 mb-4">
         
+        <!-- NEW CARD: MANAGE CATEGORIES -->
+        <div class="card border-left-secondary shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-secondary"><i class="fas fa-tags mr-1"></i> Rename Report Categories</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="manage_cms.php">
+                    <div class="form-row">
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="small font-weight-bold mb-1">Module: Research</label>
+                            <input type="text" class="form-control form-control-sm" name="cat_research" value="<?php echo htmlspecialchars($cat_research); ?>" required>
+                        </div>
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="small font-weight-bold mb-1">Module: Publications</label>
+                            <input type="text" class="form-control form-control-sm" name="cat_publication" value="<?php echo htmlspecialchars($cat_pub); ?>" required>
+                        </div>
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="small font-weight-bold mb-1">Module: Extension</label>
+                            <input type="text" class="form-control form-control-sm" name="cat_ext" value="<?php echo htmlspecialchars($cat_ext); ?>" required>
+                        </div>
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="small font-weight-bold mb-1">Module: Intellectual Property</label>
+                            <input type="text" class="form-control form-control-sm" name="cat_ip" value="<?php echo htmlspecialchars($cat_ip); ?>" required>
+                        </div>
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="small font-weight-bold mb-1">Module: Paper Presentation</label>
+                            <input type="text" class="form-control form-control-sm" name="cat_pp" value="<?php echo htmlspecialchars($cat_pp); ?>" required>
+                        </div>
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="small font-weight-bold mb-1">Module: Trainings</label>
+                            <input type="text" class="form-control form-control-sm" name="cat_train" value="<?php echo htmlspecialchars($cat_train); ?>" required>
+                        </div>
+                    </div>
+                    <button type="submit" name="save_category_names" class="btn btn-secondary btn-sm btn-block mt-2"><i class="fas fa-save"></i> Save Category Names</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- CARD: MANAGE LOGOS -->
+        <div class="card border-left-warning shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-warning"><i class="fas fa-images mr-1"></i> Header Logos</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="manage_cms.php" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <label class="small font-weight-bold">WMSU Logo</label>
+                            <div class="mb-2">
+                                <img src="<?php echo !empty($site_settings['logo_wmsu']) ? $site_settings['logo_wmsu'] : '../img/placeholder.png'; ?>" class="img-thumbnail" style="height: 80px; width: 80px; object-fit: contain;">
+                            </div>
+                            <input type="file" name="logo_wmsu" class="form-control-file small" accept="image/*">
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <label class="small font-weight-bold">RDEC Logo</label>
+                            <div class="mb-2">
+                                <img src="<?php echo !empty($site_settings['logo_rdec']) ? $site_settings['logo_rdec'] : '../img/placeholder.png'; ?>" class="img-thumbnail" style="height: 80px; width: 80px; object-fit: contain;">
+                            </div>
+                            <input type="file" name="logo_rdec" class="form-control-file small" accept="image/*">
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <label class="small font-weight-bold">3rd Logo</label>
+                            <div class="mb-2">
+                                <img src="<?php echo !empty($site_settings['logo_third']) ? $site_settings['logo_third'] : '../img/placeholder.png'; ?>" class="img-thumbnail" style="height: 80px; width: 80px; object-fit: contain;">
+                            </div>
+                            <input type="file" name="logo_third" class="form-control-file small" accept="image/*">
+                        </div>
+                    </div>
+                    <button type="submit" name="upload_logos" class="btn btn-warning btn-sm btn-block text-dark font-weight-bold"><i class="fas fa-save"></i> Save Logos</button>
+                </form>
+            </div>
+        </div>
+
         <div class="card border-left-success shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-images mr-1"></i> 2. Carousel Images</h6>
@@ -243,7 +324,7 @@ include('includes/header.php');
             </div>
         </div>
 
-        <div class="card border-left-info shadow">
+        <div class="card border-left-info shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-newspaper mr-1"></i> 3. News & Updates</h6>
                 <button class="btn btn-sm btn-info" data-toggle="collapse" data-target="#newsFormCollapse">Add Article</button>

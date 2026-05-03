@@ -2,6 +2,19 @@
 // Start the session and include your core DB connection
 include('core/rms.php');
 
+// --- NEW: FETCH DYNAMIC CMS LOGOS ---
+$site_logos = [];
+try {
+    $logo_query = mysqli_query($conn, "SELECT setting_key, setting_value FROM tbl_site_settings");
+    if($logo_query){
+        while($row = mysqli_fetch_assoc($logo_query)){
+            $site_logos[$row['setting_key']] = $row['setting_value'];
+        }
+    }
+} catch (Exception $e) {
+    // Silently ignore if table doesn't exist yet
+}
+
 // --- 1. RDE DATA COUNTS ---
 $researchConductedCount = 0;
 $rc_query = mysqli_query($conn, "SELECT COUNT(*) as total FROM tbl_researchconducted");
@@ -64,9 +77,25 @@ if($news_query){
 
     <nav id="navbar">
         <div class="nav-container">
-            <div class="logo">
-                <span class="logo-text">SDMU <span class="highlight">WMSU</span></span>
-            </div>
+<!-- UPDATED DYNAMIC LOGOS (CIRCULAR) -->
+<div class="logo">
+    <a href="index.php" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+        <?php if(!empty($site_logos['logo_wmsu'])): ?>
+            <img src="<?php echo htmlspecialchars($site_logos['logo_wmsu']); ?>" alt="WMSU Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php endif; ?>
+        
+        <?php if(!empty($site_logos['logo_rdec'])): ?>
+            <img src="<?php echo htmlspecialchars($site_logos['logo_rdec']); ?>" alt="RDEC Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php endif; ?>
+        
+        <?php if(!empty($site_logos['logo_third'])): ?>
+            <img src="<?php echo htmlspecialchars($site_logos['logo_third']); ?>" alt="3rd Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php endif; ?>
+        
+        <span class="logo-text" style="margin-left: 5px;">SDMU <span class="highlight">WMSU</span></span>
+    </a>
+</div>
+            
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
                 <li><a href="#about">About</a></li>
@@ -132,14 +161,12 @@ if($news_query){
                     <h3 style="margin-top: 30px;">Core Responsibilities:</h3>
                     <ul class="task-list" style="margin-left: 20px; font-size: 1.05rem; color: #4a5568; line-height: 1.8;">
                         <?php 
-                        // The Auto-Formatter: Safely turns raw CMS text into HTML bullets and bold text!
                         $core_text = $cms_about['core_responsibilities'];
                         $lines = explode("\n", trim($core_text));
                         
                         foreach($lines as $line) {
                             $line = trim($line);
                             if($line != '') {
-                                // If you type a colon (:), it makes the first part bold
                                 $parts = explode(":", $line, 2);
                                 if(count($parts) > 1) {
                                     echo "<li style='margin-bottom: 8px;'><strong>" . htmlspecialchars(trim($parts[0])) . ":</strong> " . htmlspecialchars(trim($parts[1])) . "</li>";
@@ -320,8 +347,6 @@ if($news_query){
             const end = start + itemsPerPage;
 
             for (let i = start; i < end && i < cards.length; i++) {
-                // THE FIX: We removed 'block' and changed it to an empty string.
-                // This clears our hidden style and lets your gorgeous CSS take over entirely!
                 cards[i].style.display = ''; 
             }
 
