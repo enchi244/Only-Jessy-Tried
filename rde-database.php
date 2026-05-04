@@ -2,6 +2,18 @@
 include('core/rms.php');
 $object = new rms();
 
+// --- NEW: FETCH DYNAMIC CMS LOGOS ---
+$site_logos = [];
+try {
+    $object->query = "SELECT setting_key, setting_value FROM tbl_site_settings";
+    $object->execute();
+    foreach($object->statement_result() as $row) {
+        $site_logos[$row['setting_key']] = $row['setting_value'];
+    }
+} catch (Exception $e) {
+    // Silently ignore if table doesn't exist yet
+}
+
 // 1. Capture URL Parameters for Filters, Tabs, and Pagination
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'hub'; 
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -37,7 +49,7 @@ if(empty($valid_modules)) {
     $header_titles[] = "All Research & Evaluation Outputs";
 }
 
-// --- DYNAMIC HEADER CONTENT (FIXED: Now explicitly lists active categories) ---
+// --- DYNAMIC HEADER CONTENT ---
 if (count($valid_modules) == 1 && $tab !== 'hub' && $tab !== 'all' && $search === '' && $college_filter === 'all' && $year_filter === 'all') {
     // Single category with no other filters
     $header_title = $header_titles[0];
@@ -338,9 +350,25 @@ if ($tab !== 'hub') {
 
     <nav id="navbar" class="scrolled database-nav">
         <div class="nav-container">
-            <div class="logo">
-                <a href="index.php" class="logo-text">SDMU <span class="highlight">WMSU</span></a>
-            </div>
+<!-- UPDATED DYNAMIC LOGOS (CIRCULAR) -->
+<div class="logo">
+    <a href="index.php" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+        <?php if(!empty($site_logos['logo_wmsu'])): ?>
+            <img src="<?php echo htmlspecialchars($site_logos['logo_wmsu']); ?>" alt="WMSU Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php endif; ?>
+        
+        <?php if(!empty($site_logos['logo_rdec'])): ?>
+            <img src="<?php echo htmlspecialchars($site_logos['logo_rdec']); ?>" alt="RDEC Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php endif; ?>
+        
+        <?php if(!empty($site_logos['logo_third'])): ?>
+            <img src="<?php echo htmlspecialchars($site_logos['logo_third']); ?>" alt="3rd Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php endif; ?>
+        
+        <span class="logo-text" style="margin-left: 5px;">SDMU <span class="highlight">WMSU</span></span>
+    </a>
+</div>
+            
             <ul class="nav-links">
                 <li><a href="index.php">&larr; Back to Home</a></li>
                 <li><a href="login.php" class="btn-login"><i class="fas fa-user-shield"></i> Admin Login</a></li>
