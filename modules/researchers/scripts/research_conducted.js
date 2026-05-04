@@ -1,4 +1,5 @@
 $(document).ready(function() {
+
     if ($('#collaborators').length) {
         $('#collaborators').select2({
             placeholder: "Select Co-Researchers / Collaborators",
@@ -37,10 +38,12 @@ $(document).ready(function() {
             $('#cover_photo_preview').slideUp();
         }
     });
+
 });
 
 function loadResearchConductedTab(researcherID) {
     $('#researchconducted_form').parsley();
+
     if ($.fn.dataTable.isDataTable('#researcherconducted_table')) {
         $('#researcherconducted_table').DataTable().clear().destroy();
     }
@@ -105,7 +108,6 @@ $('#researchconducted_form').on('submit', function(event) {
                         customClass: { confirmButton: 'btn-success' }
                     });
 
-                    // --- NEW AUTO-REFRESH LOGIC ---
                     if (window.location.href.indexOf("view_researcher.php") > -1) {
                         setTimeout(function(){ 
                             var rid = $('#hidden_id_rd').val() || new URLSearchParams(window.location.search).get('id');
@@ -118,7 +120,6 @@ $('#researchconducted_form').on('submit', function(event) {
                             }
                         });
                     }
-                    // ------------------------------
 
                     setTimeout(function(){
                         $('#message').html('');
@@ -131,11 +132,10 @@ $('#researchconducted_form').on('submit', function(event) {
             error: function(xhr, status, error) {
                 $('#submit_button_researchedconducted').attr('disabled', false).val($('#action_researchedconducted').val());
                 Swal.fire({
-                    title: 'Server Error (500)',
-                    text: 'A fatal PHP error occurred. Check your network tab.',
+                    title: 'Server Error',
+                    text: 'A PHP error occurred. Check your network tab.',
                     icon: 'error'
                 });
-                console.error("Submission Error:", xhr.responseText);
             }
         });
     }
@@ -152,7 +152,6 @@ $('#add_researcherconducted').click(function() {
     $('#researchconducted_form')[0].reset();
     $('#researchconducted_form').parsley().reset();
     
-    // FIX: Properly reset Select2 UIs visually on Add
     $('#sdgs').val([]).trigger('change');  
     if($.fn.selectpicker) { 
         $('#sdgs').selectpicker('refresh'); 
@@ -162,8 +161,7 @@ $('#add_researcherconducted').click(function() {
         $('#collaborators').val(null).trigger('change');
     }
 
-    // Reset image preview
-    var defaultImagePath = '../../img/default_research_cover.png'; // <-- MUST MATCH the PHP filename
+    var defaultImagePath = '../../img/default_research_cover.png'; 
     $('#cover_photo').val('');
     $('#preview_img').attr('src', defaultImagePath);
     $('#cover_photo_preview').show();
@@ -186,7 +184,16 @@ $('#add_researcherconducted').click(function() {
     $('#form_message').html('');
 });
 
+
+// ==========================================
+// EDIT MODAL TRIGGER
+// ==========================================
 $(document).on('click', '.edit_button_researchconducted', function(e){
+    // THE FIX: Strict shield to prevent the edit modal from opening if you click a button or a link inside the card
+    if ($(e.target).closest('button, a, .isolate-click').length > 0) {
+        return; 
+    }
+
     e.preventDefault();
     var rcid = $(this).data('id');
 
@@ -194,7 +201,6 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
     $('#researchconducted_form').parsley().reset();
     $('#form_message').html('');
     
-    // Reset image preview initially
     $('#cover_photo').val('');
     $('#cover_photo_preview').hide();
     $('#preview_img').attr('src', '');
@@ -213,9 +219,7 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
             $('#completed_date').val(data.completed_date);
             $('#title').val(data.title);
             
-            // FIX: Force the UI to update with .trigger('change')
             $('#research_agenda_cluster').val(data.research_agenda_cluster);
-
             $('#lead_researcher_id').val(data.lead_researcher_id).trigger('change');
             
             if(data.sdgs) {
@@ -239,14 +243,11 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
             
             $('#has_files').val(data.has_files).trigger('change');
 
-            // Handle displaying the existing cover photo
-            // Display the fetched cover photo (which will either be the uploaded one or the default defined in PHP)
             if(data.cover_photo && data.cover_photo != '') {
                 $('#preview_img').attr('src', '../../' + data.cover_photo);
                 $('#cover_photo_preview').show();
             } else {
-                // Fallback just in case the PHP logic fails
-                $('#preview_img').attr('src', '../../img/default_research_cover.jpg');
+                $('#preview_img').attr('src', '../../img/default_research_cover.png');
                 $('#cover_photo_preview').show();
             }
             
@@ -275,11 +276,18 @@ $(document).on('click', '.edit_button_researchconducted', function(e){
     });
 });
 
+
+// ==========================================
+// DELETE RECORD TRIGGER
+// ==========================================
 $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .delete_master_researchconducted', function(e) {
     e.preventDefault();
+    e.stopImmediatePropagation(); // THE FIX: Stops the click from bubbling to the card
+
     var btn = $(this);
     var xid = btn.data('id');
     var targetRow = btn.closest('tr');
+    var targetTimeline = btn.closest('.timeline-item'); 
 
     Swal.fire({
         title: 'Are you sure?',
@@ -296,26 +304,30 @@ $(document).on('click', '.delete_button_researchconducted, .delete_buttonrc, .de
                 url: "actions/researchconducted_action.php",
                 method: "POST",
                 data: { xid: xid, action_researchedconducted: 'delete' },
-                dataType: "json", 
+                // THE FIX: Removed dataType: 'json' to prevent parse errors blocking the success block
                 success: function(data) {
-                    if (data && data.status === 'success') {
-                        Swal.fire({
-                            title: 'Deleted!',
-                            text: 'The record has been successfully deleted.',
-                            icon: 'success',
-                            timer: 800, 
-                            showConfirmButton: false, 
-                        });
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'The record has been successfully deleted.',
+                        icon: 'success',
+                        timer: 800, 
+                        showConfirmButton: false, 
+                    });
 
-                        targetRow.fadeOut(400, function() {
-                            $(this).remove();
-                        });
+                    if (window.location.href.indexOf("view_researcher.php") > -1) {
+                        setTimeout(function(){ location.reload(); }, 800);
+                    } else if (targetRow.length > 0) {
+                        targetRow.fadeOut(400, function() { $(this).remove(); });
+                    } else if (targetTimeline.length > 0) {
+                        targetTimeline.fadeOut(400, function() { $(this).remove(); });
+                    } else {
+                        setTimeout(function(){ location.reload(); }, 800);
                     }
                 },
                 error: function(xhr) {
                     Swal.fire({
                         title: 'Database Error!',
-                        text: xhr.responseText,
+                        text: 'Could not delete the record.',
                         icon: 'error'
                     });
                 }
@@ -331,7 +343,6 @@ $(document).on('click', '.delete-existing-file', function(e) {
     var fileId = btn.attr('data-file-id');
     var row = $('#file_row_' + fileId);
     
-    // THE FIX: Scope this strictly to the Research Conducted Modal
     if(btn.closest('#researchconductedModal').length > 0) {
         Swal.fire({
             title: 'Delete this file?',

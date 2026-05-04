@@ -163,34 +163,57 @@ $(document).ready(function(){
         var status = $(this).data('status');
         var next_status = 'Enable';
         if(status == 'Enable') { next_status = 'Disable'; }
-        if(confirm("Are you sure you want to "+next_status+" it?")) {
-            $.ajax({
-                url:"modules/colleges/college_action.php",
-                method:"POST",
-                data:{id:id, action:'change_status', status:status, next_status:next_status},
-                success:function(data) {
-                    $('#message').html(data);
-                    collegeTable.ajax.reload();
-                    setTimeout(function(){ $('#message').html(''); }, 5000);
-                }
-            })
-        }
+        
+        Swal.fire({
+            title: 'Change Status?',
+            text: "Are you sure you want to " + next_status + " this college?",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#f23e5d',
+            cancelButtonColor: '#858796',
+            confirmButtonText: 'Yes, ' + next_status + ' it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url:"modules/colleges/college_action.php",
+                    method:"POST",
+                    data:{id:id, action:'change_status', status:status, next_status:next_status},
+                    success:function(data) {
+                        $('#message').html(data);
+                        collegeTable.ajax.reload();
+                        setTimeout(function(){ $('#message').html(''); }, 5000);
+                    }
+                });
+            }
+        });
     });
 
     $('#category_table tbody').on('click', '.delete_button', function(){
         var id = $(this).data('id');
-        if(confirm("Are you sure you want to remove it?")) {
-            $.ajax({
-                url:"modules/colleges/college_action.php",
-                method:"POST",
-                data:{id:id, action:'delete'},
-                success:function(data) {
-                    $('#message').html(data);
-                    collegeTable.ajax.reload();
-                    setTimeout(function(){ $('#message').html(''); }, 5000);
-                }
-            })
-        }
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74a3b',
+            cancelButtonColor: '#858796',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url:"modules/colleges/college_action.php",
+                    method:"POST",
+                    data:{id:id, action:'delete'},
+                    success:function(data) {
+                        Swal.fire('Deleted!', 'The college has been deleted.', 'success');
+                        $('#message').html(data);
+                        collegeTable.ajax.reload();
+                        setTimeout(function(){ $('#message').html(''); }, 5000);
+                    }
+                });
+            }
+        });
     });
 
 
@@ -272,34 +295,57 @@ $(document).ready(function(){
         var id = $(this).data('id');
         var status = $(this).data('status');
         var next_status = (status == 'Enable') ? 'Disable' : 'Enable';
-        if(confirm("Are you sure you want to "+next_status+" it?")) {
-            $.ajax({
-                url:"modules/disciplines/discipline_action.php",
-                method:"POST",
-                data:{id:id, action:'change_status', status:status, next_status:next_status},
-                success:function(data) {
-                    $('#discipline_message').html(data);
-                    disciplineTable.ajax.reload();
-                    setTimeout(function(){ $('#discipline_message').html(''); }, 5000);
-                }
-            })
-        }
+        
+        Swal.fire({
+            title: 'Change Status?',
+            text: "Are you sure you want to " + next_status + " this discipline?",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#f23e5d',
+            cancelButtonColor: '#858796',
+            confirmButtonText: 'Yes, ' + next_status + ' it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url:"modules/disciplines/discipline_action.php",
+                    method:"POST",
+                    data:{id:id, action:'change_status', status:status, next_status:next_status},
+                    success:function(data) {
+                        $('#discipline_message').html(data);
+                        disciplineTable.ajax.reload();
+                        setTimeout(function(){ $('#discipline_message').html(''); }, 5000);
+                    }
+                });
+            }
+        });
     });
 
     $('#discipline_table tbody').on('click', '.delete_button', function(){
         var id = $(this).data('id');
-        if(confirm("Are you sure you want to remove it?")) {
-            $.ajax({
-                url:"modules/disciplines/discipline_action.php",
-                method:"POST",
-                data:{id:id, action:'delete'},
-                success:function(data) {
-                    $('#discipline_message').html(data);
-                    disciplineTable.ajax.reload();
-                    setTimeout(function(){ $('#discipline_message').html(''); }, 5000);
-                }
-            })
-        }
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74a3b',
+            cancelButtonColor: '#858796',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url:"modules/disciplines/discipline_action.php",
+                    method:"POST",
+                    data:{id:id, action:'delete'},
+                    success:function(data) {
+                        Swal.fire('Deleted!', 'The discipline has been deleted.', 'success');
+                        $('#discipline_message').html(data);
+                        disciplineTable.ajax.reload();
+                        setTimeout(function(){ $('#discipline_message').html(''); }, 5000);
+                    }
+                });
+            }
+        });
     });
 
 

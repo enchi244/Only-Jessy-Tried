@@ -5,6 +5,7 @@ $object = new rms();
 if(!$object->is_login()) {
     header("location:".$object->base_url."");
 }
+
 if(!$object->is_master_user()) {
     header("location:".$object->base_url."dashboard.php");
 }
@@ -16,19 +17,22 @@ if(!isset($_GET['id'])) {
 }
 
 $researcher_id = $_GET['id'];
+
 $object->query = "SELECT * FROM tbl_researchdata WHERE id = :id";
 $object->execute([':id' => $researcher_id]);
+
 if($object->row_count() == 0) {
     header("location: researcher.php");
     exit();
 }
+
 $researcher_data = $object->statement->fetch(PDO::FETCH_ASSOC);
 
 // Format the name nicely
 $full_name = trim($researcher_data['firstName'] . ' ' . $researcher_data['middleName'] . ' ' . $researcher_data['familyName'] . ' ' . $researcher_data['Suffix']);
 
 // UPDATED TO LEFT JOIN SO CO-AUTHORS SEE THE RECORD (WITH POLICY CHECK)
-$object->query = "SELECT DISTINCT rc.*,
+$object->query = "SELECT DISTINCT rc.*, 
                          (SELECT id FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_id,
                          (SELECT title FROM tbl_research_policy WHERE research_conducted_id = rc.id AND status = 1 LIMIT 1) AS policy_title
                   FROM tbl_researchconducted rc 
@@ -83,7 +87,7 @@ include('../../includes/header.php');
 <style>
     .pink { background-color: #f23e5d; color: white; }
     .pink:hover { background-color: #e32747; color: white; }
-
+    
     /* Custom Vertical Timeline */
     .timeline { border-left: 3px solid #eaecf4; padding-left: 25px; margin-left: 15px; position: relative; }
     .timeline-item { margin-bottom: 30px; position: relative; }
@@ -119,7 +123,7 @@ include('../../includes/header.php');
         border-right: none;
     }
 
-    /* --- NEW CSS FOR CLICKABLE CARDS & FAB --- */
+    /* Clickable Cards & FAB */
     .clickable-card {
         cursor: pointer;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -130,12 +134,7 @@ include('../../includes/header.php');
         box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important;
         border-color: #eaecf4;
     }
-    
-    /* Prevents clicking 'Delete' from triggering the card's edit action */
-    .isolate-click {
-        position: relative;
-        z-index: 10;
-    }
+    .isolate-click { position: relative; z-index: 10; }
 
     /* Floating Action Button */
     .fab-container {
@@ -159,6 +158,20 @@ include('../../includes/header.php');
     .fab-btn:hover {
         transform: scale(1.05);
         box-shadow: 0 12px 25px rgba(242, 62, 93, 0.5);
+    }
+
+    /* Pagination Theming */
+    .pagination .page-item.active .page-link {
+        background-color: #f23e5d;
+        border-color: #f23e5d;
+        color: white;
+    }
+    .pagination .page-link {
+        color: #f23e5d;
+    }
+    .pagination .page-link:hover {
+        color: #e32747;
+        background-color: #f8f9fa;
     }
 </style>
 
@@ -199,6 +212,7 @@ include('../../includes/header.php');
     </div>
 </div>
 
+<!-- Modals Inclusion -->
 <?php include('modals/add_researchConducted.php'); ?>
 <?php include('modals/add_publication.php'); ?>
 <?php include('modals/add_intellectualProperty.php'); ?>
@@ -209,6 +223,7 @@ include('../../includes/header.php');
 <?php include('modals/add_extension.php'); ?>
 
 <div class="row">
+    <!-- Left Navigation -->
     <div class="col-xl-3 col-lg-4 mb-4">
         <div class="card shadow-sm border-0">
             <div class="card-body p-3">
@@ -225,17 +240,33 @@ include('../../includes/header.php');
         </div>
     </div>
 
+    <!-- Content Area -->
     <div class="col-xl-9 col-lg-8">
         <div class="card shadow-sm border-0">
             <div class="card-body">
+                
+                <!-- NEW: Global Profile Search Bar -->
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                    <h4 class="font-weight-bold text-gray-800 m-0"><i class="fas fa-search text-primary mr-2"></i>Profile Search</h4>
+                    <div class="input-group" style="max-width: 350px;">
+                        <input type="text" id="global_profile_search" class="form-control bg-light border-1 small" placeholder="Search keywords, titles, years..." aria-label="Search">
+                        <div class="input-group-append">
+                            <button class="btn btn-danger pink" type="button">
+                                <i class="fas fa-search fa-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <span id="message"></span>
                 <div class="tab-content" id="v-pills-tabContent">
 
+                    <!-- Profile Overview -->
                     <div class="tab-pane custom-tab-pane active" id="personal-info" role="tabpanel" style="display: block;">
                         <h4 class="font-weight-bold text-gray-800 mb-4 border-bottom pb-2"><i class="fas fa-graduation-cap text-primary mr-2"></i>Academic Background</h4>
                         
                         <div class="row">
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-6 mb-4 searchable-item">
                                 <div class="card shadow-sm border-left-primary h-100">
                                     <div class="card-body">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Bachelor's Degree</div>
@@ -245,8 +276,7 @@ include('../../includes/header.php');
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-6 mb-4 searchable-item">
                                 <div class="card shadow-sm border-left-success h-100">
                                     <div class="card-body">
                                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Master's Degree</div>
@@ -256,8 +286,7 @@ include('../../includes/header.php');
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-6 mb-4 searchable-item">
                                 <div class="card shadow-sm border-left-info h-100">
                                     <div class="card-body">
                                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Doctorate Degree</div>
@@ -267,8 +296,7 @@ include('../../includes/header.php');
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-6 mb-4 searchable-item">
                                 <div class="card shadow-sm border-left-warning h-100">
                                     <div class="card-body">
                                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Post-Doctorate</div>
@@ -281,6 +309,7 @@ include('../../includes/header.php');
                         </div>
                     </div>
 
+                    <!-- Research Conducted -->
                     <div class="tab-pane custom-tab-pane" id="education" role="tabpanel" style="display: none;">
                         
                         <ul class="nav nav-tabs mb-4 border-bottom-danger" id="rcInnerTabs" role="tablist">
@@ -293,16 +322,12 @@ include('../../includes/header.php');
                         </ul>
 
                         <div class="tab-content" id="rcInnerTabsContent">
-                            
+                            <!-- RC Tab -->
                             <div class="tab-pane fade show active" id="inner-rc" role="tabpanel">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h4 class="font-weight-bold text-gray-800 m-0">Research Timeline</h4>
-                                </div>
-                                
                                 <?php if(count($research_conducted) > 0): ?>
-                                    <div class="timeline mt-4">
+                                    <div class="timeline mt-4" id="paginate-rc">
                                         <?php foreach($research_conducted as $rc): ?>
-                                            <div class="timeline-item">
+                                            <div class="timeline-item searchable-item">
                                                 <div class="timeline-date"><?php echo htmlspecialchars($rc['started_date']); ?> to <?php echo htmlspecialchars($rc['completed_date']); ?></div>
                                                 <div class="card shadow-sm border-0 bg-light clickable-card edit_button_researchconducted" data-id="<?php echo $rc['id']; ?>">
                                                     <div class="card-body py-3">
@@ -321,7 +346,7 @@ include('../../includes/header.php');
 
                                                         <p class="text-muted small mb-2">
                                                             <i class="fas fa-bullseye mr-1"></i> SDG: <?php echo htmlspecialchars($rc['sdgs']); ?> | 
-                                                            <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($rc['funding_source']); ?> (₱<?php echo number_format((float)$rc['approved_budget'], 2); ?>)
+                                                            <i class="fas fa-wallet ml-2 mr-1"></i> <?php echo htmlspecialchars($rc['funding_source']); ?> ( <?php echo number_format((float)$rc['approved_budget'], 2); ?>)
                                                         </p>
                                                         <span class="badge badge-primary px-2 py-1"><?php echo htmlspecialchars($rc['stat']); ?></span>
                                                         <span class="badge badge-light px-2 py-1 ml-1 border">Cluster: <?php echo htmlspecialchars($rc['research_agenda_cluster']); ?></span>
@@ -335,14 +360,12 @@ include('../../includes/header.php');
                                 <?php endif; ?>
                             </div>
 
+                            <!-- Policy Tab -->
                             <div class="tab-pane fade" id="inner-policy" role="tabpanel">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h4 class="font-weight-bold text-gray-800 m-0">Research Policy</h4>
-                                </div>
-
                                 <?php if(count($policies) > 0): ?>
+                                    <div id="paginate-policy">
                                     <?php foreach($policies as $pol): ?>
-                                        <div class="card shadow-sm mb-3 border-left-danger position-relative clickable-card edit_button_policy" data-id="<?php echo $pol['id']; ?>">
+                                        <div class="card shadow-sm mb-3 border-left-danger position-relative clickable-card edit_button_policy searchable-item" data-id="<?php echo $pol['id']; ?>">
                                             <div class="card-body py-3">
                                                 <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
                                                     <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_policy" data-id="<?php echo $pol['id']; ?>"><i class="fas fa-trash"></i></button>
@@ -357,7 +380,6 @@ include('../../includes/header.php');
                                                     <span class="badge badge-danger px-2 py-1 mr-2"><i class="far fa-calendar-alt mr-1"></i> Implemented: <?php echo htmlspecialchars($pol['date_implemented']); ?></span>
                                                     
                                                     <?php
-                                                    // FIX: Fetch files from the new DRY tbl_rde_files table!
                                                     $object->query = "SELECT file_name, file_category AS category FROM tbl_rde_files WHERE entity_id = '".$pol['id']."' AND entity_type = 'policy'";
                                                     $object->execute();
                                                     $policy_files = $object->statement_result();
@@ -373,22 +395,20 @@ include('../../includes/header.php');
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
+                                    </div>
                                 <?php else: ?>
                                     <div class="alert alert-light text-center py-4 border">No research policies recorded yet.</div>
                                 <?php endif; ?>
                             </div>
-
                         </div>
                     </div>
 
+                    <!-- Publications -->
                     <div class="tab-pane custom-tab-pane" id="degree" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Publications</h4>
-                        </div>
-
                         <?php if(count($publications) > 0): ?>
+                            <div id="paginate-pub">
                             <?php foreach($publications as $pub): ?>
-                                <div class="card shadow-sm mb-3 border-left-primary position-relative clickable-card edit_button_publication" data-id="<?php echo $pub['id']; ?>">
+                                <div class="card shadow-sm mb-3 border-left-primary position-relative clickable-card edit_button_publication searchable-item" data-id="<?php echo $pub['id']; ?>">
                                     <div class="card-body py-3">
                                         <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
                                             <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_publication" data-id="<?php echo $pub['id']; ?>"><i class="fas fa-trash"></i></button>
@@ -407,34 +427,34 @@ include('../../includes/header.php');
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+                            </div>
                         <?php else: ?>
                             <div class="alert alert-light text-center py-4 border">No publications recorded yet.</div>
                         <?php endif; ?>
                     </div>
 
+                    <!-- Intellectual Property -->
                     <div class="tab-pane custom-tab-pane" id="ip" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Intellectual Property</h4>
-                        </div>
-
                         <?php if(count($intellectual_props) > 0): ?>
-                            <div class="row">
+                            <div class="row" id="paginate-ip">
                                 <?php foreach($intellectual_props as $ip): ?>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-6 mb-3 searchable-item">
                                         <div class="card shadow-sm border-left-warning h-100 clickable-card edit_button_intellectualprop" data-id="<?php echo $ip['id']; ?>">
                                             <div class="card-body py-3 position-relative">
                                                 <div class="position-absolute isolate-click" style="top: 10px; right: 10px;">
                                                     <button class="btn btn-sm btn-light text-danger delete_button_intellectualprop" data-id="<?php echo $ip['id']; ?>"><i class="fas fa-trash"></i></button>
                                                 </div>
                                                 <h6 class="font-weight-bold text-gray-800 pr-5"><?php echo htmlspecialchars($ip['title']); ?></h6>
-                                                <?php 
-                                                    // Use dynamic co-authors if available, otherwise fallback to the old text field
+                                                
+                                                <?php
                                                     $display_coauth = !empty($ip['dynamic_coauth']) ? htmlspecialchars($ip['dynamic_coauth']) : htmlspecialchars($ip['coauth']);
                                                 ?>
                                                 <p class="text-muted small mb-2"><i class="fas fa-users mr-1"></i> Co-authors: <?php echo !empty($display_coauth) ? $display_coauth : '<i class="text-muted font-italic">None</i>'; ?></p>
+                                                
                                                 <div class="mt-3">
                                                     <span class="badge badge-warning text-dark px-2 py-1 mb-1"><i class="fas fa-certificate mr-1"></i> <?php echo htmlspecialchars($ip['type']); ?></span><br>
-                                                   <?php if(!empty($ip['a_link'])): ?>
+                                                    
+                                                    <?php if(!empty($ip['a_link'])): ?>
                                                         <a href="<?php echo htmlspecialchars($ip['a_link']); ?>" target="_blank" class="badge badge-primary px-2 py-1 mb-1 isolate-click shadow-sm" style="text-decoration: none;"><i class="fas fa-external-link-alt mr-1"></i> View External Link</a><br>
                                                     <?php endif; ?>
                                                     
@@ -452,9 +472,9 @@ include('../../includes/header.php');
                                                         $duration_years = 0;
                                                         $is_copyright = false;
 
-                                                        if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) { $duration_years = 20; } 
-                                                        elseif (strpos($ip_type, 'industrial design') !== false) { $duration_years = 5; } 
-                                                        elseif (strpos($ip_type, 'trademark') !== false) { $duration_years = 10; } 
+                                                        if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) { $duration_years = 20; }
+                                                        elseif (strpos($ip_type, 'industrial design') !== false) { $duration_years = 5; }
+                                                        elseif (strpos($ip_type, 'trademark') !== false) { $duration_years = 10; }
                                                         elseif (strpos($ip_type, 'copyright') !== false) { $is_copyright = true; }
 
                                                         if ($is_copyright) {
@@ -485,14 +505,12 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
+                    <!-- Paper Presentations -->
                     <div class="tab-pane custom-tab-pane" id="pp" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Paper Presentations</h4>
-                        </div>
-
                             <?php if(count($presentations) > 0): ?>
+                            <div id="paginate-pp">
                             <?php foreach($presentations as $paper): ?>
-                                <div class="card shadow-sm mb-3 border-left-info position-relative clickable-card edit_button_paper_presentation" data-id="<?php echo $paper['id']; ?>">
+                                <div class="card shadow-sm mb-3 border-left-info position-relative clickable-card edit_button_paper_presentation searchable-item" data-id="<?php echo $paper['id']; ?>">
                                     <div class="card-body py-3">
                                         <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
                                             <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_paper_presentation" data-id="<?php echo $paper['id']; ?>"><i class="fas fa-trash"></i></button>
@@ -524,20 +542,18 @@ include('../../includes/header.php');
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+                            </div>
                         <?php else: ?>
                             <div class="alert alert-light text-center py-4 border">No paper presentations recorded yet.</div>
                         <?php endif; ?>
                     </div>
 
+                    <!-- Trainings -->
                     <div class="tab-pane custom-tab-pane" id="tra" role="tabpanel" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="font-weight-bold text-gray-800 m-0">Trainings & Development</h4>
-                        </div>
-                        
                         <?php if(count($trainings) > 0): ?>
-                            <div class="timeline mt-4">
+                            <div class="timeline mt-4" id="paginate-tra">
                                 <?php foreach($trainings as $train): ?>
-                                    <div class="timeline-item">
+                                    <div class="timeline-item searchable-item">
                                         <div class="timeline-date"><?php echo htmlspecialchars($train['date_train']); ?> (<?php echo htmlspecialchars($train['totnh']); ?> Hours)</div>
                                         <div class="card shadow-sm border-0 bg-light clickable-card edit_button_training" data-id="<?php echo $train['id']; ?>">
                                             <div class="card-body py-3">
@@ -548,6 +564,7 @@ include('../../includes/header.php');
                                                     <p class="text-muted small mb-2"><i class="fas fa-building mr-1 text-primary"></i> <?php echo htmlspecialchars($train['sponsor_org']); ?> &nbsp;|&nbsp; <i class="fas fa-map-marker-alt mx-1 text-danger"></i> <?php echo htmlspecialchars($train['venue']); ?></p>
                                                 <div class="mt-2">
                                                     <span class="badge badge-info px-2 py-1 mr-1"><?php echo htmlspecialchars($train['lvl']); ?> Level</span>
+                                                    
                                                     <?php if(!empty($train['a_link'])): ?>
                                                         <?php 
                                                         $links = explode("\n", trim($train['a_link']));
@@ -561,6 +578,7 @@ include('../../includes/header.php');
                                                         endforeach; 
                                                         ?>
                                                     <?php endif; ?>
+
                                                     <span class="badge badge-secondary px-2 py-1 mr-1"><?php echo !empty($train['type_training']) ? htmlspecialchars($train['type_training']) : 'Training'; ?></span>
                                                     <span class="badge badge-light border px-2 py-1"><i class="fas fa-book-reader mr-1 text-muted"></i><?php echo !empty($train['type_learning_dev']) ? htmlspecialchars($train['type_learning_dev']) : 'N/A'; ?></span>
                                                 </div>
@@ -574,6 +592,7 @@ include('../../includes/header.php');
                         <?php endif; ?>
                     </div>
 
+                    <!-- Extension Projects -->
                     <div class="tab-pane custom-tab-pane" id="epc" role="tabpanel" style="display: none;">
                         
                         <ul class="nav nav-tabs mb-4 border-bottom-danger" id="epcInnerTabs" role="tablist">
@@ -587,15 +606,12 @@ include('../../includes/header.php');
 
                         <div class="tab-content" id="epcInnerTabsContent">
                             
+                            <!-- EPC Tab -->
                             <div class="tab-pane fade show active" id="inner-epc" role="tabpanel">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h4 class="font-weight-bold text-gray-800 m-0">Extension Projects Conducted</h4>
-                                </div>
-
                                 <?php if(count($ext_projects) > 0): ?>
-                                    <div class="timeline mt-4">
+                                    <div class="timeline mt-4" id="paginate-epc">
                                         <?php foreach($ext_projects as $ep): ?>
-                                            <div class="timeline-item">
+                                            <div class="timeline-item searchable-item">
                                                 <div class="timeline-date"><?php echo htmlspecialchars($ep['start_date']); ?> to <?php echo htmlspecialchars($ep['completed_date']); ?></div>
                                                 <div class="card shadow-sm border-0 bg-light clickable-card edit_button_extension_project" data-id="<?php echo $ep['id']; ?>">
                                                     <div class="card-body py-3">
@@ -611,7 +627,7 @@ include('../../includes/header.php');
                                                             </div>
                                                             <div class="col-md-6 mb-2 border-left">
                                                                 <div class="mb-1"><i class="fas fa-wallet mr-2 text-success"></i> <b>Funding Source:</b> <br><span class="ml-4"><?php echo htmlspecialchars($ep['funding_source']); ?></span></div>
-                                                                <div class="mt-2"><i class="fas fa-money-bill-wave mr-2 text-success"></i> <b>Approved Budget:</b> <br><span class="ml-4 font-weight-bold">₱<?php echo number_format((float)$ep['approved_budget'], 2); ?></span></div>
+                                                                <div class="mt-2"><i class="fas fa-money-bill-wave mr-2 text-success"></i> <b>Approved Budget:</b> <br><span class="ml-4 font-weight-bold"> <?php echo number_format((float)$ep['approved_budget'], 2); ?></span></div>
                                                             </div>
                                                         </div>
 
@@ -638,14 +654,14 @@ include('../../includes/header.php');
                                                         // Fetch linked research projects for this extension
                                                         $object->query = "
                                                             SELECT r.title, 
-                                                                   pd.familyName AS lead_familyName, pd.firstName AS lead_firstName,
-                                                                   (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ') 
-                                                                    FROM tbl_research_collaborators col 
-                                                                    JOIN tbl_researchdata d ON col.researcher_id = d.id 
-                                                                    WHERE col.research_id = r.id) AS co_authors
-                                                            FROM tbl_extension_research_links l 
-                                                            JOIN tbl_researchconducted r ON l.research_id = r.id 
-                                                            LEFT JOIN tbl_researchdata pd ON (pd.id = r.lead_researcher_id OR pd.id = r.researcherID OR pd.researcherID = r.researcherID)
+                                                                    pd.familyName AS lead_familyName, pd.firstName AS lead_firstName,
+                                                                   (SELECT GROUP_CONCAT(CONCAT(d.familyName, ', ', d.firstName) SEPARATOR ' | ')
+                                                                     FROM tbl_research_collaborators col
+                                                                     JOIN tbl_researchdata d ON col.researcher_id = d.id
+                                                                     WHERE col.research_id = r.id) AS co_authors
+                                                            FROM tbl_extension_research_links l
+                                                             JOIN tbl_researchconducted r ON l.research_id = r.id
+                                                             LEFT JOIN tbl_researchdata pd ON (pd.id = r.lead_researcher_id OR pd.id = r.researcherID OR pd.researcherID = r.researcherID)
                                                             WHERE l.extension_id = '".$ep['id']."'
                                                         ";
                                                         $object->execute();
@@ -677,14 +693,12 @@ include('../../includes/header.php');
                                 <?php endif; ?>
                             </div>
 
+                            <!-- Ext Activities Tab -->
                             <div class="tab-pane fade" id="inner-ext" role="tabpanel">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h4 class="font-weight-bold text-gray-800 m-0">Extension Activities</h4>
-                                </div>
-
                                 <?php if(count($extensions) > 0): ?>
+                                    <div id="paginate-ext">
                                     <?php foreach($extensions as $ext): ?>
-                                        <div class="card shadow-sm mb-3 border-left-success position-relative clickable-card edit_button_ext" data-id="<?php echo $ext['id']; ?>">
+                                        <div class="card shadow-sm mb-3 border-left-success position-relative clickable-card edit_button_ext searchable-item" data-id="<?php echo $ext['id']; ?>">
                                             <div class="card-body py-3">
                                                 <div class="position-absolute isolate-click" style="top: 15px; right: 15px;">
                                                     <button class="btn btn-sm btn-light text-danger shadow-sm delete_button_ext" data-id="<?php echo $ext['id']; ?>"><i class="fas fa-trash"></i></button>
@@ -698,7 +712,7 @@ include('../../includes/header.php');
                                                 <div class="mt-2 bg-light p-2 rounded small">
                                                     <b><i class="far fa-calendar-alt mr-1"></i> Period:</b> <?php echo htmlspecialchars($ext['period_implement']); ?> | 
                                                     <b><i class="fas fa-users ml-2 mr-1"></i> Beneficiaries:</b> <?php echo htmlspecialchars($ext['target_beneficiaries']); ?> |
-                                                    <b><i class="fas fa-money-bill-wave ml-2 mr-1"></i> Budget:</b> ₱<?php echo number_format((float)$ext['budget'], 2); ?>
+                                                    <b><i class="fas fa-money-bill-wave ml-2 mr-1"></i> Budget:</b>  <?php echo number_format((float)$ext['budget'], 2); ?>
                                                 </div>
                                                 <div class="mt-2">
                                                     <span class="badge badge-success px-2 py-1"><i class="fas fa-info-circle mr-1"></i> <?php echo htmlspecialchars($ext['stat']); ?></span>
@@ -706,12 +720,13 @@ include('../../includes/header.php');
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
+                                    </div>
                                 <?php else: ?>
                                     <div class="alert alert-light text-center py-4 border">No extension activities found.</div>
                                 <?php endif; ?>
                             </div>
-
                         </div>
+
                     </div>
 
                 </div>
@@ -731,6 +746,7 @@ include('../../includes/header.php');
     <button type="button" id="add_extension"></button>
 </div>
 
+<!-- Dynamic Floating Action Button -->
 <div class="fab-container" id="fab-container">
     <button class="btn btn-danger pink fab-btn text-white" id="dynamic-fab-btn" title="Add New Record">
         <i class="fas fa-plus"></i>
@@ -740,7 +756,6 @@ include('../../includes/header.php');
 <input type="hidden" id="hidden_id_rd" value="<?php echo htmlspecialchars($researcher_id); ?>">
 
 <?php include 'modals/add_researcher.php'; ?>
-
 <?php include('../../includes/footer.php'); ?>
 
 <script src="<?php echo $object->base_url; ?>js/app.js"></script>
@@ -764,7 +779,7 @@ document.addEventListener("DOMContentLoaded", function() {
         
         // Listen to changes on the EPC Inner Tabs to swap out the FAB action
         $('#epcInnerTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-            var target = $(e.target).attr("href"); // newly activated inner tab
+            var target = $(e.target).attr("href");
             if (target === '#inner-epc') {
                 document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_extension_project');
             } else if (target === '#inner-ext') {
@@ -774,7 +789,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Listen to changes on the RC Inner Tabs to swap out the FAB action
         $('#rcInnerTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-            var target = $(e.target).attr("href"); // newly activated inner tab
+            var target = $(e.target).attr("href");
             if (target === '#inner-rc') {
                 document.getElementById('dynamic-fab-btn').setAttribute('data-target-id', 'add_researcherconducted');
             } else if (target === '#inner-policy') {
@@ -801,13 +816,12 @@ document.addEventListener("DOMContentLoaded", function() {
         'tab-epc': 'btn_view_epc'
     };
 
-    // Mapping tab IDs to the "Add" button IDs expected by your jQuery scripts
+    // Mapping tab IDs to the "Add" button IDs
     const fabMapping = {
         'tab-degree': 'add_publication',
         'tab-ip': 'add_intellectualprop',
         'tab-pp': 'add_paper_presentation',
         'tab-tra': 'add_training_attended'
-        // education and epc are handled dynamically
     };
 
     tabBtns.forEach(btn => {
@@ -822,7 +836,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // Remove active states from all buttons
             tabBtns.forEach(b => b.classList.remove('active'));
-            // Add active state to clicked button
             this.classList.add('active');
 
             // Hide all tab panes
@@ -844,7 +857,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 fabContainer.style.display = 'none';
             } else if (tabId === 'tab-education') {
                 fabContainer.style.display = 'block';
-                // Find out which inner tab is currently visible for Research
                 const activeInnerTab = document.querySelector('#rcInnerTabs .nav-link.active');
                 if(activeInnerTab && activeInnerTab.getAttribute('href') === '#inner-policy') {
                     dynamicFabBtn.setAttribute('data-target-id', 'add_policy');
@@ -853,7 +865,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             } else if (tabId === 'tab-epc') {
                 fabContainer.style.display = 'block';
-                // Find out which inner tab is currently visible for Extension
                 const activeInnerTab = document.querySelector('#epcInnerTabs .nav-link.active');
                 if(activeInnerTab && activeInnerTab.getAttribute('href') === '#inner-ext') {
                     dynamicFabBtn.setAttribute('data-target-id', 'add_extension');
@@ -880,8 +891,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // 3. Prevent Delete Button Clicks from Opening Edit Modals
     $('.isolate-click').on('click', function(e) {
-        e.stopPropagation(); 
-        
+        e.stopPropagation();          
         var btn = $(this).find('button');
         if (btn.length > 0) {
             var simulatedEvent = $.Event('click');
@@ -889,6 +899,147 @@ document.addEventListener("DOMContentLoaded", function() {
             $(document).trigger(simulatedEvent);
         }
     });
+
+    // ==========================================
+    // CLIENT-SIDE PAGINATION ENGINE
+    // ==========================================
+    function paginateContainer(containerId, itemsPerPage) {
+        const container = $(containerId);
+        if(container.length === 0) return;
+
+        const items = container.children();
+        const totalItems = items.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+        if (totalPages <= 1) return; // No pagination needed if less than 5 items
+
+        let paginationHTML = '<nav aria-label="Page navigation"><ul class="pagination justify-content-center mt-4 mb-2">';
+        
+        paginationHTML += `<li class="page-item disabled" id="prev-${containerId.replace('#', '')}">
+                             <a class="page-link" href="#" tabindex="-1" aria-disabled="true"><i class="fas fa-chevron-left"></i></a>
+                           </li>`;
+
+        for (let i = 1; i <= totalPages; i++) {
+            paginationHTML += `<li class="page-item ${i === 1 ? 'active' : ''} page-num-${containerId.replace('#', '')}"><a class="page-link page-btn" href="#" data-page="${i}">${i}</a></li>`;
+        }
+
+        paginationHTML += `<li class="page-item" id="next-${containerId.replace('#', '')}">
+                             <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
+                           </li>`;
+                           
+        paginationHTML += '</ul></nav>';
+
+        container.after(`<div class="pagination-wrapper" id="nav-${containerId.replace('#', '')}">${paginationHTML}</div>`);
+
+        const navWrapper = $(`#nav-${containerId.replace('#', '')}`);
+        let currentPage = 1;
+
+        function showPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            
+            items.hide();
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            items.slice(start, end).show();
+
+            navWrapper.find('.page-item').removeClass('active');
+            navWrapper.find(`.page-btn[data-page="${page}"]`).parent().addClass('active');
+
+            navWrapper.find(`#prev-${containerId.replace('#', '')}`).toggleClass('disabled', page === 1);
+            navWrapper.find(`#next-${containerId.replace('#', '')}`).toggleClass('disabled', page === totalPages);
+        }
+
+        showPage(1);
+
+        navWrapper.on('click', '.page-btn', function(e) {
+            e.preventDefault();
+            showPage($(this).data('page'));
+            container[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        navWrapper.find(`#prev-${containerId.replace('#', '')} a`).on('click', function(e) {
+            e.preventDefault();
+            showPage(currentPage - 1);
+            container[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        navWrapper.find(`#next-${containerId.replace('#', '')} a`).on('click', function(e) {
+            e.preventDefault();
+            showPage(currentPage + 1);
+            container[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    // Initialize Pagination for all Tab Containers (5 items per page)
+    paginateContainer('#paginate-rc', 5);
+    paginateContainer('#paginate-policy', 5);
+    paginateContainer('#paginate-pub', 5);
+    paginateContainer('#paginate-ip', 5);
+    paginateContainer('#paginate-pp', 5);
+    paginateContainer('#paginate-tra', 5);
+    paginateContainer('#paginate-epc', 5);
+    paginateContainer('#paginate-ext', 5);
+
+    // ==========================================
+    // GLOBAL PROFILE SEARCH ENGINE
+    // ==========================================
+    $('#global_profile_search').on('input', function() {
+        var searchTerm = $(this).val().toLowerCase();
+
+        if (searchTerm.length > 0) {
+            // Hide all paginations so we can see the filtered results on one continuous page
+            $('.pagination-wrapper').hide();
+
+            // Search and toggle visibility of all items
+            $('.searchable-item').each(function() {
+                var text = $(this).text().toLowerCase();
+                if (text.includes(searchTerm)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            // Highlight main side tabs that have visible matching items
+            $('.custom-tab-btn').each(function() {
+                var targetId = $(this).attr('href');
+                var visibleMatches = $(targetId).find('.searchable-item:visible').length;
+                
+                $(this).find('.search-badge').remove();
+                if (visibleMatches > 0) {
+                    $(this).append('<span class="badge badge-danger float-right search-badge mt-1">' + visibleMatches + '</span>');
+                    $(this).css('opacity', '1');
+                } else {
+                    $(this).css('opacity', '0.5'); // Dim tabs with no results
+                }
+            });
+
+            // Highlight inner top tabs (Research Conducted / EPC inner tabs)
+            $('#rcInnerTabs .nav-link, #epcInnerTabs .nav-link').each(function() {
+                var targetId = $(this).attr('href');
+                var visibleMatches = $(targetId).find('.searchable-item:visible').length;
+                
+                $(this).find('.search-badge').remove();
+                if (visibleMatches > 0) {
+                    $(this).append('<span class="badge badge-danger ml-2 search-badge">' + visibleMatches + '</span>');
+                }
+            });
+
+        } else {
+            // Search cleared: Restore everything
+            $('.pagination-wrapper').show();
+            $('.searchable-item').show();
+            $('.custom-tab-btn').css('opacity', '1').find('.search-badge').remove();
+            $('#rcInnerTabs .nav-link, #epcInnerTabs .nav-link').find('.search-badge').remove();
+
+            // Click the active page button to strictly enforce the "5 items per page" view again
+            $('.pagination-wrapper').each(function() {
+                $(this).find('.page-item.active .page-btn').click();
+            });
+        }
+    });
+
 });
 </script>
 
@@ -909,33 +1060,50 @@ document.addEventListener("DOMContentLoaded", function() {
     const activeTab = urlParams.get('tab');
     const openId = urlParams.get('open_id');
     
+    // Map URL tabs to their respective CSS classes used on the cards
+    const classMapping = {
+        'education': '.edit_button_researchconducted',
+        'policy': '.edit_button_policy',
+        'degree': '.edit_button_publication',
+        'ip': '.edit_button_intellectualprop',
+        'pp': '.edit_button_paper_presentation',
+        'tra': '.edit_button_training',
+        'epc': '.edit_button_extension_project',
+        'ext': '.edit_button_ext'
+    };
+
     if (activeTab) {
+        let mainLink;
+        
+        // Handle nested inner tabs for EPC and Education
         if (activeTab === 'ext') {
-            let mainLink = document.querySelector('.custom-tab-btn[href="#epc"]');
-            if (mainLink) mainLink.click();
-            
-            setTimeout(function() {
-                if(typeof $ !== 'undefined') {
-                    $('#inner-ext-tab').tab('show');
-                }
-                if (mainLink) mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
+            mainLink = document.querySelector('.custom-tab-btn[href="#epc"]');
         } else if (activeTab === 'policy') {
-            let mainLink = document.querySelector('.custom-tab-btn[href="#education"]');
-            if (mainLink) mainLink.click();
+            mainLink = document.querySelector('.custom-tab-btn[href="#education"]');
+        } else {
+            mainLink = document.querySelector('.custom-tab-btn[href="#' + activeTab + '"]');
+        }
+
+        if (mainLink) {
+            mainLink.click(); // Trigger the main side tab
             
             setTimeout(function() {
-                if(typeof $ !== 'undefined') {
-                    $('#inner-policy-tab').tab('show');
+                // Switch the inner top tabs if necessary
+                if (typeof $ !== 'undefined') {
+                    if (activeTab === 'ext') $('#inner-ext-tab').tab('show');
+                    if (activeTab === 'policy') $('#inner-policy-tab').tab('show');
                 }
-                if (mainLink) mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 
-                // NEW: If there is an open_id, find the policy card and click it!
-                if (openId) {
+                mainLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // UNIVERSAL MODAL OPENER: If there is an open_id, find the card and click it!
+                if (openId && classMapping[activeTab]) {
                     setTimeout(function() {
-                        let targetCard = document.querySelector('.edit_button_policy[data-id="' + openId + '"]');
+                        let targetClass = classMapping[activeTab];
+                        let targetCard = document.querySelector(targetClass + '[data-id="' + openId + '"]');
+                        
                         if (targetCard) {
-                            // Visually highlight it briefly
+                            // Visually highlight it briefly so the user sees which one opened
                             targetCard.style.transition = "all 0.3s ease";
                             targetCard.style.boxShadow = "0 0 15px rgba(242, 62, 93, 0.5)";
                             
@@ -943,17 +1111,9 @@ document.addEventListener("DOMContentLoaded", function() {
                             targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             targetCard.click();
                         }
-                    }, 400); // Wait for the tab animation to finish before clicking
+                    }, 400); 
                 }
             }, 300);
-        } else {
-            let tabLink = document.querySelector('.custom-tab-btn[href="#' + activeTab + '"]');
-            if (tabLink) {
-                tabLink.click();
-                setTimeout(function() {
-                    tabLink.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 300);
-            }
         }
     }
 });

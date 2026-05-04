@@ -1,6 +1,6 @@
 <?php
 
-//category_action.php
+// category_action.php (discipline_action.php)
 
 include('../../core/rms.php');
 
@@ -8,238 +8,252 @@ $object = new rms();
 
 if(isset($_POST["action"]))
 {
-	if($_POST["action"] == 'fetch')
-	{
-		$order_column = array('major', 'disc_status');
+    if($_POST["action"] == 'fetch')
+    {
+        $order_column = array('major', 'disc_status');
 
-		$output = array();
+        $output = array();
 
-		$main_query = "
-		SELECT * FROM tbl_majordiscipline ";
+        $main_query = "
+        SELECT * FROM tbl_majordiscipline ";
 
-		$search_query = '';
+        $search_query = '';
 
-		if(isset($_POST["search"]["value"]))
-		{
-			$search_query .= 'WHERE major LIKE "%'.$_POST["search"]["value"].'%" ';
-			$search_query .= 'OR disc_status LIKE "%'.$_POST["search"]["value"].'%" ';
-		}
+        if(isset($_POST["search"]["value"]))
+        {
+            $search_query .= 'WHERE major LIKE "%'.$_POST["search"]["value"].'%" ';
+            $search_query .= 'OR disc_status LIKE "%'.$_POST["search"]["value"].'%" ';
+        }
 
-		if(isset($_POST["order"]))
-		{
-			$order_query = 'ORDER BY '.$order_column[$_POST['order']['0']['column']].' '.$_POST['order']['0']['dir'].' ';
-		}
-		else
-		{
-			$order_query = 'ORDER BY majorID ASC ';
-		}
+        if(isset($_POST["order"]))
+        {
+            $order_query = 'ORDER BY '.$order_column[$_POST['order']['0']['column']].' '.$_POST['order']['0']['dir'].' ';
+        }
+        else
+        {
+            $order_query = 'ORDER BY majorID ASC ';
+        }
 
-		$limit_query = '';
+        $limit_query = '';
 
-		if($_POST["length"] != -1)
-		{
-			$limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
-		}
+        if($_POST["length"] != -1)
+        {
+            $limit_query .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
+        }
 
-		$object->query = $main_query . $search_query . $order_query;
+        $object->query = $main_query . $search_query . $order_query;
 
-		$object->execute();
+        $object->execute();
 
-		$filtered_rows = $object->row_count();
+        $filtered_rows = $object->row_count();
 
-		$object->query .= $limit_query;
+        $object->query .= $limit_query;
 
-		$result = $object->get_result();
+        $result = $object->get_result();
 
-		$object->query = $main_query;
+        $object->query = $main_query;
 
-		$object->execute();
+        $object->execute();
 
-		$total_rows = $object->row_count();
+        $total_rows = $object->row_count();
 
-		$data = array();
+        $data = array();
 
-		foreach($result as $row)
-		{
-			$sub_array = array();
-			$sub_array[] = html_entity_decode($row["major"]);
-			$status = '';
-			if($row["disc_status"] == 'Enable')         
-			{
-				$status = '<button type="button" name="status_button" class="btn btn-success btn-sm status_button" data-id="'.$row["majorID"].'" data-status="'.$row["disc_status"].'">Enable</button>';
-			}
-			else
-			{
-				$status = '<button type="button" name="status_button" class="btn btn-danger btn-sm status_button" data-id="'.$row["majorID"].'" data-status="'.$row["disc_status"].'">Disable</button>';
-			}
-			$sub_array[] = $status;
-			$sub_array[] = '
-			<div align="center">
-			<button type="button" name="edit_button" title="Update Discipline" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-primary btn-sm edit_button" name="edit_button"  data-id="'.$row["majorID"].'"><i class="fas fa-pencil-alt"></i></button>
-			
-					</div>
-			';
-			$data[] = $sub_array;
-		}
-		// <button type="button" name="delete_button" title="Delete Category" style="margin-left: 5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_button" data-id="'.$row["majorID"].'" data-status="'.$row["disc_status"].'"><i class="far fa-trash-alt"></i></button>
+        foreach($result as $row)
+        {
+            $sub_array = array();
+            $sub_array[] = html_entity_decode($row["major"]);
+            $status = '';
+            if($row["disc_status"] == 'Enable')         
+            {
+                $status = '<button type="button" name="status_button" class="btn btn-success btn-sm status_button" data-id="'.$row["majorID"].'" data-status="'.$row["disc_status"].'">Enable</button>';
+            }
+            else
+            {
+                $status = '<button type="button" name="status_button" class="btn btn-danger btn-sm status_button" data-id="'.$row["majorID"].'" data-status="'.$row["disc_status"].'">Disable</button>';
+            }
+            $sub_array[] = $status;
+            
+            // Re-added the Delete button to the Action column
+            $sub_array[] = '
+            <div align="center">
+                <button type="button" name="edit_button" title="Update Discipline" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-primary btn-sm edit_button" data-id="'.$row["majorID"].'"><i class="fas fa-pencil-alt"></i></button>
+                <button type="button" name="delete_button" title="Delete Discipline" style="margin-left: 5px; margin-bottom: 5px; margin-top:5px;" data-toggle="tooltip" class="btn btn-danger btn-sm delete_button" data-id="'.$row["majorID"].'"><i class="fas fa-trash-alt"></i></button>
+            </div>
+            ';
+            $data[] = $sub_array;
+        }
 
+        $output = array(
+            "draw"              =>  intval($_POST["draw"]),
+            "recordsTotal"      =>  $total_rows,
+            "recordsFiltered"   =>  $filtered_rows,
+            "data"              =>  $data
+        );
+            
+        echo json_encode($output);
 
-		$output = array(
-			"draw"    			=> 	intval($_POST["draw"]),
-			"recordsTotal"  	=>  $total_rows,
-			"recordsFiltered" 	=> 	$filtered_rows,
-			"data"    			=> 	$data
-		);
-			
-		echo json_encode($output);
+    }
 
-	}
+    if($_POST["action"] == 'Add')
+    {
+        $error = '';
+        $success = '';
 
-	if($_POST["action"] == 'Add')
-	{
-		$error = '';
+        $data = array(
+            ':category_name'    =>  $_POST["category_name"]
+        );
 
-		$success = '';
+        $object->query = "
+        SELECT * FROM tbl_majordiscipline
+        WHERE major = :category_name
+        ";
 
-		$data = array(
-			':category_name'	=>	$_POST["category_name"]
-		);
+        $object->execute($data);
 
-		$object->query = "
-		SELECT * FROM tbl_majordiscipline
-		WHERE major = :category_name
-		";
+        if($object->row_count() > 0)
+        {
+            $error = '<div class="alert alert-danger">Discipline Already Exists</div>';
+        }
+        else
+        {
+            $data = array(
+                ':major'            =>  $object->clean_input($_POST["category_name"]),
+                ':disc_status'      =>  'Enable',
+            );
 
-		$object->execute($data);
+            $object->query = "
+            INSERT INTO tbl_majordiscipline 
+            (major, disc_status) 
+            VALUES (:major, :disc_status)
+            ";
 
-		if($object->row_count() > 0)
-		{
-			$error = '<div class="alert alert-danger">Discipline Already Exists</div>';
-		}
-		else
-		{
-			$data = array(
-				':major'			=>	$object->clean_input($_POST["category_name"]),
-				':disc_status'			=>	'Enable',
-			);
+            $object->execute($data);
 
-			$object->query = "
-			INSERT INTO tbl_majordiscipline 
-			(major, disc_status) 
-			VALUES (:major, :disc_status)
-			";
+            $success = '<div class="alert alert-success">Discipline Added</div>';
+        }
 
-			$object->execute($data);
+        $output = array(
+            'error'     =>  $error,
+            'success'   =>  $success
+        );
 
-			$success = '<div class="alert alert-success">Discipline Added</div>';
-		}
+        echo json_encode($output);
 
-		$output = array(
-			'error'		=>	$error,
-			'success'	=>	$success
-		);
+    }
 
-		echo json_encode($output);
+    if($_POST["action"] == 'fetch_single')
+    {
+        $object->query = "
+        SELECT major,disc_status FROM tbl_majordiscipline
+        WHERE majorID = '".$_POST["category_id"]."'
+        ";
 
-	}
+        $result = $object->get_result();
 
-	if($_POST["action"] == 'fetch_single')
-	{
-		$object->query = "
-		SELECT major,disc_status FROM tbl_majordiscipline
-		WHERE majorID = '".$_POST["category_id"]."'
-		";
+        $data = array();
 
-		$result = $object->get_result();
+        foreach($result as $row)
+        {
+            $data['category_name'] = $row['major'];
+        }
 
-		$data = array();
+        echo json_encode($data);
+    }
 
-		foreach($result as $row)
-		{
-			$data['category_name'] = $row['major'];
-		}
+    if($_POST["action"] == 'Edit')
+    {
+        $error = '';
+        $success = '';
 
-		echo json_encode($data);
-	}
+        $data = array(
+            ':category_name'    =>  $_POST["category_name"],
+            ':category_id'  =>  $_POST['hidden_id']
+        );
 
-	if($_POST["action"] == 'Edit')
-	{
-		$error = '';
+        $object->query = "
+            SELECT major,disc_status FROM tbl_majordiscipline
+        WHERE major = :category_name 
+        AND majorID != :category_id
+        ";
 
-		$success = '';
+        $object->execute($data);
 
-		$data = array(
-			':category_name'	=>	$_POST["category_name"],
-			':category_id'	=>	$_POST['hidden_id']
-		);
+        if($object->row_count() > 0)
+        {
+            $error = '<div class="alert alert-danger">Discipline Already Exists</div>';
+        }
+        else
+        {
 
-		$object->query = "
-			SELECT major,disc_status FROM tbl_majordiscipline
-		WHERE major = :category_name 
-		AND majorID != :category_id
-		";
+            $data = array(
+                ':category_name'        =>  $object->clean_input($_POST["category_name"])
+            );
 
-		$object->execute($data);
+            $object->query = "
+            UPDATE tbl_majordiscipline 
+            SET major = :category_name 
+            WHERE majorID = '".$_POST['hidden_id']."'
+            ";
 
-		if($object->row_count() > 0)
-		{
-			$error = '<div class="alert alert-danger">Discipline Already Exists</div>';
-		}
-		else
-		{
+            $object->execute($data);
 
-			$data = array(
-				':category_name'		=>	$object->clean_input($_POST["category_name"])
-			);
+            $success = '<div class="alert alert-success">Discipline Updated</div>';
+        }
 
-			$object->query = "
-			UPDATE tbl_majordiscipline 
-			SET major = :category_name 
-			WHERE majorID = '".$_POST['hidden_id']."'
-			";
+        $output = array(
+            'error'     =>  $error,
+            'success'   =>  $success
+        );
 
-			$object->execute($data);
+        echo json_encode($output);
 
-			$success = '<div class="alert alert-success">Discipline Updated</div>';
-		}
+    }
 
-		$output = array(
-			'error'		=>	$error,
-			'success'	=>	$success
-		);
+    if($_POST["action"] == 'change_status')
+    {
+        $data = array(
+            ':category_status'      =>  $_POST['next_status']
+        );
 
-		echo json_encode($output);
+        $object->query = "
+        UPDATE tbl_majordiscipline 
+        SET disc_status = :category_status 
+        WHERE majorID = '".$_POST["id"]."'
+        ";
 
-	}
+        $object->execute($data);
 
-	if($_POST["action"] == 'change_status')
-	{
-		$data = array(
-			':category_status'		=>	$_POST['next_status']
-		);
+        echo '<div class="alert alert-success">Discipline Status change to '.$_POST['next_status'].'</div>';
+    }
 
-		$object->query = "
-		UPDATE tbl_majordiscipline 
-		SET disc_status = :category_status 
-		WHERE majorID = '".$_POST["id"]."'
-		";
+    // THE FIX: Uncommented and upgraded delete block
+    if($_POST["action"] == 'delete')
+    {
+        $id = intval($_POST["id"]);
+        
+        // Safety check to prevent deleting disciplines currently assigned to users
+        $object->query = "SELECT COUNT(*) as use_count FROM tbl_researchdata WHERE program = (SELECT major FROM tbl_majordiscipline WHERE majorID = :id LIMIT 1)";
+        $object->execute([':id' => $id]);
+        
+        $in_use = false;
+        $result = $object->statement->fetch(PDO::FETCH_ASSOC);
+        if($result && $result['use_count'] > 0) {
+            $in_use = true;
+        }
 
-		$object->execute($data);
-
-		echo '<div class="alert alert-success">Discipline Status change to '.$_POST['next_status'].'</div>';
-	}
-
-	// if($_POST["action"] == 'delete')
-	// {
-	// 	$object->query = "
-	// 	DELETE FROM tbl_majordiscipline 
-	// 	WHERE majorID = '".$_POST["id"]."'
-	// 	";
-
-	// 	$object->execute();
-
-	// 	echo '<div class="alert alert-success">Category Deleted</div>';
-	// }
+        if($in_use) {
+            echo json_encode(['status' => 'error', 'message' => 'Cannot delete this discipline because it is currently assigned to one or more researchers.']);
+        } else {
+            $object->query = "DELETE FROM tbl_majordiscipline WHERE majorID = :id";
+            try {
+                $object->execute([':id' => $id]);
+                echo json_encode(['status' => 'success', 'message' => 'Discipline deleted successfully.']);
+            } catch (Exception $e) {
+                echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
+            }
+        }
+    }
 }
 
 ?>

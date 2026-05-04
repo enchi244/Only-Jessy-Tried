@@ -13,9 +13,9 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
+                
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
                     <span id="form_message"></span>
-
                     <div class="row">
                         <!-- Left Column: IP Identity & Team -->
                         <div class="col-lg-7 pr-lg-4">
@@ -23,7 +23,7 @@
                                 <label for="title_ip"><i class="fas fa-heading mr-2 text-primary"></i>Title</label>
                                 <input type="text" name="title_ip" id="title_ip" class="form-control" placeholder="Enter the title of the intellectual property" required />
                             </div>
-
+                            
                             <div class="form-group mb-3">
                                 <label><i class="fas fa-image mr-2 text-primary"></i>Cover Photo (Optional)</label>
                                 <input type="file" name="cover_photo" class="form-control-file cover-photo-input" accept="image/jpeg, image/png, image/jpg, image/webp" />
@@ -31,7 +31,7 @@
                                     <img src="" class="preview-img img-fluid rounded shadow-sm" style="max-height: 180px; object-fit: cover;" />
                                 </div>
                             </div>
-
+                            
                             <div class="form-group mb-3">
                                 <label for="lead_researcher_id_ip"><i class="fas fa-user-tie mr-2 text-primary"></i>Lead Author / Owner</label>
                                 <select name="lead_researcher_id_ip" id="lead_researcher_id_ip" class="form-control" required style="width: 100%;">
@@ -46,7 +46,7 @@
                                 </select>
                                 <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> The primary owner of this intellectual property.</small>
                             </div>
-
+                            
                             <div class="form-group mb-3">
                                 <label for="collaborators_ip"><i class="fas fa-users mr-2 text-primary"></i>Co-Authors / Co-Owners</label>
                                 <select name="collaborators_ip[]" id="collaborators_ip" multiple class="select form-control" style="width: 100%;">
@@ -60,7 +60,7 @@
                                 </select>
                                 <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle"></i> Select additional co-authors here.</small>
                             </div>
-
+                            
                             <div class="form-group mb-3">
                                 <label for="type_ip"><i class="fas fa-certificate mr-2 text-primary"></i>Type of Intellectual Property</label>
                                 <select name="type_ip" id="type_ip" class="form-control" required>
@@ -74,7 +74,7 @@
                                 </select>
                             </div>
                         </div>
-
+                        
                         <!-- Right Column: Timeline, Links & Files -->
                         <div class="col-lg-5 border-left pl-lg-4">
                             <div class="row">
@@ -82,13 +82,12 @@
                                     <label for="date_applied"><i class="far fa-calendar-plus mr-2 text-primary"></i>Date Applied</label>
                                     <input type="date" name="date_applied" id="date_applied" class="form-control" required />
                                 </div>
-
                                 <div class="col-md-6 form-group mb-3">
                                     <label for="date_granted"><i class="far fa-calendar-check mr-2 text-primary"></i>Date Granted</label>
                                     <input type="date" name="date_granted" id="date_granted" class="form-control" required />
                                 </div>
                             </div>
-
+                            
                             <div class="form-group mb-3 border-bottom pb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="m-0" for="a_link_ip"><i class="fas fa-link mr-2 text-primary"></i>External Links (Optional)</label>
@@ -96,7 +95,7 @@
                                 </div>
                                 <div id="dynamic_links_container_ip"></div>
                             </div>
-
+                            
                             <div class="dynamic-files-section" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
                                 <style>
                                     /* Fix for long file names causing overflow */
@@ -113,21 +112,19 @@
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="m-0 font-weight-bold text-gray-700"><i class="fas fa-folder-open mr-2"></i>Attached Files</h6>
                                     
-                                    <input type="file" class="hidden-multi-file" multiple style="display: none;" accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" 
-                                           data-categories="Certificate, Application Document, MOA, Other">
+                                    <input type="file" class="hidden-multi-file" multiple style="display: none;" accept=".pdf,.doc,.docx,.jpg,.png,.xlsx"
+                                            data-categories="Certificate, Application Document, MOA, Other">
                                     
                                     <button type="button" class="btn btn-sm btn-primary add-file-btn"><i class="fas fa-plus mr-1"></i> Browse</button>
                                 </div>
-
                                 <div class="existing-files-container mb-3"></div>
                                 <div class="new-files-container"></div>
                             </div>
                         </div>
                     </div>
-
                 </div>
-
-                <div class="modal-footer">
+                
+                <div class="modal-footer border-top-0 pt-0 mt-3">
                     <input type="hidden" name="hidden_researcherID_ip" id="hidden_researcherID_ip" />
                     <input type="hidden" name="hidden_intellectualPropID" id="hidden_intellectualPropID" />
                     <input type="hidden" name="action_intellectualprop" id="action_intellectualprop" value="Add" />

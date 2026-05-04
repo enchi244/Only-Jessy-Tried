@@ -1,4 +1,5 @@
 <?php
+
 // actions/fetch_subdep.php
 include('../core/rms.php');
 $object = new rms();
@@ -14,16 +15,19 @@ function getSafeRows($obj) {
 }
 
 // Helper Function: Formats the GROUP_CONCAT file categories into clickable teleport badges
-function format_file_badges($concat_categories, $researcher_id, $tab_id, $base_url) {
+function format_file_badges($concat_categories, $researcher_id, $tab_id, $base_url, $record_id = null) {
     if(empty($concat_categories) || trim($concat_categories) == '') return "<span class='text-muted'><i class='fas fa-times-circle'></i> None Attached</span>";
     
     $cats = array_filter(array_unique(explode('||', $concat_categories)));
     if(empty($cats)) return "<span class='text-muted'><i class='fas fa-times-circle'></i> None Attached</span>";
     
     $html = '';
+    // Append the open_id to the URL if it was provided so the modal auto-opens
+    $open_param = $record_id ? "&open_id={$record_id}" : "";
+    
     foreach($cats as $cat) {
-        $safe_cat = htmlspecialchars(strtoupper(trim($cat))); 
-        $html .= "<a href='{$base_url}modules/researchers/view_researcher.php?id={$researcher_id}&tab={$tab_id}' class='badge badge-info mr-1 p-2 shadow-sm text-white' style='text-decoration:none;' target='_blank'><i class='fas fa-folder-open mr-1'></i> {$safe_cat}</a> ";
+        $safe_cat = htmlspecialchars(strtoupper(trim($cat)));
+        $html .= "<a href='{$base_url}modules/researchers/view_researcher.php?id={$researcher_id}&tab={$tab_id}{$open_param}' class='badge badge-info mr-1 p-2 shadow-sm text-white' style='text-decoration:none;' target='_blank'><i class='fas fa-folder-open mr-1'></i> {$safe_cat}</a> ";
     }
     return $html;
 }
@@ -34,14 +38,14 @@ if(isset($_POST["action"])) {
     // ACTION 1: FETCH THE LIST OF ITEMS FOR THE MODAL (WITH IDs)
     // ==============================================================
     if($_POST["action"] == "fetch_modal_details") {
-        header('Content-Type: application/json'); 
+        header('Content-Type: application/json');
+
         $department = addslashes($_POST["department"]);
         $type = $_POST["type"];
         $from_year = isset($_POST['from_year']) ? $_POST['from_year'] : 'all';
         $to_year = isset($_POST['to_year']) ? $_POST['to_year'] : 'all';
         
         $data = array();
-
         $dept_query = ($department === 'Unknown') ? "(department = 'Unknown' OR department = '' OR department IS NULL)" : "department = '$department'";
         
         function isYearMatch($row, $from_year, $to_year) {
@@ -123,9 +127,10 @@ if(isset($_POST["action"])) {
                                       LEFT JOIN {$col_table} col ON r.id = col.{$col_fk} 
                                       LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
                                       LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
-                                      WHERE r.status = 1"; 
+                                      WHERE r.status = 1";
+
                 } else {
-                    $object->query = "SELECT r.*, d.department as calc_dept FROM {$tbl} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.status = 1"; 
+                    $object->query = "SELECT r.*, d.department as calc_dept FROM {$tbl} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.status = 1";
                 }
                 
                 $seen_ids = [];
@@ -144,7 +149,6 @@ if(isset($_POST["action"])) {
                 }
             }
         }
-
         echo json_encode($data);
         exit;
     }
@@ -155,6 +159,7 @@ if(isset($_POST["action"])) {
     if($_POST["action"] == "fetch_item_details") {
         $id = intval($_POST["id"]);
         $type = $_POST["type"];
+
         $html = '<table class="table table-bordered table-striped" width="100%" cellspacing="0"><tbody>';
 
         if($type == 'researchers') {
@@ -171,12 +176,12 @@ if(isset($_POST["action"])) {
 
                 // 1. Research Conducted 
                 $object->query = "
-                    SELECT rc.title, rc.stat, rc.started_date, rc.moa_file,
+                    SELECT rc.id, rc.title, rc.stat, rc.started_date,
                            (SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') 
-                            FROM tbl_research_collaborators col 
-                            JOIN tbl_researchdata d ON col.researcher_id = d.id 
-                            WHERE col.research_id = rc.id AND col.researcher_id != '$id') AS co_authors,
-                           (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_research_files WHERE research_id = rc.id) AS file_cats
+                             FROM tbl_research_collaborators col 
+                             JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                             WHERE col.research_id = rc.id AND col.researcher_id != '$id') AS co_authors,
+                           (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = rc.id AND entity_type IN ('research', 'rc')) AS file_cats
                     FROM tbl_researchconducted rc 
                     WHERE (rc.id IN (SELECT research_id FROM tbl_research_collaborators WHERE researcher_id = '$id')
                        OR rc.researcherID = '$id') AND rc.status = 1
@@ -188,8 +193,7 @@ if(isset($_POST["action"])) {
                     foreach($res1 as $r1) { 
                         $cats = [];
                         if(!empty($r1['file_cats'])) $cats[] = $r1['file_cats'];
-                        if(!empty($r1['moa_file'])) $cats[] = 'Legacy MOA';
-                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'education', $object->base_url);
+                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'education', $object->base_url, $r1['id']);
                         
                         $co_authors = !empty($r1['co_authors']) ? "<br><small class='text-primary'><i class='fas fa-users mr-1'></i><strong>Co-Authors:</strong> {$r1['co_authors']}</small>" : "";
                         $html .= "<li class='mb-2'><strong>" . ($r1['title'] ?: 'Untitled Project') . "</strong> <span class='badge badge-secondary ml-1 mb-1'>{$r1['stat']}</span> <br>{$moa_btn}{$co_authors}<br><small class='text-muted'>Started: {$r1['started_date']}</small></li>"; 
@@ -200,12 +204,12 @@ if(isset($_POST["action"])) {
 
                 // 2. Publications
                 $object->query = "
-                    SELECT pub.title, pub.journal, pub.publication_date, pub.moa_file,
+                    SELECT pub.id, pub.title, pub.journal, pub.publication_date,
                            (SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') 
-                            FROM tbl_publication_collaborators col 
-                            JOIN tbl_researchdata d ON col.researcher_id = d.id 
-                            WHERE col.publication_id = pub.id AND col.researcher_id != '$id') AS co_authors,
-                           (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_publication_files WHERE publication_id = pub.id) AS file_cats
+                             FROM tbl_publication_collaborators col 
+                             JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                             WHERE col.publication_id = pub.id AND col.researcher_id != '$id') AS co_authors,
+                           (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = pub.id AND entity_type = 'publication') AS file_cats
                     FROM tbl_publication pub 
                     WHERE (pub.id IN (SELECT publication_id FROM tbl_publication_collaborators WHERE researcher_id = '$id')
                        OR pub.researcherID = '$id') AND pub.status = 1
@@ -217,8 +221,7 @@ if(isset($_POST["action"])) {
                     foreach($res2 as $r2) { 
                         $cats = [];
                         if(!empty($r2['file_cats'])) $cats[] = $r2['file_cats'];
-                        if(!empty($r2['moa_file'])) $cats[] = 'Legacy MOA';
-                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'degree', $object->base_url);
+                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'degree', $object->base_url, $r2['id']);
                         
                         $co_authors = !empty($r2['co_authors']) ? "<br><small class='text-primary'><i class='fas fa-users mr-1'></i><strong>Co-Authors:</strong> {$r2['co_authors']}</small>" : "";
                         $html .= "<li class='mb-2'><strong>" . ($r2['title'] ?: 'Untitled Publication') . "</strong> <br>{$moa_btn}{$co_authors}<br><small class='text-muted'>Journal: {$r2['journal']} | Published: {$r2['publication_date']}</small></li>"; 
@@ -229,12 +232,12 @@ if(isset($_POST["action"])) {
 
                 // 3. Intellectual Property 
                 $object->query = "
-                    SELECT title, type, date_granted, moa_file, 
-                           (SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') 
-                            FROM tbl_ip_collaborators col 
-                            JOIN tbl_researchdata d ON col.researcher_id = d.id 
-                            WHERE col.ip_id = tbl_itelectualprop.id AND col.researcher_id != '$id') AS co_authors,
-                           (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_ip_files WHERE ip_id = tbl_itelectualprop.id) AS file_cats 
+                    SELECT tbl_itelectualprop.id, title, type, date_granted,
+                            (SELECT GROUP_CONCAT(CONCAT(d.firstName, ' ', d.familyName) SEPARATOR ', ') 
+                             FROM tbl_ip_collaborators col 
+                             JOIN tbl_researchdata d ON col.researcher_id = d.id 
+                             WHERE col.ip_id = tbl_itelectualprop.id AND col.researcher_id != '$id') AS co_authors,
+                           (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = tbl_itelectualprop.id AND entity_type = 'ip') AS file_cats 
                     FROM tbl_itelectualprop 
                     WHERE (id IN (SELECT ip_id FROM tbl_ip_collaborators WHERE researcher_id = '$id')
                        OR researcherID = '$id') AND status = 1
@@ -246,12 +249,11 @@ if(isset($_POST["action"])) {
                     foreach($res3 as $r3) { 
                         $cats = [];
                         if(!empty($r3['file_cats'])) $cats[] = $r3['file_cats'];
-                        if(!empty($r3['moa_file'])) $cats[] = 'Legacy MOA';
-                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'ip', $object->base_url);
+                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'ip', $object->base_url, $r3['id']);
                         
                         $co_authors = !empty($r3['co_authors']) ? "<br><small class='text-primary'><i class='fas fa-users mr-1'></i><strong>Co-Authors:</strong> {$r3['co_authors']}</small>" : "";
                         
-                        // THE FIX: Strict Date Checker for the combined view
+                        // Strict Date Checker
                         $raw_granted = isset($r3['date_granted']) ? trim($r3['date_granted']) : '';
                         $granted_date = ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') ? $raw_granted : '<span class="badge badge-warning">Pending</span>';
                         
@@ -262,7 +264,7 @@ if(isset($_POST["action"])) {
                 $html .= "</td></tr>";
 
                 // 4. Paper Presentation
-                $object->query = "SELECT title, conference_title, date_paper, moa_file, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_paper_files WHERE paper_id = tbl_paperpresentation.id) AS file_cats FROM tbl_paperpresentation WHERE researcherID = '$id' AND status = 1";
+                $object->query = "SELECT tbl_paperpresentation.id, title, conference_title, date_paper, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = tbl_paperpresentation.id AND entity_type = 'pp') AS file_cats FROM tbl_paperpresentation WHERE researcherID = '$id' AND status = 1";
                 $res4 = getSafeRows($object);
                 $html .= "<tr><th>Paper Presentations</th><td>";
                 if(count($res4) > 0) {
@@ -270,8 +272,7 @@ if(isset($_POST["action"])) {
                     foreach($res4 as $r4) { 
                         $cats = [];
                         if(!empty($r4['file_cats'])) $cats[] = $r4['file_cats'];
-                        if(!empty($r4['moa_file'])) $cats[] = 'Legacy MOA';
-                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'pp', $object->base_url);
+                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'pp', $object->base_url, $r4['id']);
                         
                         $html .= "<li class='mb-2'><strong>" . ($r4['title'] ?: 'Untitled Presentation') . "</strong> <br>{$moa_btn}<br><small class='text-muted'>Conference: {$r4['conference_title']} | Date: {$r4['date_paper']}</small></li>"; 
                     }
@@ -280,7 +281,7 @@ if(isset($_POST["action"])) {
                 $html .= "</td></tr>";
 
                 // 5. Extension Projects
-                $object->query = "SELECT title, status_exct, start_date, moa_file, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_extension_files WHERE extension_id = tbl_extension_project_conducted.id) AS file_cats FROM tbl_extension_project_conducted WHERE researcherID = '$id' AND status = 1";
+                $object->query = "SELECT tbl_extension_project_conducted.id, title, status_exct, start_date, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = tbl_extension_project_conducted.id AND entity_type = 'epc') AS file_cats FROM tbl_extension_project_conducted WHERE researcherID = '$id' AND status = 1";
                 $res5 = getSafeRows($object);
                 $html .= "<tr><th>Extension Projects</th><td>";
                 if(count($res5) > 0) {
@@ -288,8 +289,7 @@ if(isset($_POST["action"])) {
                     foreach($res5 as $r5) { 
                         $cats = [];
                         if(!empty($r5['file_cats'])) $cats[] = $r5['file_cats'];
-                        if(!empty($r5['moa_file'])) $cats[] = 'Legacy MOA';
-                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'epc', $object->base_url);
+                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'epc', $object->base_url, $r5['id']);
                         
                         $html .= "<li class='mb-2'><strong>" . ($r5['title'] ?: 'Untitled Project') . "</strong> <span class='badge badge-success ml-1 mb-1'>{$r5['status_exct']}</span> <br>{$moa_btn}<br><small class='text-muted'>Started: {$r5['start_date']}</small></li>"; 
                     }
@@ -298,7 +298,7 @@ if(isset($_POST["action"])) {
                 $html .= "</td></tr>";
 
                 // 6. Trainings Attended
-                $object->query = "SELECT title, type, date_train, moa_file, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_training_files WHERE training_id = tbl_trainingsattended.id) AS file_cats FROM tbl_trainingsattended WHERE researcherID = '$id' AND status = 1";
+                $object->query = "SELECT tbl_trainingsattended.id, title, type, date_train, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = tbl_trainingsattended.id AND entity_type IN ('tra', 'training')) AS file_cats FROM tbl_trainingsattended WHERE researcherID = '$id' AND status = 1";
                 $res6 = getSafeRows($object);
                 $html .= "<tr><th>Trainings Attended</th><td>";
                 if(count($res6) > 0) {
@@ -306,26 +306,26 @@ if(isset($_POST["action"])) {
                     foreach($res6 as $r6) { 
                         $cats = [];
                         if(!empty($r6['file_cats'])) $cats[] = $r6['file_cats'];
-                        if(!empty($r6['moa_file'])) $cats[] = 'Legacy MOA';
-                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'tra', $object->base_url);
+                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'tra', $object->base_url, $r6['id']);
                         
                         $html .= "<li class='mb-2'><strong>" . ($r6['title'] ?: 'Untitled Training') . "</strong> <span class='badge badge-warning ml-1 mb-1'>{$r6['type']}</span> <br>{$moa_btn}<br><small class='text-muted'>Date: {$r6['date_train']}</small></li>"; 
                     }
                     $html .= "</ul>";
                 } else { $html .= "<span class='text-muted'><em>No trainings found.</em></span>"; }
                 $html .= "</td></tr>";
+                
+                break;
 
-                break; 
             }
         }
         elseif($type == 'research_conducted') {
             $object->query = "
                 SELECT r.*, d.firstName, d.familyName,
                        (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
-                        FROM tbl_research_collaborators col 
-                        JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
-                        WHERE col.research_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
-                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_research_files WHERE research_id = r.id) AS file_cats
+                         FROM tbl_research_collaborators col 
+                         JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
+                         WHERE col.research_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
+                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = r.id AND entity_type IN ('research', 'rc')) AS file_cats
                 FROM tbl_researchconducted r 
                 LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
                 WHERE r.id = '$id'
@@ -345,8 +345,7 @@ if(isset($_POST["action"])) {
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
-                if(!empty($row['moa_file'])) $cats[] = 'Legacy MOA';
-                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'education', $object->base_url) . "</td></tr>";
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'education', $object->base_url, $row['id']) . "</td></tr>";
                 break;
             }
         }
@@ -354,10 +353,10 @@ if(isset($_POST["action"])) {
             $object->query = "
                 SELECT r.*, d.firstName, d.familyName,
                        (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
-                        FROM tbl_publication_collaborators col 
-                        JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
-                        WHERE col.publication_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
-                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_publication_files WHERE publication_id = r.id) AS file_cats
+                         FROM tbl_publication_collaborators col 
+                         JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
+                         WHERE col.publication_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
+                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = r.id AND entity_type = 'publication') AS file_cats
                 FROM tbl_publication r 
                 LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
                 WHERE r.id = '$id'
@@ -377,23 +376,21 @@ if(isset($_POST["action"])) {
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
-                if(!empty($row['moa_file'])) $cats[] = 'Legacy MOA';
-                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'degree', $object->base_url) . "</td></tr>";
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'degree', $object->base_url, $row['id']) . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'ip') {
-            // THE FIX: LEFT JOIN prevents modal dropouts, and robust date checking catches "null" ghost strings!
             $object->query = "
-                SELECT r.*, d.firstName, d.familyName, 
-                       (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
-                        FROM tbl_ip_collaborators col 
-                        JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
-                        WHERE col.ip_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
-                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_ip_files WHERE ip_id = r.id) AS file_cats 
-                FROM tbl_itelectualprop r 
-                LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
-                WHERE r.id = '$id'
+                SELECT r.*, d.firstName, d.familyName,
+                        (SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName) SEPARATOR ', ') 
+                         FROM tbl_ip_collaborators col 
+                         JOIN tbl_researchdata d2 ON col.researcher_id = d2.id 
+                         WHERE col.ip_id = r.id AND col.researcher_id != r.researcherID) AS co_authors,
+                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = r.id AND entity_type = 'ip') AS file_cats
+                 FROM tbl_itelectualprop r 
+                 LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
+                 WHERE r.id = '$id'
             ";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
@@ -409,17 +406,14 @@ if(isset($_POST["action"])) {
                 
                 $html .= "<tr><th>Type</th><td>{$row['type']}</td></tr>";
                 
-                // THE FIX: The Bulletproof Date Checker specifically checking for 'null'
                 $raw_applied = isset($row['date_applied']) ? trim($row['date_applied']) : '';
                 $applied = ($raw_applied !== '' && $raw_applied !== '0000-00-00' && strtolower($raw_applied) !== 'null') ? htmlspecialchars($raw_applied) : '<span class="text-muted">N/A</span>';
-                $html .= "<tr><th>Date Applied</th><td>{$applied}</td></tr>";
-                
-// THE FIX: Applies to Date Granted as well
+                $html .= "<tr><th>Date Applied</th><td>{$applied}</td></tr>"; 
+
                 $raw_granted = isset($row['date_granted']) ? trim($row['date_granted']) : '';
                 $granted = ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') ? htmlspecialchars($raw_granted) : '<span class="badge badge-warning text-dark px-1">Pending</span>';
                 $html .= "<tr><th>Date Granted</th><td>{$granted}</td></tr>";
                 
-                // NEW: IP Validity Auto-Calculator for the Modal
                 $ip_status_badge = '<span class="badge badge-secondary">Unknown</span>';
                 if ($raw_granted !== '' && $raw_granted !== '0000-00-00' && strtolower($raw_granted) !== 'null') {
                     $granted_ts = strtotime(str_replace('/', '-', $raw_granted));
@@ -457,13 +451,12 @@ if(isset($_POST["action"])) {
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
-                if(!empty($row['moa_file'])) $cats[] = 'Legacy MOA';
-                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'] ?? '', 'ip', $object->base_url) . "</td></tr>";
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'] ?? '', 'ip', $object->base_url, $row['id']) . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'paper_presentation') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_paper_files WHERE paper_id = r.id) AS file_cats FROM tbl_paperpresentation r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
+            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = r.id AND entity_type = 'pp') AS file_cats FROM tbl_paperpresentation r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
@@ -477,13 +470,12 @@ if(isset($_POST["action"])) {
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
-                if(!empty($row['moa_file'])) $cats[] = 'Legacy MOA';
-                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'pp', $object->base_url) . "</td></tr>";
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'pp', $object->base_url, $row['id']) . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'trainings') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_training_files WHERE training_id = r.id) AS file_cats FROM tbl_trainingsattended r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
+            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = r.id AND entity_type IN ('tra', 'training')) AS file_cats FROM tbl_trainingsattended r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
@@ -498,13 +490,12 @@ if(isset($_POST["action"])) {
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
-                if(!empty($row['moa_file'])) $cats[] = 'Legacy MOA';
-                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'tra', $object->base_url) . "</td></tr>";
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'tra', $object->base_url, $row['id']) . "</td></tr>";
                 break;
             }
         }
         elseif($type == 'extension') {
-            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_extension_files WHERE extension_id = r.id) AS file_cats FROM tbl_extension_project_conducted r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
+            $object->query = "SELECT r.*, d.firstName, d.familyName, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = r.id AND entity_type = 'epc') AS file_cats FROM tbl_extension_project_conducted r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.id = '$id'";
             foreach(getSafeRows($object) as $row) {
                 $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$row['title']}</td></tr>";
                 $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
@@ -519,8 +510,7 @@ if(isset($_POST["action"])) {
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
-                if(!empty($row['moa_file'])) $cats[] = 'Legacy MOA';
-                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'epc', $object->base_url) . "</td></tr>";
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'epc', $object->base_url, $row['id']) . "</td></tr>";
                 break;
             }
         }

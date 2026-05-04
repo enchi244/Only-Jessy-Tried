@@ -272,6 +272,8 @@ if($news_query){
             <div class="footer-brand">
                 <h3>SDMU <span class="highlight">WMSU</span></h3>
                 <p>Statistics and Data Management Unit<br>Western Mindanao State University</p>
+                <p>(contact number here), (telephone number here)</p>
+                <p>(email here)</p>
             </div>
             <div class="footer-links">
                 <img src="img/footerMap.png" alt="Map of WMSU Location" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 200px;">

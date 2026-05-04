@@ -27,14 +27,15 @@
                         </div>
                         <input type="text" name="researcherID" id="researcherID" class="form-control bg-light" placeholder="Auto-generated ID" maxlength="50" readonly required />
                     </div>
+
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-user mr-2 text-secondary"></i>Personal Information</h6>
                     <div class="form-group row mb-4">
                         <div class="col-md-3 mb-2">
-                            <label for="familyName">Family Name</label>
+                            <label for="familyName">Family Name <span class="text-danger">*</span></label>
                             <input type="text" name="familyName" id="familyName" class="form-control" required placeholder="Last Name" maxlength="100" />
                         </div>
                         <div class="col-md-3 mb-2">
-                            <label for="firstName">First Name</label>
+                            <label for="firstName">First Name <span class="text-danger">*</span></label>
                             <input type="text" name="firstName" id="firstName" class="form-control" required placeholder="First Name" maxlength="100" />
                         </div>
                         <div class="col-md-3 mb-2">
@@ -46,10 +47,11 @@
                             <input type="text" name="Suffix" id="Suffix" class="form-control" placeholder="E.g. Jr, Sr, III" maxlength="10" />
                         </div>
                     </div>
+
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-building mr-2 text-secondary"></i>Academic Assignment</h6>
                     <div class="form-group row mb-4">
                         <div class="col-md-3 mb-2">
-                            <label for="department">Select College</label>
+                            <label for="department">Select College <span class="text-danger">*</span></label>
                             <select name="department" id="department" class="form-control" required data-parsley-trigger="change">
                                 <option value="">Select College</option>
                                 <?php
@@ -67,8 +69,8 @@
                             <input type="text" name="departments_units" id="departments_units" class="form-control" placeholder="Specify if 'Others'" disabled />
                         </div>
                         <div class="col-md-3 mb-2">
-                            <label for="program">Major Discipline</label>
-                            <select name="program" id="program" class="form-control" required data-parsley-trigger="change">
+                            <label for="program">Major Discipline (Optional)</label>
+                            <select name="program" id="program" class="form-control" data-parsley-trigger="change">
                                 <option value="">Select Program</option>
                                 <?php
                                 $object->query = "SELECT * FROM tbl_majordiscipline";
@@ -80,8 +82,8 @@
                             </select>
                         </div>
                         <div class="col-md-3 mb-2">
-                            <label for="academic_rank">Academic Rank</label>
-                            <select name="academic_rank" id="academic_rank" class="form-control" required data-parsley-trigger="change">
+                            <label for="academic_rank">Academic Rank (Optional)</label>
+                            <select name="academic_rank" id="academic_rank" class="form-control" data-parsley-trigger="change">
                                 <option value="">Select Rank</option>
                                 <option value="Instructor I">Instructor I</option>
                                 <option value="Instructor II">Instructor II</option>
@@ -106,6 +108,7 @@
                             </select>
                         </div>
                     </div>
+
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-graduation-cap mr-2 text-secondary"></i>Educational Background</h6>
                     
                     <div class="form-group row mb-3">
@@ -122,6 +125,7 @@
                             <input type="text" name="bachelor_YearGraduated" id="bachelor_YearGraduated" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
+
                     <div class="form-group row mb-3">
                         <div class="col-md-4 mb-2">
                             <label>Master's Degree</label>
@@ -136,6 +140,7 @@
                             <input type="text" name="masterYearGraduated" id="masterYearGraduated" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
+
                     <div class="form-group row mb-3">
                         <div class="col-md-4 mb-2">
                             <label>Doctorate Degree</label>
@@ -150,6 +155,7 @@
                             <input type="text" name="doctorateYearGraduate" id="doctorateYearGraduate" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
+
                     <div class="form-group row mb-3">
                         <div class="col-md-4 mb-2">
                             <label>Post-Doctorate</label>
@@ -164,6 +170,7 @@
                             <input type="text" name="postYearGraduate" id="postYearGraduate" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
+
                 </div>
                 
                 <div class="modal-footer border-top-0 pt-3">
