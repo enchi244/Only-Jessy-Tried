@@ -24,7 +24,6 @@ $is_all_time = empty($from_date) && empty($to_date);
 $from_date_ts = empty($from_date) ? 0 : strtotime($from_date);
 $to_date_ts = empty($to_date) ? PHP_INT_MAX : strtotime($to_date) + 86399;
 
-// THE FIX: Universal Date Parser added for Exporter
 if (!function_exists('safe_strtotime')) {
     function safe_strtotime($date_str) {
         if (empty($date_str) || $date_str === '0000-00-00' || $date_str === 'null') return false;
@@ -54,13 +53,37 @@ function getSafeRows($obj) {
 
 $html_chunks = [];
 
+// Fetch DB Category Names for Header Translation
+$friendly_modules = [
+    'tbl_researchconducted' => 'Research Conducted',
+    'tbl_publication' => 'Publications',
+    'tbl_itelectualprop' => 'Intellectual Property',
+    'tbl_paperpresentation' => 'Paper Presentations',
+    'tbl_trainingsattended' => 'Trainings Attended',
+    'tbl_extension_project_conducted' => 'Extension Projects'
+];
+try {
+    $cat_q = $object->query = "SELECT setting_key, setting_value FROM tbl_site_settings WHERE setting_key LIKE 'cat_%'";
+    $object->execute();
+    foreach($object->statement_result() as $r) {
+        if(!empty($r['setting_value'])) {
+            if($r['setting_key'] == 'cat_research') $friendly_modules['tbl_researchconducted'] = $r['setting_value'];
+            if($r['setting_key'] == 'cat_publication') $friendly_modules['tbl_publication'] = $r['setting_value'];
+            if($r['setting_key'] == 'cat_ip') $friendly_modules['tbl_itelectualprop'] = $r['setting_value'];
+            if($r['setting_key'] == 'cat_pp') $friendly_modules['tbl_paperpresentation'] = $r['setting_value'];
+            if($r['setting_key'] == 'cat_train') $friendly_modules['tbl_trainingsattended'] = $r['setting_value'];
+            if($r['setting_key'] == 'cat_ext') $friendly_modules['tbl_extension_project_conducted'] = $r['setting_value'];
+        }
+    }
+} catch (Exception $e) {}
+
 $all_modules = [
-    ['title' => 'Research Conducted', 'table' => 'tbl_researchconducted', 'date_col' => 'started_date', 'has_status' => true],
-    ['title' => 'Publications', 'table' => 'tbl_publication', 'date_col' => 'publication_date', 'has_status' => false],
-    ['title' => 'Intellectual Property', 'table' => 'tbl_itelectualprop', 'date_col' => 'date_granted', 'has_status' => false],
-    ['title' => 'Paper Presentations', 'table' => 'tbl_paperpresentation', 'date_col' => 'date_paper', 'has_status' => false],
-    ['title' => 'Extension Projects', 'table' => 'tbl_extension_project_conducted', 'date_col' => 'start_date', 'has_status' => true],
-    ['title' => 'Trainings Attended', 'table' => 'tbl_trainingsattended', 'date_col' => 'date_train', 'has_status' => false]
+    ['title' => $friendly_modules['tbl_researchconducted'], 'table' => 'tbl_researchconducted', 'date_col' => 'started_date', 'has_status' => true],
+    ['title' => $friendly_modules['tbl_publication'], 'table' => 'tbl_publication', 'date_col' => 'publication_date', 'has_status' => false],
+    ['title' => $friendly_modules['tbl_itelectualprop'], 'table' => 'tbl_itelectualprop', 'date_col' => 'date_granted', 'has_status' => false],
+    ['title' => $friendly_modules['tbl_paperpresentation'], 'table' => 'tbl_paperpresentation', 'date_col' => 'date_paper', 'has_status' => false],
+    ['title' => $friendly_modules['tbl_extension_project_conducted'], 'table' => 'tbl_extension_project_conducted', 'date_col' => 'start_date', 'has_status' => true],
+    ['title' => $friendly_modules['tbl_trainingsattended'], 'table' => 'tbl_trainingsattended', 'date_col' => 'date_train', 'has_status' => false]
 ];
 
 $repp_array = explode(',', $repp);
@@ -72,27 +95,71 @@ if (empty($modules_to_run)) {
     die("No valid modules selected for export.");
 }
 
+// =========================================================================
+// NEW: DYNAMIC SUBTITLE TRANSLATOR (Now with Rank and Program!)
+// =========================================================================
+
+$filter_details = [];
+
+// 1. Module Name 
+if ($repp === 'all' || $repp === 'all_modules') {
+    $filter_details[] = "<strong>Category:</strong> All Categories";
+} elseif (count($modules_to_run) === 1) {
+    $filter_details[] = "<strong>Category:</strong> " . reset($modules_to_run)['title'];
+} else {
+    $m_names = array_map(function($m){ return $m['title']; }, $modules_to_run);
+    $filter_details[] = "<strong>Categories:</strong> " . implode(', ', $m_names);
+}
+
+// 2. Department Name
+if ($department !== 'all' && !empty($department)) {
+    $filter_details[] = "<strong>College:</strong> " . str_replace(',', ', ', $department);
+}
+
+// 3. Status 
+if ($status !== 'all' && !empty($status)) {
+    $filter_details[] = "<strong>Status:</strong> " . ucfirst($status);
+}
+
+// 4. Academic Rank
+if ($academic_rank !== 'all' && !empty($academic_rank)) {
+    $filter_details[] = "<strong>Rank:</strong> " . str_replace(',', ', ', $academic_rank);
+}
+
+// 5. Discipline / Program
+if ($program !== 'all' && !empty($program)) {
+    $filter_details[] = "<strong>Discipline:</strong> " . str_replace(',', ', ', $program);
+}
+
+// 6. Date Range
+if (!$is_all_time) {
+    if (!empty($from_date) && !empty($to_date)) {
+        $filter_details[] = "<strong>Period:</strong> " . date('M d, Y', $from_date_ts) . " to " . date('M d, Y', strtotime($to_date));
+    } elseif (!empty($from_date)) {
+        $filter_details[] = "<strong>Period:</strong> From " . date('M d, Y', $from_date_ts);
+    } elseif (!empty($to_date)) {
+        $filter_details[] = "<strong>Period:</strong> Until " . date('M d, Y', strtotime($to_date));
+    }
+}
+
 // Header Setup
-$header_subtitle = "Comprehensive Summary";
+$header_title = "Data Extraction Report";
+$header_subtitle = "";
 
 if (!empty($researcher_id)) {
     $object->query = "SELECT * FROM tbl_researchdata WHERE id = '$researcher_id'";
     $res_info = getSafeRows($object);
     if (count($res_info) > 0) {
         $name = $res_info[0]['firstName'] . ' ' . $res_info[0]['middleName'] . ' ' . $res_info[0]['familyName'] . ' ' . $res_info[0]['Suffix'];
-        $header_title = strtoupper(trim($name));
-        $header_subtitle = $res_info[0]['department'] . " • Official Portfolio";
+        $header_title = strtoupper(trim($name)) . " - PORTFOLIO";
     }
+}
+
+// Compile the filter strings into a clean horizontal line
+if (!empty($filter_details)) {
+    $header_subtitle = implode(" &nbsp;&nbsp;|&nbsp;&nbsp; ", $filter_details);
 } else {
-    if ($repp === 'all' || $repp === 'all_modules') {
-        $header_title = "All Modules Overview";
-    } elseif (count($modules_to_run) > 1) {
-        $header_title = "Multi-Module Report";
-    } else {
-        $m_title = reset($modules_to_run)['table'] ?? '';
-        $header_title = "Module Report (" . ucwords(str_replace(['tbl_', '_'], ['', ' '], $m_title)) . ")";
-    }
-    $header_subtitle = ($department !== 'all') ? "Filtered Departments" : "All Departments";
+    $header_subtitle = "Comprehensive Summary - All Records";
 }
 
 $logo_path = '../../img/serdac.png';
@@ -113,13 +180,13 @@ $html_chunks[] = "
     </tr>
     <tr>
         <td align='center' style='border-top: 2px solid #2c7be5; border-bottom: 2px solid #2c7be5; padding: 12px 0; background-color: #fcfcfc;'>
-            <h1 style='font-size: 22px; font-weight: bold; color: #12263f; margin: 0; padding: 0; text-transform: uppercase; letter-spacing: 1px;'>{$header_title}</h1>
-            <div style='font-size: 12px; color: #6e84a3; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px;'>{$header_subtitle}</div>
+            <h1 style='font-size: 20px; font-weight: bold; color: #12263f; margin: 0 0 5px 0; padding: 0; text-transform: uppercase; letter-spacing: 1px;'>{$header_title}</h1>
+            <div style='font-size: 11px; color: #6e84a3; margin-top: 4px;'>{$header_subtitle}</div>
         </td>
     </tr>
 </table>";
 
-$exclude_keys = ['id', 'researcherid', 'lead_researcher_id', 'lead_author_id', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'coauth', 'user_created_on', 'has_files', 'all_authors', 'primary_familyname', 'author_db_id', 'terminal_report'];
+$exclude_keys = ['id', 'researcherid', 'lead_researcher_id', 'lead_author_id', 'title', 'stat', 'status_exct', 'status', 'so_file', 'moa_file', 'department', 'lead_researcher', 'co_researchers', 'coauth', 'user_created_on', 'has_files', 'all_authors', 'primary_familyname', 'author_db_id', 'terminal_report', 'cover_photo'];
 
 $label_map = [
     'journal' => 'Journal',
@@ -158,11 +225,10 @@ $label_map = [
 foreach ($modules_to_run as $mod) {
     
     $html_chunks[] = "
-    <h3 style='color: #2c7be5; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px;'>
+    <h3 style='color: #2c7be5; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #e3e6f0; padding-bottom: 5px;'>
         {$mod['title']}
     </h3>";
     
-    // THE FIX: Adjusted table headers for unified Authors column
     $html_chunks[] = "
     <table width='100%' border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 20px;'>
         <thead style='background-color: #f8f9fc; color: #4e73df; font-size: 11px; text-transform: uppercase;'>
@@ -393,7 +459,6 @@ foreach ($modules_to_run as $mod) {
             $lead_rank = htmlspecialchars($item['academic_rank'] ?? '');
             $lead_prog = htmlspecialchars($item['program'] ?? '');
             
-            // THE FIX: Add the Lead badge
             $lead_display = "<strong>{$lead_name}</strong> <span style='font-size: 9px; color: #d9534f;'>(Lead)</span>";
             $lead_meta = [];
             if (!empty($lead_rank)) $lead_meta[] = $lead_rank;
@@ -435,7 +500,6 @@ foreach ($modules_to_run as $mod) {
                 }
             }
 
-            // THE FIX: Merge them before printing
             $authors_combined = "<div style='margin-bottom: 4px;'>" . $lead_display . "</div>";
             if ($co_authors_display !== '<span style="color: #999; font-style: italic;">None</span>') {
                 $authors_combined .= $co_authors_display;
@@ -456,14 +520,13 @@ foreach ($modules_to_run as $mod) {
     }
     
     if (!$found_items) {
-        // THE FIX: Adjusted column span since we merged 2 columns into 1
         $colspan = $mod['has_status'] ? 4 : 3;
         $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
     }
     $html_chunks[] = "</tbody></table>";
 }
 
-$doc_name = (!empty($researcher_id)) ? 'Researcher_Portfolio_' : 'Module_Report_';
+$doc_name = (!empty($researcher_id)) ? 'Researcher_Portfolio_' : 'Data_Extraction_Report_';
 
 if ($format === 'word') {
     $raw_html = implode("\n", $html_chunks);
