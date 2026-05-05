@@ -60,7 +60,8 @@ $friendly_modules = [
     'tbl_itelectualprop' => 'Intellectual Property',
     'tbl_paperpresentation' => 'Paper Presentations',
     'tbl_trainingsattended' => 'Trainings Attended',
-    'tbl_extension_project_conducted' => 'Extension Projects'
+    'tbl_extension_project_conducted' => 'Extension Projects',
+    'tbl_research_policy' => 'Research Policy'
 ];
 try {
     $cat_q = $object->query = "SELECT setting_key, setting_value FROM tbl_site_settings WHERE setting_key LIKE 'cat_%'";
@@ -73,6 +74,7 @@ try {
             if($r['setting_key'] == 'cat_pp') $friendly_modules['tbl_paperpresentation'] = $r['setting_value'];
             if($r['setting_key'] == 'cat_train') $friendly_modules['tbl_trainingsattended'] = $r['setting_value'];
             if($r['setting_key'] == 'cat_ext') $friendly_modules['tbl_extension_project_conducted'] = $r['setting_value'];
+            if($r['setting_key'] == 'cat_policy') $friendly_modules['tbl_research_policy'] = $r['setting_value'];
         }
     }
 } catch (Exception $e) {}
@@ -83,10 +85,11 @@ $all_modules = [
     ['title' => $friendly_modules['tbl_itelectualprop'], 'table' => 'tbl_itelectualprop', 'date_col' => 'date_granted', 'has_status' => false],
     ['title' => $friendly_modules['tbl_paperpresentation'], 'table' => 'tbl_paperpresentation', 'date_col' => 'date_paper', 'has_status' => false],
     ['title' => $friendly_modules['tbl_extension_project_conducted'], 'table' => 'tbl_extension_project_conducted', 'date_col' => 'start_date', 'has_status' => true],
-    ['title' => $friendly_modules['tbl_trainingsattended'], 'table' => 'tbl_trainingsattended', 'date_col' => 'date_train', 'has_status' => false]
+    ['title' => $friendly_modules['tbl_trainingsattended'], 'table' => 'tbl_trainingsattended', 'date_col' => 'date_train', 'has_status' => false],
+    ['title' => $friendly_modules['tbl_research_policy'], 'table' => 'tbl_research_policy', 'date_col' => 'date_published', 'has_status' => false]
 ];
 
-$repp_array = explode(',', $repp);
+$repp_array = explode('||', $repp);
 $modules_to_run = ($repp === 'all' || $repp === 'all_modules') 
     ? $all_modules 
     : array_filter($all_modules, function($m) use ($repp_array) { return in_array($m['table'], $repp_array); });
@@ -95,13 +98,8 @@ if (empty($modules_to_run)) {
     die("No valid modules selected for export.");
 }
 
-// =========================================================================
-// NEW: DYNAMIC SUBTITLE TRANSLATOR (Now with Rank and Program!)
-// =========================================================================
-
 $filter_details = [];
 
-// 1. Module Name 
 if ($repp === 'all' || $repp === 'all_modules') {
     $filter_details[] = "<strong>Category:</strong> All Categories";
 } elseif (count($modules_to_run) === 1) {
@@ -111,27 +109,22 @@ if ($repp === 'all' || $repp === 'all_modules') {
     $filter_details[] = "<strong>Categories:</strong> " . implode(', ', $m_names);
 }
 
-// 2. Department Name
 if ($department !== 'all' && !empty($department)) {
-    $filter_details[] = "<strong>College:</strong> " . str_replace(',', ', ', $department);
+    $filter_details[] = "<strong>College:</strong> " . str_replace('||', ', ', $department);
 }
 
-// 3. Status 
 if ($status !== 'all' && !empty($status)) {
     $filter_details[] = "<strong>Status:</strong> " . ucfirst($status);
 }
 
-// 4. Academic Rank
 if ($academic_rank !== 'all' && !empty($academic_rank)) {
-    $filter_details[] = "<strong>Rank:</strong> " . str_replace(',', ', ', $academic_rank);
+    $filter_details[] = "<strong>Rank:</strong> " . str_replace('||', ', ', $academic_rank);
 }
 
-// 5. Discipline / Program
 if ($program !== 'all' && !empty($program)) {
-    $filter_details[] = "<strong>Discipline:</strong> " . str_replace(',', ', ', $program);
+    $filter_details[] = "<strong>Discipline:</strong> " . str_replace('||', ', ', $program);
 }
 
-// 6. Date Range
 if (!$is_all_time) {
     if (!empty($from_date) && !empty($to_date)) {
         $filter_details[] = "<strong>Period:</strong> " . date('M d, Y', $from_date_ts) . " to " . date('M d, Y', strtotime($to_date));
@@ -142,7 +135,6 @@ if (!$is_all_time) {
     }
 }
 
-// Header Setup
 $header_title = "Data Extraction Report";
 $header_subtitle = "";
 
@@ -155,7 +147,6 @@ if (!empty($researcher_id)) {
     }
 }
 
-// Compile the filter strings into a clean horizontal line
 if (!empty($filter_details)) {
     $header_subtitle = implode(" &nbsp;&nbsp;|&nbsp;&nbsp; ", $filter_details);
 } else {
@@ -266,7 +257,7 @@ foreach ($modules_to_run as $mod) {
     }
     
     if ($department !== 'all' && !empty($department)) {
-        $arr = explode(',', $department);
+        $arr = explode('||', $department);
         $escaped = array_map(function($v) { return "'" . addslashes(trim($v)) . "'"; }, $arr);
         $in_str = implode(',', $escaped);
         if ($col_table !== '') {
@@ -276,7 +267,7 @@ foreach ($modules_to_run as $mod) {
         }
     }
     if ($academic_rank !== 'all' && !empty($academic_rank)) {
-        $arr = explode(',', $academic_rank);
+        $arr = explode('||', $academic_rank);
         $escaped = array_map(function($v) { return "'" . addslashes(trim($v)) . "'"; }, $arr);
         $in_str = implode(',', $escaped);
         if ($col_table !== '') {
@@ -286,7 +277,7 @@ foreach ($modules_to_run as $mod) {
         }
     }
     if ($program !== 'all' && !empty($program)) {
-        $arr = explode(',', $program);
+        $arr = explode('||', $program);
         $escaped = array_map(function($v) { return "'" . addslashes(trim($v)) . "'"; }, $arr);
         $in_str = implode(',', $escaped);
         if ($col_table !== '') {
@@ -401,6 +392,23 @@ foreach ($modules_to_run as $mod) {
                 if (in_array($kl, $exclude_keys) || trim((string)$v) === '' || is_numeric($k) || $kl === 'academic_rank' || $kl === 'program') continue;
                 if (in_array($kl, ['file', 'terminal_report_file', 'attachments', 'so_file', 'moa_file', 'coauth'])) continue;
                 
+                // --- MAGIC FIX FOR POLICY RESEARCH ID IN EXPORTS ---
+                if (in_array($kl, ['research_id', 'research_conducted_id', 'research_conducted']) && $mod['table'] === 'tbl_research_policy') {
+                    $rc_title = "Unknown Research (ID: " . htmlspecialchars($v) . ")";
+                    if (!empty($v) && is_numeric($v)) {
+                        $sub_obj = new rms();
+                        $sub_obj->query = "SELECT title FROM tbl_researchconducted WHERE id = '$v'";
+                        $sub_res = getSafeRows($sub_obj);
+                        if (count($sub_res) > 0) {
+                            $rc_title = $sub_res[0]['title'];
+                        }
+                    }
+                    $k = 'Based on Research';
+                    $v = $rc_title;
+                    $kl = 'based_on_research';
+                }
+                // ---------------------------------------------------
+
                 if (trim((string)$v) === 'Legacy Replaced') {
                     $real_data = '';
                     $cat = '';
@@ -451,7 +459,12 @@ foreach ($modules_to_run as $mod) {
                     $clean_val = '₱' . number_format((float)str_replace(['₱', ',', ' '], '', $clean_val), 2);
                 }
                 
-                $detail_str .= "<div style='margin-bottom: 4px; line-height: 1.4;'><span style='color:#7a869a; font-size:10px;'>{$clean_label}:</span> <span style='color:#12263f; font-weight:bold; font-size:11px;'>{$clean_val}</span></div>";
+                // --- MAGIC LONG TEXT FIX (PDF/WORD) ---
+                if (strlen($v) > 150 || in_array($kl, ['abstract', 'summary', 'content', 'description', 'remarks'])) {
+                    $detail_str .= "<div style='margin-top: 8px; margin-bottom: 8px; line-height: 1.4;'><strong style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$clean_label}:</strong><br><div style='color:#12263f; font-size:11px; text-align: justify; margin-top: 4px;'>".nl2br($clean_val)."</div></div>";
+                } else {
+                    $detail_str .= "<div style='margin-bottom: 4px; line-height: 1.4;'><span style='color:#7a869a; font-size:10px;'>{$clean_label}:</span> <span style='color:#12263f; font-weight:bold; font-size:11px;'>{$clean_val}</span></div>";
+                }
             }
             if ($detail_str === "") $detail_str = "<span style='color: #999; font-style: italic;'>No extra details available</span>";
 

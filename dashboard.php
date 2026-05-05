@@ -276,7 +276,7 @@ $totalDisciplines = $object->Get_total_disciplines();
             
            <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">From:</span>
             <select id="filterFromYear" class="mr-3">
-                <option value="all" selected></option>
+                <option value="all" selected>Select Year</option>
                 <?php 
                     $curr_year = date("Y");
                     for($y = $curr_year; $y >= 2010; $y--) {
@@ -287,7 +287,7 @@ $totalDisciplines = $object->Get_total_disciplines();
             
             <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">To:</span>
             <select id="filterToYear" class="mr-2">
-                <option value="all" selected></option>
+                <option value="all" selected>Select Year</option>
                 <?php 
                     for($y = $curr_year; $y >= 2010; $y--) {
                         echo "<option value=\"$y\">$y</option>";
