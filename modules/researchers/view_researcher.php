@@ -327,8 +327,9 @@ include('../../includes/header.php');
                                 </div>
                             </div>
                         </div>
+                    </div>   
 
-                    <!-- Research Conducted -->
+           
                     <div class="tab-pane custom-tab-pane" id="education" role="tabpanel" style="display: none;">
                         
                         <ul class="nav nav-tabs mb-4 border-bottom-danger" id="rcInnerTabs" role="tablist">
@@ -1135,5 +1136,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }, 300);
         }
     }
+    
 });
+
 </script>
