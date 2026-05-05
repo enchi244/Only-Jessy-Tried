@@ -247,7 +247,7 @@ include('../../includes/header.php');
                 
                 <!-- NEW: Global Profile Search Bar -->
                 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                    <h4 class="font-weight-bold text-gray-800 m-0"><i class="fas fa-search text-primary mr-2"></i>Profile Search</h4>
+                    <h4 class="font-weight-bold text-gray-800 m-0"><i class="fas fa-search text-primary mr-2"></i></h4>
                     <div class="input-group" style="max-width: 350px;">
                         <input type="text" id="global_profile_search" class="form-control bg-light border-1 small" placeholder="Search keywords, titles, years..." aria-label="Search">
                         <div class="input-group-append">

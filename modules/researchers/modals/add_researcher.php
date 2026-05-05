@@ -50,7 +50,7 @@
 
                     <h6 class="font-weight-bold text-gray-700 mb-3 mt-4 border-bottom pb-2"><i class="fas fa-building mr-2 text-secondary"></i>Academic Assignment</h6>
                     <div class="form-group row mb-4">
-                        <div class="col-md-3 mb-2">
+                        <div class="col-lg col-md-6 mb-2">
                             <label for="department">Select College <span class="text-danger">*</span></label>
                             <select name="department" id="department" class="form-control" required data-parsley-trigger="change">
                                 <option value="">Select College</option>
@@ -63,12 +63,12 @@
                                 ?>
                             </select>
                         </div>
-                        <div class="col-md-3 mb-2">
+                        <div class="col-lg col-md-6 mb-2">
                             <label for="departments_units">Department/Unit</label>
                             <input type="text" name="departments_units" id="departments_units" class="form-control" placeholder="Specify if 'Others'" disabled />
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <label for="program">Major Discipline (Optional)</label>
+                        <div class="col-lg col-md-4 mb-2">
+                            <label for="program">Major Discipline</label>
                             <select name="program" id="program" class="form-control" data-parsley-trigger="change">
                                 <option value="">Select Program</option>
                                 <?php
@@ -80,8 +80,8 @@
                                 ?>
                             </select>
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <label for="academic_rank">Academic Rank (Optional)</label>
+                        <div class="col-lg col-md-4 mb-2">
+                            <label for="academic_rank">Academic Rank</label>
                             <select name="academic_rank" id="academic_rank" class="form-control" data-parsley-trigger="change">
                                 <option value="">Select Rank</option>
                                 <?php
@@ -94,8 +94,7 @@
                             </select>
                         </div>
                         
-                        <!-- This drops to a new row beautifully -->
-                        <div class="col-md-3 mt-3 mb-2">
+                        <div class="col-lg col-md-4 mb-2">
                             <label for="academic_rank_others">Specify Rank</label>
                             <input type="text" name="academic_rank_others" id="academic_rank_others" class="form-control" placeholder="Specify if 'Others'" disabled />
                         </div>
