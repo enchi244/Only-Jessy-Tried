@@ -73,7 +73,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                       LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
                       WHERE r.status = 1";
         } 
-        // THE FIX: IP Collaborators added so IPs accurately credit all departments
         else if ($table === 'tbl_itelectualprop') {
             $query = "SELECT COALESCE(d.id, d_main.id) as active_res_id, COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
                       LEFT JOIN tbl_ip_collaborators col ON r.id = col.ip_id 
@@ -277,7 +276,7 @@ $totalDisciplines = $object->Get_total_disciplines();
             
            <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">From:</span>
             <select id="filterFromYear" class="mr-3">
-                <option value="all" selected>All Time</option>
+                <option value="all" selected></option>
                 <?php 
                     $curr_year = date("Y");
                     for($y = $curr_year; $y >= 2010; $y--) {
@@ -288,7 +287,7 @@ $totalDisciplines = $object->Get_total_disciplines();
             
             <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">To:</span>
             <select id="filterToYear" class="mr-2">
-                <option value="all" selected>All Time</option>
+                <option value="all" selected></option>
                 <?php 
                     for($y = $curr_year; $y >= 2010; $y--) {
                         echo "<option value=\"$y\">$y</option>";
@@ -1030,10 +1029,15 @@ $totalDisciplines = $object->Get_total_disciplines();
                                 return parseInt(a.y) - parseInt(b.y);
                             });
 
+                            var maxY = 0;
+
                             var formattedData = data.map(function(item) {
+                                var yVal = parseInt(item.y);
+                                if (yVal > maxY) { maxY = yVal; }
+
                                 return { 
                                     label: item.label, 
-                                    y: parseInt(item.y), 
+                                    y: yVal, 
                                     color: getConsistentColor(item.label),
                                     indexLabel: "{y}", 
                                     indexLabelFontColor: "#4e73df", 
@@ -1042,6 +1046,12 @@ $totalDisciplines = $object->Get_total_disciplines();
                                     indexLabelPlacement: "outside" 
                                 };
                             });
+
+                            // THE FIX: Add 15% headroom to the top of the chart so labels don't get cut off!
+                            if (!chartObj.options.axisY) {
+                                chartObj.options.axisY = {};
+                            }
+                            chartObj.options.axisY.maximum = maxY > 0 ? maxY + Math.ceil(maxY * 0.15) : 10;
                             
                             generateCustomLegend(formattedData, legendId);
                             chartObj.options.data[0].dataPoints = formattedData;
