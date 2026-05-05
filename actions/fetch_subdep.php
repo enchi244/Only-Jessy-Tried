@@ -50,7 +50,7 @@ if(isset($_POST["action"])) {
         
         function isYearMatch($row, $from_year, $to_year) {
             if ($from_year === 'all' || $to_year === 'all') return true;
-            $date_cols = ['user_created_on', 'date_paper', 'started_date', 'completed_date', 'start_date', 'publication_date', 'date_applied', 'date_granted', 'date_train'];
+            $date_cols = ['user_created_on', 'date_paper', 'started_date', 'completed_date', 'start_date', 'publication_date', 'date_applied', 'date_granted', 'date_train', 'date_published'];
             foreach ($date_cols as $dc) {
                 if (isset($row[$dc]) && !empty(trim((string)$row[$dc])) && strtolower(trim((string)$row[$dc])) !== 'null') {
                     $val_clean = trim((string)$row[$dc]);
@@ -77,7 +77,7 @@ if(isset($_POST["action"])) {
                 }
             } else {
                 $active_ids = [];
-                $tables = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted'];
+                $tables = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted', 'tbl_research_policy'];
                 
                 foreach ($tables as $tbl) {
                     if (in_array($tbl, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation'])) {
@@ -114,6 +114,7 @@ if(isset($_POST["action"])) {
             if($type == 'paper_presentation') $tbl = 'tbl_paperpresentation';
             if($type == 'trainings') $tbl = 'tbl_trainingsattended';
             if($type == 'extension') $tbl = 'tbl_extension_project_conducted';
+            if($type == 'policy') $tbl = 'tbl_research_policy';
             
             if ($tbl !== '') {
                 if (in_array($tbl, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation'])) {
@@ -314,6 +315,23 @@ if(isset($_POST["action"])) {
                 } else { $html .= "<span class='text-muted'><em>No trainings found.</em></span>"; }
                 $html .= "</td></tr>";
                 
+                // 7. Research Policy
+                $object->query = "SELECT tbl_research_policy.id, title, date_published, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = tbl_research_policy.id AND entity_type IN ('policy', 'pol')) AS file_cats FROM tbl_research_policy WHERE researcherID = '$id' AND status = 1";
+                $res7 = getSafeRows($object);
+                $html .= "<tr><th>Research Policy</th><td>";
+                if(count($res7) > 0) {
+                    $html .= "<ul class='pl-3 mb-0' style='font-size: 0.9rem;'>";
+                    foreach($res7 as $r7) { 
+                        $cats = [];
+                        if(!empty($r7['file_cats'])) $cats[] = $r7['file_cats'];
+                        $moa_btn = format_file_badges(implode('||', $cats), $id, 'policy', $object->base_url, $r7['id']);
+                        
+                        $html .= "<li class='mb-2'><strong>" . ($r7['title'] ?: 'Untitled Policy') . "</strong> <br>{$moa_btn}<br><small class='text-muted'>Date: {$r7['date_published']}</small></li>"; 
+                    }
+                    $html .= "</ul>";
+                } else { $html .= "<span class='text-muted'><em>No policies found.</em></span>"; }
+                $html .= "</td></tr>";
+                
                 break;
 
             }
@@ -342,6 +360,11 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Funding Source</th><td>{$row['funding_source']}</td></tr>";
                 $html .= "<tr><th>Approved Budget</th><td>{$row['approved_budget']}</td></tr>";
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['stat']}</span></td></tr>";
+                
+                // --- MAGIC LONG TEXT FIX ---
+                if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
+                    $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
+                }
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
@@ -373,6 +396,11 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Start Date</th><td>{$row['start']}</td></tr>";
                 $html .= "<tr><th>End Date</th><td>{$row['end']}</td></tr>";
                 $html .= "<tr><th>Publication Date</th><td>{$row['publication_date']}</td></tr>";
+                
+                // --- MAGIC LONG TEXT FIX ---
+                if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
+                    $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
+                }
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
@@ -449,6 +477,11 @@ if(isset($_POST["action"])) {
                 
                 $html .= "<tr><th>Validity Status</th><td>{$ip_status_badge}</td></tr>";
                 
+                // --- MAGIC LONG TEXT FIX ---
+                if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
+                    $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
+                }
+                
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
                 $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'] ?? '', 'ip', $object->base_url, $row['id']) . "</td></tr>";
@@ -467,6 +500,11 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Date of Paper</th><td>{$row['date_paper']}</td></tr>";
                 $html .= "<tr><th>Type</th><td>{$row['type']}</td></tr>";
                 $html .= "<tr><th>Discipline</th><td>{$row['discipline']}</td></tr>";
+                
+                // --- MAGIC LONG TEXT FIX ---
+                if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
+                    $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
+                }
                 
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
@@ -488,6 +526,11 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Sponsor Org</th><td>{$row['sponsor_org']}</td></tr>";
                 $html .= "<tr><th>Total Hours</th><td>{$row['totnh']}</td></tr>";
                 
+                // --- MAGIC LONG TEXT FIX ---
+                if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
+                    $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
+                }
+                
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
                 $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'tra', $object->base_url, $row['id']) . "</td></tr>";
@@ -508,9 +551,65 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Partners</th><td>{$row['partners']}</td></tr>";
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['status_exct']}</span></td></tr>";
                 
+                // --- MAGIC LONG TEXT FIX ---
+                if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
+                    $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
+                }
+                
                 $cats = [];
                 if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
                 $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'], 'epc', $object->base_url, $row['id']) . "</td></tr>";
+                break;
+            }
+        }
+        elseif($type == 'policy') {
+            $object->query = "
+                SELECT r.*, d.firstName, d.familyName, 
+                       (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = r.id AND entity_type IN ('policy', 'pol')) AS file_cats 
+                FROM tbl_research_policy r 
+                LEFT JOIN tbl_researchdata d ON r.researcherID = d.id 
+                WHERE r.id = '$id'
+            ";
+            
+            foreach(getSafeRows($object) as $row) {
+                $title_val = $row['title'] ?? $row['policy_title'] ?? 'Untitled Policy';
+                $html .= "<tr><th width='35%'>Title</th><td class='font-weight-bold'>{$title_val}</td></tr>";
+                
+                $lead_name = (!empty($row['firstName'])) ? $row['firstName'] . ' ' . $row['familyName'] : 'Unknown Proponent';
+                $html .= "<tr><th>Lead Proponent</th><td>{$lead_name}</td></tr>";
+
+                foreach ($row as $k => $v) {
+                    $kl = strtolower($k);
+                    if (in_array($kl, ['id', 'researcherid', 'title', 'policy_title', 'firstname', 'familyname', 'file_cats', 'file', 'attachments', 'status', 'user_created_on'])) continue;
+
+                    if ($kl === 'research_id' || $kl === 'research_conducted_id' || $kl === 'research_conducted') {
+                        $rc_title = "Unknown Research (ID: " . htmlspecialchars($v) . ")";
+                        
+                        if (!empty($v) && is_numeric($v)) {
+                            $sub_obj = new rms();
+                            $sub_obj->query = "SELECT title FROM tbl_researchconducted WHERE id = '$v'";
+                            $sub_res = getSafeRows($sub_obj);
+                            if (count($sub_res) > 0) {
+                                $rc_title = $sub_res[0]['title'];
+                            }
+                        }
+                        $html .= "<tr><th>Based on Research</th><td class='text-primary font-weight-bold'>{$rc_title}</td></tr>";
+                        continue;
+                    }
+
+                    $clean_label = ucwords(str_replace('_', ' ', $k));
+                    
+                    // --- MAGIC LONG TEXT FIX ---
+                    if (strlen($v) > 150 || in_array($kl, ['abstract', 'summary', 'content', 'description'])) {
+                        $html .= "<tr><th>{$clean_label}</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>" . nl2br(htmlspecialchars((string)$v)) . "</td></tr>";
+                    } else {
+                        $html .= "<tr><th>{$clean_label}</th><td>" . htmlspecialchars((string)$v) . "</td></tr>";
+                    }
+                }
+                
+                $cats = [];
+                if(!empty($row['file_cats'])) $cats[] = $row['file_cats'];
+                $html .= "<tr><th>Attached Files</th><td>" . format_file_badges(implode('||', $cats), $row['researcherID'] ?? '', 'policy', $object->base_url, $row['id']) . "</td></tr>";
                 break;
             }
         }

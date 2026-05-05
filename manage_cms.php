@@ -116,7 +116,7 @@ if (isset($_POST['upload_logos'])) {
     $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Logos updated successfully!</div>";
 }
 
-// NEW: 5. Save Category Names
+// 5. Save Category Names
 if (isset($_POST['save_category_names'])) {
     $cats = ['cat_research', 'cat_publication', 'cat_ext', 'cat_ip', 'cat_pp', 'cat_train'];
     foreach($cats as $c) {
@@ -160,6 +160,27 @@ if (isset($_POST['save_map'])) {
         $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('google_map_embed', '$map_embed')");
     }
     $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Footer Map updated successfully!</div>";
+}
+
+// 5D. NEW: Save Footer Contacts
+if (isset($_POST['save_footer_contacts'])) {
+    $address = $conn->real_escape_string($_POST['footer_address']);
+    $contact = $conn->real_escape_string($_POST['footer_contact']);
+    $email = $conn->real_escape_string($_POST['footer_email']);
+    
+    $settings = [
+        'footer_address' => $address,
+        'footer_contact' => $contact,
+        'footer_email' => $email
+    ];
+    
+    foreach ($settings as $key => $val) {
+        $conn->query("UPDATE tbl_site_settings SET setting_value='$val' WHERE setting_key='$key'");
+        if ($conn->affected_rows == 0) {
+            $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('$key', '$val')");
+        }
+    }
+    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Footer Contacts updated successfully!</div>";
 }
 
 // 6. Deletions
@@ -216,9 +237,14 @@ include('includes/header.php');
 <?php echo $msg; ?>
 
 <div class="row">
+
+    <!-- ============================================== -->
+    <!-- LEFT COLUMN -->
+    <!-- ============================================== -->
     <div class="col-lg-6 mb-4">
         
-        <div class="card border-left-primary shadow h-100 mb-4">
+        <!-- CARD: LANDING PAGE TEXT -->
+        <div class="card border-left-primary shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-align-left mr-1"></i> 1. Landing Page Text</h6>
             </div>
@@ -245,11 +271,149 @@ include('includes/header.php');
                 </form>
             </div>
         </div>
+
+        <!-- CARD: CAROUSEL IMAGES -->
+        <div class="card border-left-success shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-images mr-1"></i> 2. Carousel Images</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="manage_cms.php" enctype="multipart/form-data" class="mb-4">
+                    <div class="form-row align-items-center">
+                        <div class="col-sm-5 my-1">
+                            <input type="file" class="form-control-file border p-1 rounded" name="c_image" accept="image/*" required>
+                        </div>
+                        <div class="col-sm-5 my-1">
+                            <input type="text" class="form-control form-control-sm" name="alt_text" placeholder="Image Description" required>
+                        </div>
+                        <div class="col-sm-2 my-1">
+                            <button type="submit" name="add_carousel" class="btn btn-success btn-sm w-100"><i class="fas fa-upload"></i></button>
+                        </div>
+                    </div>
+                </form>
+
+                <h6 class="font-weight-bold small text-muted text-uppercase mb-2">Active Images</h6>
+                <div class="row">
+                    <?php 
+                    $cars = $conn->query("SELECT * FROM tbl_cms_carousel ORDER BY id DESC");
+                    if($cars && $cars->num_rows > 0) {
+                        while($img = $cars->fetch_assoc()) {
+                            echo '<div class="col-4 text-center mb-3">
+                                <img src="'.$img['image_path'].'" class="img-fluid rounded border shadow-sm mb-1" style="height:90px; object-fit:cover; width:100%;">
+                                <a href="manage_cms.php?del_car='.$img['id'].'" class="btn btn-danger btn-sm w-100 py-0" onclick="return confirm(\'Delete this image?\')"><i class="fas fa-trash"></i></a>
+                            </div>';
+                        }
+                    } else { echo "<div class='col-12'><p class='text-muted small'>No images uploaded yet.</p></div>"; }
+                    ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD: NEWS & UPDATES -->
+        <div class="card border-left-info shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-newspaper mr-1"></i> 3. News & Updates</h6>
+                <button class="btn btn-sm btn-info" data-toggle="collapse" data-target="#newsFormCollapse">Add Article</button>
+            </div>
+            <div class="card-body">
+                
+                <div class="collapse mb-4 <?php echo $edit_news ? 'show' : ''; ?>" id="newsFormCollapse">
+                    <form method="POST" action="manage_cms.php" enctype="multipart/form-data" class="bg-light p-3 rounded border">
+
+                            <input type="hidden" name="news_id" value="<?php echo $edit_news['id'] ?? ''; ?>">
+
+                            <div class="form-row">
+                                <div class="form-group col-md-8">
+                                    <label class="small font-weight-bold">Article Title</label>
+                                    <input type="text" class="form-control form-control-sm" name="title"
+                                    value="<?php echo $edit_news['title'] ?? ''; ?>" required>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label class="small font-weight-bold">Date Published</label>
+                                    <input type="date" class="form-control form-control-sm" name="date_published"
+                                    value="<?php echo $edit_news['date_published'] ?? date('Y-m-d'); ?>" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="small font-weight-bold">Feature Image</label>
+                                <input type="file" class="form-control-file border p-1 rounded bg-white" name="n_image" accept="image/*">
+                                <?php if($edit_news && !empty($edit_news['image_path'])): ?>
+                                    <small class="text-muted d-block mt-1">Current Image:</small>
+                                    <img src="<?php echo $edit_news['image_path']; ?>" style="width:80px; height:80px; object-fit:cover;">
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="small font-weight-bold">Short Summary</label>
+                                <textarea class="form-control form-control-sm" name="summary" rows="2" required><?php echo $edit_news['summary'] ?? ''; ?></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="small font-weight-bold">Full Content</label>
+                                <textarea class="form-control form-control-sm" name="content" rows="4" required><?php echo $edit_news['content'] ?? ''; ?></textarea>
+                            </div>
+
+                            <button type="submit"
+                                name="<?php echo $edit_news ? 'update_news' : 'add_news'; ?>"
+                                class="btn btn-info btn-sm btn-block">
+
+                                <i class="fas fa-paper-plane"></i>
+                                <?php echo $edit_news ? 'Update Article' : 'Publish Article'; ?>
+                            </button>
+                            <?php if($edit_news): ?>
+                            <a href="manage_cms.php" class="btn btn-secondary btn-sm mt-2 w-100">
+                                Cancel Editing
+                            </a>
+                            <?php endif; ?>
+                    </form>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm table-hover text-sm">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="20%">Date</th>
+                                <th width="60%">Article</th>
+                                <th width="20%" class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $news_q = $conn->query("SELECT id, title, image_path, date_published FROM tbl_cms_news ORDER BY date_published DESC");
+                            if($news_q && $news_q->num_rows > 0) {
+                                while($n = $news_q->fetch_assoc()) {
+                                    echo '<tr>
+                                        <td class="align-middle">'.date("M d, Y", strtotime($n['date_published'])).'</td>
+                                        <td class="align-middle">
+                                            <div class="d-flex align-items-center">
+                                                <img src="'.$n['image_path'].'" class="img-thumbnail mr-3 shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
+                                                <span class="font-weight-bold">'.htmlspecialchars($n['title']).'</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center align-middle">
+                                            <a href="manage_cms.php?edit_news='.$n['id'].'" class="btn btn-primary btn-sm mb-1"><i class="fas fa-edit"></i></a>
+                                            <a href="manage_cms.php?del_news='.$n['id'].'" class="btn btn-danger btn-sm" onclick="return confirm(\'Delete this article?\')"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>';
+                                }
+                            } else { echo "<tr><td colspan='3' class='text-center text-muted'>No news published yet.</td></tr>"; }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
     </div>
 
+
+    <!-- ============================================== -->
+    <!-- RIGHT COLUMN -->
+    <!-- ============================================== -->
     <div class="col-lg-6 mb-4">
         
-        <!-- NEW CARD: MANAGE CATEGORIES -->
+        <!-- CARD: MANAGE CATEGORIES -->
         <div class="card border-left-secondary shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-secondary"><i class="fas fa-tags mr-1"></i> Rename Report Categories</h6>
@@ -360,135 +524,27 @@ include('includes/header.php');
             </div>
         </div>
 
-        <div class="card border-left-success shadow mb-4">
+        <!-- CARD: FOOTER CONTACT SETTINGS -->
+        <div class="card border-left-danger shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-images mr-1"></i> 2. Carousel Images</h6>
+                <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-address-card mr-1"></i> Footer Contact Information</h6>
             </div>
             <div class="card-body">
-                <form method="POST" action="manage_cms.php" enctype="multipart/form-data" class="mb-4">
-                    <div class="form-row align-items-center">
-                        <div class="col-sm-5 my-1">
-                            <input type="file" class="form-control-file border p-1 rounded" name="c_image" accept="image/*" required>
-                        </div>
-                        <div class="col-sm-5 my-1">
-                            <input type="text" class="form-control form-control-sm" name="alt_text" placeholder="Image Description" required>
-                        </div>
-                        <div class="col-sm-2 my-1">
-                            <button type="submit" name="add_carousel" class="btn btn-success btn-sm w-100"><i class="fas fa-upload"></i></button>
-                        </div>
+                <form method="POST" action="manage_cms.php">
+                    <div class="form-group mb-2">
+                        <label class="small font-weight-bold">Office Address</label>
+                        <textarea class="form-control bg-light" name="footer_address" rows="2" placeholder="e.g. Statistics and Data Management Unit&#10;Western Mindanao State University" required><?php echo htmlspecialchars($site_settings['footer_address'] ?? "Statistics and Data Management Unit\nWestern Mindanao State University"); ?></textarea>
                     </div>
+                    <div class="form-group mb-2">
+                        <label class="small font-weight-bold">Contact Numbers</label>
+                        <input type="text" class="form-control bg-light" name="footer_contact" placeholder="e.g. (062) 123-4567, 0912-345-6789" value="<?php echo htmlspecialchars($site_settings['footer_contact'] ?? "(contact number here), (telephone number here)"); ?>" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="small font-weight-bold">Email Address</label>
+                        <input type="text" class="form-control bg-light" name="footer_email" placeholder="e.g. sdmu@wmsu.edu.ph" value="<?php echo htmlspecialchars($site_settings['footer_email'] ?? "(email here)"); ?>" required>
+                    </div>
+                    <button type="submit" name="save_footer_contacts" class="btn btn-danger btn-sm btn-block font-weight-bold"><i class="fas fa-save"></i> Save Contact Info</button>
                 </form>
-
-                <h6 class="font-weight-bold small text-muted text-uppercase mb-2">Active Images</h6>
-                <div class="row">
-                    <?php 
-                    $cars = $conn->query("SELECT * FROM tbl_cms_carousel ORDER BY id DESC");
-                    if($cars && $cars->num_rows > 0) {
-                        while($img = $cars->fetch_assoc()) {
-                            echo '<div class="col-4 text-center mb-3">
-                                <img src="'.$img['image_path'].'" class="img-fluid rounded border shadow-sm mb-1" style="height:90px; object-fit:cover; width:100%;">
-                                <a href="manage_cms.php?del_car='.$img['id'].'" class="btn btn-danger btn-sm w-100 py-0" onclick="return confirm(\'Delete this image?\')"><i class="fas fa-trash"></i></a>
-                            </div>';
-                        }
-                    } else { echo "<div class='col-12'><p class='text-muted small'>No images uploaded yet.</p></div>"; }
-                    ?>
-                </div>
-            </div>
-        </div>
-
-        <div class="card border-left-info shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-newspaper mr-1"></i> 3. News & Updates</h6>
-                <button class="btn btn-sm btn-info" data-toggle="collapse" data-target="#newsFormCollapse">Add Article</button>
-            </div>
-            <div class="card-body">
-                
-            <div class="collapse mb-4 <?php echo $edit_news ? 'show' : ''; ?>" id="newsFormCollapse">
-                <form method="POST" action="manage_cms.php" enctype="multipart/form-data" class="bg-light p-3 rounded border">
-
-                        <input type="hidden" name="news_id" value="<?php echo $edit_news['id'] ?? ''; ?>">
-
-                        <div class="form-row">
-                            <div class="form-group col-md-8">
-                                <label class="small font-weight-bold">Article Title</label>
-                                <input type="text" class="form-control form-control-sm" name="title"
-                                value="<?php echo $edit_news['title'] ?? ''; ?>" required>
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label class="small font-weight-bold">Date Published</label>
-                                <input type="date" class="form-control form-control-sm" name="date_published"
-                                value="<?php echo $edit_news['date_published'] ?? date('Y-m-d'); ?>" required>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="small font-weight-bold">Feature Image</label>
-                            <input type="file" class="form-control-file border p-1 rounded bg-white" name="n_image" accept="image/*">
-                            <?php if($edit_news && !empty($edit_news['image_path'])): ?>
-                                <small class="text-muted d-block mt-1">Current Image:</small>
-                                <img src="<?php echo $edit_news['image_path']; ?>" style="width:80px; height:80px; object-fit:cover;">
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="small font-weight-bold">Short Summary</label>
-                            <textarea class="form-control form-control-sm" name="summary" rows="2" required><?php echo $edit_news['summary'] ?? ''; ?></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="small font-weight-bold">Full Content</label>
-                            <textarea class="form-control form-control-sm" name="content" rows="4" required><?php echo $edit_news['content'] ?? ''; ?></textarea>
-                        </div>
-
-                        <button type="submit"
-                            name="<?php echo $edit_news ? 'update_news' : 'add_news'; ?>"
-                            class="btn btn-info btn-sm btn-block">
-
-                            <i class="fas fa-paper-plane"></i>
-                            <?php echo $edit_news ? 'Update Article' : 'Publish Article'; ?>
-                        </button>
-                        <?php if($edit_news): ?>
-    <a href="manage_cms.php" class="btn btn-secondary btn-sm mt-2 w-100">
-        Cancel Editing
-    </a>
-<?php endif; ?>
-                </form>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-bordered table-sm table-hover text-sm">
-                        <thead class="thead-light">
-                            <tr>
-                                <th width="20%">Date</th>
-                                <th width="60%">Article</th>
-                                <th width="20%" class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                            $news_q = $conn->query("SELECT id, title, image_path, date_published FROM tbl_cms_news ORDER BY date_published DESC");
-                            if($news_q && $news_q->num_rows > 0) {
-                                while($n = $news_q->fetch_assoc()) {
-                                    echo '<tr>
-                                        <td class="align-middle">'.date("M d, Y", strtotime($n['date_published'])).'</td>
-                                        <td class="align-middle">
-                                            <div class="d-flex align-items-center">
-                                                <img src="'.$n['image_path'].'" class="img-thumbnail mr-3 shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
-                                                <span class="font-weight-bold">'.htmlspecialchars($n['title']).'</span>
-                                            </div>
-                                        </td>
-                                        <td class="text-center align-middle">
-                                            <a href="manage_cms.php?edit_news='.$n['id'].'" class="btn btn-primary btn-sm mb-1"><i class="fas fa-edit"></i></a>
-                                            <a href="manage_cms.php?del_news='.$n['id'].'" class="btn btn-danger btn-sm" onclick="return confirm(\'Delete this article?\')"><i class="fas fa-trash"></i></a>
-                                        </td>
-                                    </tr>';
-                                }
-                            } else { echo "<tr><td colspan='3' class='text-center text-muted'>No news published yet.</td></tr>"; }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
-
             </div>
         </div>
 

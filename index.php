@@ -2,13 +2,13 @@
 // Start the session and include your core DB connection
 include('core/rms.php');
 
-// --- NEW: FETCH DYNAMIC CMS LOGOS ---
-$site_logos = [];
+// --- NEW: FETCH DYNAMIC CMS LOGOS AND SETTINGS ---
+$site_settings = [];
 try {
     $logo_query = mysqli_query($conn, "SELECT setting_key, setting_value FROM tbl_site_settings");
     if($logo_query){
         while($row = mysqli_fetch_assoc($logo_query)){
-            $site_logos[$row['setting_key']] = $row['setting_value'];
+            $site_settings[$row['setting_key']] = $row['setting_value'];
         }
     }
 } catch (Exception $e) {
@@ -80,16 +80,16 @@ if($news_query){
 <!-- UPDATED DYNAMIC LOGOS (CIRCULAR) -->
 <div class="logo">
     <a href="index.php" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
-        <?php if(!empty($site_logos['logo_wmsu'])): ?>
-            <img src="<?php echo htmlspecialchars($site_logos['logo_wmsu']); ?>" alt="WMSU Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php if(!empty($site_settings['logo_wmsu'])): ?>
+            <img src="<?php echo htmlspecialchars($site_settings['logo_wmsu']); ?>" alt="WMSU Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <?php endif; ?>
         
-        <?php if(!empty($site_logos['logo_rdec'])): ?>
-            <img src="<?php echo htmlspecialchars($site_logos['logo_rdec']); ?>" alt="RDEC Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php if(!empty($site_settings['logo_rdec'])): ?>
+            <img src="<?php echo htmlspecialchars($site_settings['logo_rdec']); ?>" alt="RDEC Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <?php endif; ?>
         
-        <?php if(!empty($site_logos['logo_third'])): ?>
-            <img src="<?php echo htmlspecialchars($site_logos['logo_third']); ?>" alt="3rd Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <?php if(!empty($site_settings['logo_third'])): ?>
+            <img src="<?php echo htmlspecialchars($site_settings['logo_third']); ?>" alt="3rd Logo" style="height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <?php endif; ?>
         
         <span class="logo-text" style="margin-left: 5px;">SDMU <span class="highlight">WMSU</span></span>
@@ -298,14 +298,14 @@ if($news_query){
         <div class="container footer-content">
             <div class="footer-brand">
                 <h3>SDMU <span class="highlight">WMSU</span></h3>
-                <p>Statistics and Data Management Unit<br>Western Mindanao State University</p>
-                <p>(contact number here), (telephone number here)</p>
-                <p>(email here)</p>
+                <p><?php echo nl2br(htmlspecialchars($site_settings['footer_address'] ?? "Statistics and Data Management Unit\nWestern Mindanao State University")); ?></p>
+                <p><?php echo htmlspecialchars($site_settings['footer_contact'] ?? "(contact number here), (telephone number here)"); ?></p>
+                <p><?php echo htmlspecialchars($site_settings['footer_email'] ?? "(email here)"); ?></p>
             </div>
             <div class="footer-links" style="width: 100%; max-width: 400px;">
-                <?php if(!empty($site_logos['google_map_embed'])): ?>
+                <?php if(!empty($site_settings['google_map_embed'])): ?>
                     <iframe 
-                        src="<?php echo htmlspecialchars($site_logos['google_map_embed']); ?>" 
+                        src="<?php echo htmlspecialchars($site_settings['google_map_embed']); ?>" 
                         width="100%" 
                         height="200" 
                         style="border:0; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);" 

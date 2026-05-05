@@ -21,7 +21,8 @@ $cat_names = [
     'cat_ext' => 'Extension Projects',
     'cat_ip' => 'Intellectual Property',
     'cat_pp' => 'Paper Presentations',
-    'cat_train' => 'Trainings Attended'
+    'cat_train' => 'Trainings Attended',
+    'cat_policy' => 'Research Policy'
 ];
 try {
     $object->query = "SELECT setting_key, setting_value FROM tbl_site_settings WHERE setting_key LIKE 'cat_%'";
@@ -56,14 +57,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         return strtotime($date_str);
     }
     
-    $allowed_tables = ['tbl_publication', 'tbl_researchconducted', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted'];
+    $allowed_tables = ['tbl_publication', 'tbl_researchconducted', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted', 'tbl_research_policy'];
     $repp = trim($_POST['repp'] ?? 'all');
     
     $tables_to_process = [];
     if ($repp === 'all' || $repp === 'all_modules') {
         $tables_to_process = $allowed_tables;
     } else {
-        $requested_tables = explode(',', $repp);
+        $requested_tables = explode('||', $repp);
         foreach ($requested_tables as $req) {
             if (in_array(trim($req), $allowed_tables)) {
                 $tables_to_process[] = trim($req);
@@ -126,7 +127,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         'tbl_itelectualprop' => 'ip',
         'tbl_paperpresentation' => 'paper_presentation',
         'tbl_trainingsattended' => 'trainings',
-        'tbl_extension_project_conducted' => 'extension'
+        'tbl_extension_project_conducted' => 'extension',
+        'tbl_research_policy' => 'policy'
     ];
 
     $date_col_map = [
@@ -135,7 +137,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         'tbl_itelectualprop' => 'date_granted',
         'tbl_paperpresentation' => 'date_paper',
         'tbl_extension_project_conducted' => 'start_date',
-        'tbl_trainingsattended' => 'date_train'
+        'tbl_trainingsattended' => 'date_train',
+        'tbl_research_policy' => 'date_published'
     ];
 
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -143,14 +146,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
         $conn = @new mysqli("localhost", "root", "", "rms");
         $conn->set_charset("utf8mb4");
 
-        // --- NEW: FETCH DB CATEGORY NAMES FOR THE EXPORT TABLE ---
         $friendly_modules = [
             'tbl_researchconducted' => 'Research Conducted',
             'tbl_publication' => 'Publications',
             'tbl_itelectualprop' => 'Intellectual Property',
             'tbl_paperpresentation' => 'Paper Presentations',
             'tbl_trainingsattended' => 'Trainings Attended',
-            'tbl_extension_project_conducted' => 'Extension Projects'
+            'tbl_extension_project_conducted' => 'Extension Projects',
+            'tbl_research_policy' => 'Research Policy'
         ];
         try {
             $cat_q = $conn->query("SELECT setting_key, setting_value FROM tbl_site_settings WHERE setting_key LIKE 'cat_%'");
@@ -163,6 +166,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         if($r['setting_key'] == 'cat_pp') $friendly_modules['tbl_paperpresentation'] = $r['setting_value'];
                         if($r['setting_key'] == 'cat_train') $friendly_modules['tbl_trainingsattended'] = $r['setting_value'];
                         if($r['setting_key'] == 'cat_ext') $friendly_modules['tbl_extension_project_conducted'] = $r['setting_value'];
+                        if($r['setting_key'] == 'cat_policy') $friendly_modules['tbl_research_policy'] = $r['setting_value'];
                     }
                 }
             }
@@ -198,7 +202,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
             $where_clauses = [];
             
             if ($department !== 'all' && !empty($department)) {
-                $arr = explode(',', $department);
+                $arr = explode('||', $department);
                 $escaped = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string(trim($v)) . "'"; }, $arr);
                 $in_str = implode(',', $escaped);
                 if ($col_table !== '') {
@@ -208,7 +212,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 }
             }
             if ($filter_rank !== 'all' && !empty($filter_rank)) {
-                $arr = explode(',', $filter_rank);
+                $arr = explode('||', $filter_rank);
                 $escaped = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string(trim($v)) . "'"; }, $arr);
                 $in_str = implode(',', $escaped);
                 if ($col_table !== '') {
@@ -218,7 +222,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 }
             }
             if ($filter_program !== 'all' && !empty($filter_program)) {
-                $arr = explode(',', $filter_program);
+                $arr = explode('||', $filter_program);
                 $escaped = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string(trim($v)) . "'"; }, $arr);
                 $in_str = implode(',', $escaped);
                 if ($col_table !== '') {
@@ -374,8 +378,20 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
                     
-                    // THE FIX: 'cover_photo' has been added to the exclude list so it doesn't show up in the table matrix
                     if (in_array($kl, ['id', 'researcherid', 'lead_author_id', 'lead_researcher_id', 'status', 'department', 'college', 'firstname', 'familyname', 'academic_rank', 'program', 'co_researchers_raw', 'lead_proponent', 'co_authors', 'so_file', 'moa_file', 'has_files', 'file', 'terminal_report_file', 'attachments', 'coauth', 'terminal_report', 'cover_photo'])) continue;
+                    
+                    if (in_array($kl, ['research_id', 'research_conducted_id', 'research_conducted']) && $current_table === 'tbl_research_policy') {
+                        $rc_title = "Unknown Research (ID: " . htmlspecialchars($v) . ")";
+                        if (!empty($v) && is_numeric($v)) {
+                            $sub_res = $conn->query("SELECT title FROM tbl_researchconducted WHERE id = '" . intval($v) . "'");
+                            if ($sub_res && $sub_res->num_rows > 0) {
+                                $sub_row = $sub_res->fetch_assoc();
+                                $rc_title = $sub_row['title'];
+                            }
+                        }
+                        $clean_row['Based on Research'] = htmlspecialchars($rc_title, ENT_QUOTES, 'UTF-8');
+                        continue;
+                    }
                     
                     if (trim((string)$v) === 'Legacy Replaced') {
                         $real_data = '';
@@ -460,7 +476,13 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                         foreach ($group as $k => $v) {
                             $kl = strtolower($k);
                             if ($v !== '' && !in_array($kl, ['title', 'authors', 'lead_proponent', 'co_authors', 'department', 'college', 'record_id', 'raw_type', 'action'])) {
-                                $extra_details[] = "<div style='margin-bottom: 3px; line-height: 1.3;'><span style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$k}:</span> <span style='color:#12263f; font-weight:600; font-size:12px;'>{$v}</span></div> ";
+                                
+                                // --- MAGIC LONG TEXT FIX ---
+                                if (strlen($v) > 150 || in_array($kl, ['abstract', 'summary', 'content', 'description', 'remarks'])) {
+                                    $extra_details[] = "<div style='margin-top: 8px; margin-bottom: 8px; line-height: 1.5;'><span style='color:#7a869a; font-size:10px; text-transform:uppercase; font-weight:bold; display:block; margin-bottom:4px;'>{$k}:</span> <div style='color:#12263f; font-size:12px; white-space: pre-wrap; text-align: justify; background: #f8f9fc; padding: 10px; border-radius: 6px; border: 1px solid #eaecf4;'>".nl2br($v)."</div></div>";
+                                } else {
+                                    $extra_details[] = "<div style='margin-bottom: 3px; line-height: 1.3;'><span style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$k}:</span> <span style='color:#12263f; font-weight:600; font-size:12px;'>{$v}</span></div> ";
+                                }
                             }
                         }
 
@@ -618,9 +640,13 @@ include('../../includes/header.php');
                                     <input type="checkbox" class="custom-control-input check-item" id="repp_pp" value="tbl_paperpresentation" checked>
                                     <label class="custom-control-label" for="repp_pp"><?php echo htmlspecialchars($cat_names['cat_pp']); ?></label>
                                 </div>
-                                <div class="custom-control custom-checkbox mb-0">
+                                <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input check-item" id="repp_train" value="tbl_trainingsattended" checked>
                                     <label class="custom-control-label" for="repp_train"><?php echo htmlspecialchars($cat_names['cat_train']); ?></label>
+                                </div>
+                                <div class="custom-control custom-checkbox mb-0">
+                                    <input type="checkbox" class="custom-control-input check-item" id="repp_policy" value="tbl_research_policy" checked>
+                                    <label class="custom-control-label" for="repp_policy"><?php echo htmlspecialchars($cat_names['cat_policy']); ?></label>
                                 </div>
                             </div>
                         </div>
@@ -825,7 +851,6 @@ function updateDropdownText($container) {
         var checkedCount = $items.filter(':checked').length;
         var totalCount = $items.length;
         
-        // Grab the exact name you want to display
         var typeName = $container.data('name'); 
 
         if (checkedCount === totalCount) {
@@ -875,7 +900,7 @@ function updateDropdownText($container) {
         
         var selected = [];
         $items.filter(':checked').each(function() { selected.push($(this).val()); });
-        return selected.join(',');
+        return selected.join('||');
     }
 
     $('#filterForm').on('submit', function(e) {
