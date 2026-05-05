@@ -14,7 +14,7 @@ $time = date('h:i:s a', time());
     <meta name="description" content="Research Archiving System Dashboard">
     <meta name="author" content="">
 
-    <title>RDBMS | Dashboard</title>
+    <title>RDMIS | Dashboard</title>
 
     <link href="<?php echo $object->base_url; ?>vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="<?php echo $object->base_url; ?>vendor/font.css" rel="stylesheet">
@@ -212,7 +212,7 @@ body.sidebar-toggled #content-wrapper {
                 <div>
                     <img src="<?php echo $object->base_url; ?>img/wmsu_logo.png" alt="RAS Logo" width="40" height="40">
                 </div>
-                <div class="sidebar-brand-text mx-3">RDBMS Admin</div>
+                <div class="sidebar-brand-text mx-3">RDBMIS Admin</div>
             </a>
 
             <hr class="sidebar-divider my-0">
@@ -278,7 +278,7 @@ body.sidebar-toggled #content-wrapper {
                     </button>
 
                     <div class="d-none d-sm-block ml-3">
-                        <h1 class="topbar-title">Research Database Management System</h1>
+                        <h1 class="topbar-title">Research Development and Management Information System</h1>
                     </div>
 
                     <ul class="navbar-nav ml-auto">
