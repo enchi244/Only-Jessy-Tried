@@ -272,7 +272,12 @@ include('../../includes/header.php');
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Bachelor's Degree</div>
                                         <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['bachelor_degree']) ? htmlspecialchars($researcher_data['bachelor_degree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
                                         <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['bachelor_institution']) ? htmlspecialchars($researcher_data['bachelor_institution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
-                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['bachelor_YearGraduated']) ? htmlspecialchars($researcher_data['bachelor_YearGraduated']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i> <?php 
+                                            $b_yr = trim($researcher_data['bachelor_YearGraduated'] ?? '');
+                                            if(empty($b_yr)) echo '<span class="text-muted font-italic">N/A</span>';
+                                            elseif(preg_match('/^\d{4}$/', $b_yr)) echo 'Class of ' . htmlspecialchars($b_yr);
+                                            else echo htmlspecialchars($b_yr);
+                                        ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -282,7 +287,12 @@ include('../../includes/header.php');
                                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Master's Degree</div>
                                         <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['masterDegree']) ? htmlspecialchars($researcher_data['masterDegree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
                                         <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['masterInstitution']) ? htmlspecialchars($researcher_data['masterInstitution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
-                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['masterYearGraduated']) ? htmlspecialchars($researcher_data['masterYearGraduated']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i> <?php 
+                                            $m_yr = trim($researcher_data['masterYearGraduated'] ?? '');
+                                            if(empty($m_yr)) echo '<span class="text-muted font-italic">N/A</span>';
+                                            elseif(preg_match('/^\d{4}$/', $m_yr)) echo 'Class of ' . htmlspecialchars($m_yr);
+                                            else echo htmlspecialchars($m_yr);
+                                        ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -292,7 +302,12 @@ include('../../includes/header.php');
                                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Doctorate Degree</div>
                                         <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['doctorateDegree']) ? htmlspecialchars($researcher_data['doctorateDegree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
                                         <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['doctorateInstitution']) ? htmlspecialchars($researcher_data['doctorateInstitution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
-                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['doctorateYearGraduate']) ? htmlspecialchars($researcher_data['doctorateYearGraduate']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i> <?php 
+                                            $d_yr = trim($researcher_data['doctorateYearGraduate'] ?? '');
+                                            if(empty($d_yr)) echo '<span class="text-muted font-italic">N/A</span>';
+                                            elseif(preg_match('/^\d{4}$/', $d_yr)) echo 'Class of ' . htmlspecialchars($d_yr);
+                                            else echo htmlspecialchars($d_yr);
+                                        ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -302,12 +317,16 @@ include('../../includes/header.php');
                                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Post-Doctorate</div>
                                         <div class="h6 mb-2 font-weight-bold text-gray-800"><?php echo !empty($researcher_data['postDegree']) ? htmlspecialchars($researcher_data['postDegree']) : '<span class="text-muted font-italic">Not Specified</span>'; ?></div>
                                         <div class="text-sm text-muted mb-1"><i class="fas fa-university mr-2"></i><?php echo !empty($researcher_data['postInstitution']) ? htmlspecialchars($researcher_data['postInstitution']) : '<span class="text-muted font-italic">No Institution Provided</span>'; ?></div>
-                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i>Class of <?php echo !empty($researcher_data['postYearGraduate']) ? htmlspecialchars($researcher_data['postYearGraduate']) : '<span class="text-muted font-italic">N/A</span>'; ?></div>
+                                        <div class="text-sm text-muted"><i class="fas fa-calendar-alt mr-2"></i> <?php 
+                                            $p_yr = trim($researcher_data['postYearGraduate'] ?? '');
+                                            if(empty($p_yr)) echo '<span class="text-muted font-italic">N/A</span>';
+                                            elseif(preg_match('/^\d{4}$/', $p_yr)) echo 'Class of ' . htmlspecialchars($p_yr);
+                                            else echo htmlspecialchars($p_yr);
+                                        ?></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
                     <!-- Research Conducted -->
                     <div class="tab-pane custom-tab-pane" id="education" role="tabpanel" style="display: none;">

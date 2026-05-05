@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':departments_units'      => strtoupper($units), // <-- ADDED
             ':program'                => $_POST['program'] ?? '',
             ':academic_rank'          => $_POST['academic_rank'] ?? '',
+            ':academic_rank_others'  => $_POST['academic_rank_others'] ?? '',
             ':bachelor_degree'        => strtoupper($_POST['bachelor_degree'] ?? ''),
             ':bachelor_institution'   => strtoupper($_POST['bachelor_institution'] ?? ''),
             ':bachelor_YearGraduated' => strtoupper($_POST['bachelor_YearGraduated'] ?? ''),
@@ -56,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 departments_units = :departments_units, 
                 program = :program,
                 academic_rank = :academic_rank, 
+                academic_rank_others = :academic_rank_others,
                 bachelor_degree = :bachelor_degree,
                 bachelor_institution = :bachelor_institution,
                 bachelor_YearGraduated = :bachelor_YearGraduated,
