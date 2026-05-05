@@ -13,7 +13,7 @@ try {
 } catch (Exception $e) {
     // Silently ignore if table doesn't exist yet
 }
-
+$show_full_abstract = (isset($site_logos['display_full_abstract']) && $site_logos['display_full_abstract'] == '1');
 // 1. Capture URL Parameters for Filters, Tabs, and Pagination
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'hub'; 
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -308,11 +308,10 @@ if ($tab !== 'hub') {
         
         .active-filter-banner { background: #fdfdfd; border: 1px solid #e3e6f0; border-left: 4px solid #4e73df; border-radius: 8px; }
 
-        /* RESTORED: Abstract Tooltip & Watermark CSS */
         .abstract-tooltip {
             position: fixed;
-            background: rgba(25, 30, 36, 0.95);
-            color: #e2e8f0;
+            background: rgba(139, 0, 0, 0.95); /* WMSU Maroon with 95% opacity */
+            color: #f8f9fa; /* Off-white for comfortable reading */
             padding: 18px;
             border-radius: 8px;
             max-width: 400px;
@@ -322,9 +321,10 @@ if ($tab !== 'hub') {
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 15px 30px rgba(139, 0, 0, 0.25); /* Tinted shadow to match */
             line-height: 1.6;
             transform: translate(-50%, calc(-100% - 20px));
+            overflow: hidden; 
         }
         .abstract-tooltip.visible {
             opacity: 1;
@@ -333,14 +333,14 @@ if ($tab !== 'hub') {
         .abstract-tooltip h6 {
             margin-top: 0;
             margin-bottom: 10px;
-            color: #4e73df;
+            color: #ffffff; /* Changed from blue to pure white for contrast */
             font-weight: 700;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Soft white divider */
             padding-bottom: 5px;
         }
         .abstract-tooltip .tooltip-content {
             display: -webkit-box;
-            -webkit-line-clamp: 6; 
+            -webkit-line-clamp: <?php echo $show_full_abstract ? 'unset' : '6'; ?>; 
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -553,7 +553,7 @@ if ($tab !== 'hub') {
                         <?php if (!$is_actively_searching && $page == 1): ?>
                             <div class="research-blog-top">
                                 <?php if($featured_item): $row = $featured_item; $c_tab = $row['module_type']; ?>
-                                    <div class="featured-research-post data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $c_tab; ?>" <?php if(!empty($row['abstract'])) echo 'data-abstract="'.htmlspecialchars($row['abstract']).'"'; ?>>
+                                    <div class="featured-research-post data-card rde-track-view" data-id="<?php echo $row['id']; ?>" data-type="<?php echo $c_tab; ?>" <?php if(!empty($row['abstract']) && !$show_full_abstract) echo 'data-abstract="'.htmlspecialchars($row['abstract']).'"'; ?>>
                                         
                                         <?php 
                                             $db_cover = trim($row['cover_photo'] ?? '');
@@ -573,6 +573,12 @@ if ($tab !== 'hub') {
                                             </p>
                                             
                                             <?php echo getDrawerHtml($c_tab, $row, $object); ?>
+
+                                            <?php if(!empty($row['abstract']) && $show_full_abstract): ?>
+                                                <button type="button" class="btn btn-sm btn-outline-primary mt-3 mb-2 view-abstract-btn" style="align-self: flex-start;" data-title="<?php echo htmlspecialchars($row['title']); ?>" data-abstract="<?php echo htmlspecialchars($row['abstract']); ?>">
+                                                    <i class="fas fa-book-open mr-1"></i> Read Full Abstract
+                                                </button>
+                                            <?php endif; ?>
 
                                             <div class="card-footer" style="margin-top: auto;">
                                                 <span class="college-tag"><i class="fas fa-university mr-1 text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
@@ -604,6 +610,11 @@ if ($tab !== 'hub') {
                                                     </p>
                                                     
                                                     <?php echo getDrawerHtml($c_tab, $row, $object); ?>
+                                                    <?php if(!empty($row['abstract']) && $show_full_abstract): ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary mt-3 mb-2 view-abstract-btn" style="align-self: flex-start;" data-title="<?php echo htmlspecialchars($row['title']); ?>" data-abstract="<?php echo htmlspecialchars($row['abstract']); ?>">
+                                                            <i class="fas fa-book-open mr-1"></i> Read Full Abstract
+                                                        </button>
+                                                    <?php endif; ?>
 
                                                     <div class="card-footer" style="padding-top: 5px; margin-top: 0; align-items: center;">
                                                         <span class="college-tag" style="background: transparent; padding: 0;"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
@@ -637,6 +648,11 @@ if ($tab !== 'hub') {
                                             </p>
                                             
                                             <?php echo getDrawerHtml($c_tab, $row, $object); ?>
+                                            <?php if(!empty($row['abstract']) && $show_full_abstract): ?>
+                                                <button type="button" class="btn btn-sm btn-outline-primary mt-3 mb-2 view-abstract-btn" style="align-self: flex-start;" data-title="<?php echo htmlspecialchars($row['title']); ?>" data-abstract="<?php echo htmlspecialchars($row['abstract']); ?>">
+                                                    <i class="fas fa-book-open mr-1"></i> Read Full Abstract
+                                                </button>
+                                            <?php endif; ?>
 
                                             <div class="card-footer" style="align-items: center;">
                                                 <span class="college-tag"><i class="fas fa-university text-primary"></i> <?php echo htmlspecialchars($row['department'] ?? 'Department Not Specified'); ?></span>
@@ -705,6 +721,34 @@ if ($tab !== 'hub') {
         </main>
 
     <?php endif; ?>
+
+<!-- FULL ABSTRACT MODAL -->
+    <div id="abstractModal" class="modal-overlay">
+        <!-- Added relative positioning and hidden overflow to contain the watermark -->
+        <div class="modal-content" style="max-width: 700px; padding: 0; position: relative; overflow: hidden;">
+            
+            <!-- NEW: Modal Watermark Background -->
+            <div class="secure-watermark-overlay" style="opacity: 0.1; z-index: 0;">
+                <?php 
+                // Generate the watermark using PHP so it loads instantly
+                $watermark_text = "WMSU SDMU Property - " . date("n/j/Y");
+                for ($i = 0; $i < 25; $i++) {
+                    // We force the text to be black (#000) so it shows up on the white modal
+                    echo "<span class='secure-watermark-text' style='color: #000; font-size: 1.1rem; margin: 20px 30px;'>$watermark_text</span>";
+                }
+                ?>
+            </div>
+
+            <button class="modal-close" id="closeAbstractModal" aria-label="Close modal" style="z-index: 10;">&times;</button>
+            
+            <!-- Added relative position and z-index: 1 so the text stays ABOVE the watermark -->
+            <div class="modal-body" style="padding: 2.5rem; position: relative; z-index: 1;">
+                <span class="badge-pill badge-primary mb-3" style="font-size: 0.75rem; padding: 6px 12px;"><i class="fas fa-quote-left mr-1"></i> Full Abstract</span>
+                <h3 id="abstractModalTitle" style="font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--dark-bg); font-family: 'Playfair Display', serif; line-height: 1.3;"></h3>
+                <div id="abstractModalContent" style="font-size: 1.05rem; line-height: 1.8; color: var(--text-main); white-space: pre-wrap;"></div>
+            </div>
+        </div>
+    </div>
 
     <script src="js/public_app.js"></script>
 
@@ -898,19 +942,70 @@ if ($tab !== 'hub') {
         const abstractCards = document.querySelectorAll('.data-card[data-abstract]');
         abstractCards.forEach(card => {
             card.addEventListener('mouseenter', (e) => {
+                // If the "Read Full Abstract" button is present, disable the hover tooltip entirely
+                if (card.querySelector('.view-abstract-btn')) {
+                    return; 
+                }
+
                 const abstractText = card.getAttribute('data-abstract');
                 if (abstractText && abstractText.trim() !== '') {
                     tooltipContent.textContent = abstractText;
                     tooltip.classList.add('visible');
                 }
             });
+            
             card.addEventListener('mousemove', (e) => {
-                tooltip.style.left = e.clientX + 'px';
-                tooltip.style.top = e.clientY + 'px';
+                // Only move the tooltip if it's actually visible
+                if (tooltip.classList.contains('visible')) {
+                    tooltip.style.left = e.clientX + 'px';
+                    tooltip.style.top = e.clientY + 'px';
+                }
             });
-            card.addEventListener('mouseleave', () => { tooltip.classList.remove('visible'); });
+            
+            card.addEventListener('mouseleave', () => { 
+                tooltip.classList.remove('visible'); 
+            });
         });
+
+        // --- Full Abstract Modal Logic ---
+        const abstractModal = document.getElementById('abstractModal');
+        const closeAbstractBtn = document.getElementById('closeAbstractModal');
+        const abstractButtons = document.querySelectorAll('.view-abstract-btn');
+
+        // Open Modal
+        abstractButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Prevents the card's hover effects from acting up
+                
+                document.getElementById('abstractModalTitle').textContent = btn.getAttribute('data-title');
+                document.getElementById('abstractModalContent').textContent = btn.getAttribute('data-abstract');
+                
+                abstractModal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            });
+        });
+
+        // Close Modal via Button
+        if(closeAbstractBtn) {
+            closeAbstractBtn.addEventListener('click', () => {
+                abstractModal.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        }
+        
+        // Close Modal via Background Click
+        if(abstractModal) {
+            abstractModal.addEventListener('click', (e) => {
+                if(e.target === abstractModal) {
+                    abstractModal.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
     });
     </script>
+
+    
 </body>
 </html>

@@ -302,8 +302,20 @@ if($news_query){
                 <p>(contact number here), (telephone number here)</p>
                 <p>(email here)</p>
             </div>
-            <div class="footer-links">
-                <img src="img/footerMap.png" alt="Map of WMSU Location" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 200px;">
+            <div class="footer-links" style="width: 100%; max-width: 400px;">
+                <?php if(!empty($site_logos['google_map_embed'])): ?>
+                    <iframe 
+                        src="<?php echo htmlspecialchars($site_logos['google_map_embed']); ?>" 
+                        width="100%" 
+                        height="200" 
+                        style="border:0; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                <?php else: ?>
+                    <img src="img/footerMap.png" alt="Map of WMSU Location" style="width: 100%; height: auto; border-radius: 8px; max-height: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <?php endif; ?>
             </div>
         </div>
         <div class="footer-bottom">

@@ -205,6 +205,9 @@ document.addEventListener('keydown', (e) => {
 
 // Blur the screen when the window loses focus
 window.addEventListener('blur', () => {
+    if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
+        return; // Stop the script here, do not blur the screen!
+    }
     document.body.classList.add('blur-protect');
 });
 

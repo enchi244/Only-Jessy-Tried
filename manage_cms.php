@@ -128,6 +128,40 @@ if (isset($_POST['save_category_names'])) {
     $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Report Categories renamed successfully!</div>";
 }
 
+// 5B. Save RDE Database Settings
+if (isset($_POST['save_rde_settings'])) {
+    $display_full = isset($_POST['display_full_abstract']) ? '1' : '0';
+    
+    // Update the value. If the setting doesn't exist yet, insert it securely.
+    $conn->query("UPDATE tbl_site_settings SET setting_value='$display_full' WHERE setting_key='display_full_abstract'");
+    if ($conn->affected_rows == 0) {
+        $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('display_full_abstract', '$display_full')");
+    }
+    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ RDE Settings updated successfully!</div>";
+}
+
+// 5C. Save Footer Map Setting
+if (isset($_POST['save_map'])) {
+    $raw_input = $_POST['google_map_embed'];
+    $map_embed = '';
+
+    // Automatically extract the link if they pasted the entire <iframe ...> code
+    if (preg_match('/src="([^"]+)"/', $raw_input, $matches)) {
+        $map_embed = $matches[1]; // Grab only the URL inside src="..."
+    } else {
+        // If they just pasted the raw link, use it directly
+        $map_embed = trim($raw_input);
+    }
+
+    $map_embed = $conn->real_escape_string($map_embed);
+    
+    $conn->query("UPDATE tbl_site_settings SET setting_value='$map_embed' WHERE setting_key='google_map_embed'");
+    if ($conn->affected_rows == 0) {
+        $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('google_map_embed', '$map_embed')");
+    }
+    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Footer Map updated successfully!</div>";
+}
+
 // 6. Deletions
 if (isset($_GET['del_car'])) {
     $id = (int)$_GET['del_car'];
@@ -253,6 +287,25 @@ include('includes/header.php');
             </div>
         </div>
 
+        <!-- CARD: RDE DATABASE SETTINGS -->
+        <div class="card border-left-info shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-database mr-1"></i> RDE Database Settings</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="manage_cms.php">
+                    <div class="form-group mb-3">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="display_full_abstract" name="display_full_abstract" value="1" <?php echo (isset($site_settings['display_full_abstract']) && $site_settings['display_full_abstract'] == '1') ? 'checked' : ''; ?>>
+                            <label class="custom-control-label font-weight-bold text-dark" for="display_full_abstract">Display Full Abstract on Hover</label>
+                        </div>
+                        <small class="text-muted d-block mt-2">If enabled, the sneak peek tooltip in the public database will expand to show the entire abstract instead of truncating it to 6 lines.</small>
+                    </div>
+                    <button type="submit" name="save_rde_settings" class="btn btn-info btn-sm btn-block font-weight-bold"><i class="fas fa-save"></i> Save RDE Settings</button>
+                </form>
+            </div>
+        </div>
+
         <!-- CARD: MANAGE LOGOS -->
         <div class="card border-left-warning shadow mb-4">
             <div class="card-header py-3">
@@ -284,6 +337,25 @@ include('includes/header.php');
                         </div>
                     </div>
                     <button type="submit" name="upload_logos" class="btn btn-warning btn-sm btn-block text-dark font-weight-bold"><i class="fas fa-save"></i> Save Logos</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- CARD: FOOTER MAP SETTINGS -->
+        <div class="card border-left-danger shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-map-marked-alt mr-1"></i> Footer Map Location</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="manage_cms.php">
+                    <div class="form-group mb-3">
+                        <label class="small font-weight-bold">Google Maps Embed URL or Code</label>
+                        <textarea class="form-control bg-light" name="google_map_embed" rows="3" placeholder="Paste the Google Maps Embed code or URL here..."><?php echo htmlspecialchars($site_settings['google_map_embed'] ?? ''); ?></textarea>
+                        <small class="text-muted d-block mt-2">
+                            <b>How to get the link:</b> Go to Google Maps > Search for your location > Click "Share" > Click "Embed a map" > Click "Copy HTML". You can paste the <b>entire iframe code</b> here, and the system will automatically extract what it needs!
+                        </small>
+                    </div>
+                    <button type="submit" name="save_map" class="btn btn-danger btn-sm btn-block font-weight-bold"><i class="fas fa-save"></i> Save Map Location</button>
                 </form>
             </div>
         </div>
