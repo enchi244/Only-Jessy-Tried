@@ -26,12 +26,27 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         }
     }
 
+    // THE FIX: Universal Custom Date Parser for Legacy Formats
+    function dashboard_safe_strtotime($date_str) {
+        if (empty($date_str) || $date_str === '0000-00-00' || strtolower($date_str) === 'null') return false;
+        $date_str = trim(str_replace('/', '-', $date_str));
+        $parts = explode('-', $date_str);
+        if (count($parts) === 1 && strlen($parts[0]) === 4) { $date_str = $parts[0] . '-01-01'; }
+        if (count($parts) === 2) {
+            if (strlen($parts[1]) === 4) $date_str = $parts[1] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-01';
+            else if (strlen($parts[0]) === 4) $date_str = $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-01';
+        }
+        if (count($parts) === 3) {
+            if (strlen($parts[2]) === 4) $date_str = $parts[2] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+        }
+        return strtotime($date_str);
+    }
+
     function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = [], &$global_active_researchers = null) {
         $total_rows = 0; 
         $dept_counts = $base_depts; 
         $distinct_vals = [];
         $unique_records = []; 
-        
         $dept_tracked_items = []; 
 
         if ($is_researcher) {
@@ -58,6 +73,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                       LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
                       WHERE r.status = 1";
         } 
+        // THE FIX: IP Collaborators added so IPs accurately credit all departments
+        else if ($table === 'tbl_itelectualprop') {
+            $query = "SELECT COALESCE(d.id, d_main.id) as active_res_id, COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
+                      LEFT JOIN tbl_ip_collaborators col ON r.id = col.ip_id 
+                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
+                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
+                      WHERE r.status = 1";
+        } 
         else {
             $query = "SELECT d.id as active_res_id, d.department, r.* FROM {$table} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.status = 1";
         }
@@ -70,10 +93,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                 if (!$match) {
                     $date_cols = ['user_created_on', 'date_paper', 'started_date', 'completed_date', 'start_date', 'publication_date', 'date_applied', 'date_granted', 'date_train'];
                     foreach ($date_cols as $dc) {
-                        if (isset($row[$dc]) && !empty(trim((string)$row[$dc]))) {
-                            $val_clean = trim((string)$row[$dc]);
-                            if (preg_match('/^\d{2}-\d{4}$/', $val_clean)) { $val_clean = "01-" . $val_clean; }
-                            $ts = strtotime($val_clean);
+                        if (isset($row[$dc])) {
+                            $ts = dashboard_safe_strtotime($row[$dc]);
                             if ($ts !== false) {
                                 $record_year = date('Y', $ts);
                                 if ($record_year >= $from_year && $record_year <= $to_year) {
@@ -256,23 +277,21 @@ $totalDisciplines = $object->Get_total_disciplines();
             
            <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">From:</span>
             <select id="filterFromYear" class="mr-3">
+                <option value="all" selected>All Time</option>
                 <?php 
                     $curr_year = date("Y");
                     for($y = $curr_year; $y >= 2010; $y--) {
-                        // Automatically selects 2010 as the default starting year
-                        $sel = ($y == 2010) ? 'selected' : '';
-                        echo "<option value=\"$y\" $sel>$y</option>";
+                        echo "<option value=\"$y\">$y</option>";
                     }
                 ?>
             </select>
             
             <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">To:</span>
             <select id="filterToYear" class="mr-2">
+                <option value="all" selected>All Time</option>
                 <?php 
                     for($y = $curr_year; $y >= 2010; $y--) {
-                        // Automatically selects the current year as the default ending year
-                        $sel = ($y == $curr_year) ? 'selected' : '';
-                        echo "<option value=\"$y\" $sel>$y</option>";
+                        echo "<option value=\"$y\">$y</option>";
                     }
                 ?>
             </select>
@@ -994,8 +1013,6 @@ $totalDisciplines = $object->Get_total_disciplines();
                     if ($('#card-ip').length) $('#card-ip').text(res.chart4.unique_titles_count.toLocaleString());
                     if ($('#card-paper').length) $('#card-paper').text(res.chart5.unique_titles_count.toLocaleString());
                     if ($('#card-pub').length) $('#card-pub').text(res.chart3.unique_titles_count.toLocaleString());
-                    
-                    // THE FIX: We remove the javascript update for card-discipline so it stays as the true static total!
                     if ($('#card-projects').length) $('#card-projects').text(res.chart7.unique_titles_count.toLocaleString()); 
 
                     if ($('#title-chart1').length) $('#title-chart1').text('Total Active Researchers');
@@ -1006,10 +1023,9 @@ $totalDisciplines = $object->Get_total_disciplines();
                     if ($('#title-chart6').length) $('#title-chart6').text('Total Number of Trainings Attended: ' + res.chart6.unique_titles_count);
                     if ($('#title-chart7').length) $('#title-chart7').text('Total Number of Extension Project Conducted: ' + res.chart7.unique_titles_count);
 
-function updateChart(chartObj, legendId, data) {
+                    function updateChart(chartObj, legendId, data) {
                         if (typeof chartObj !== 'undefined') {
                             
-                            // 1. THE FIX: Sort the data from smallest to largest
                             data.sort(function(a, b) {
                                 return parseInt(a.y) - parseInt(b.y);
                             });
@@ -1019,8 +1035,6 @@ function updateChart(chartObj, legendId, data) {
                                     label: item.label, 
                                     y: parseInt(item.y), 
                                     color: getConsistentColor(item.label),
-                                    
-                                    // 2. THE FIX: Force the numbers to always show on the chart
                                     indexLabel: "{y}", 
                                     indexLabelFontColor: "#4e73df", 
                                     indexLabelFontWeight: "bold",

@@ -188,7 +188,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 $co_author_subquery = "(SELECT GROUP_CONCAT(CONCAT(d2.firstName, ' ', d2.familyName, '|', IFNULL(d2.academic_rank, ''), '|', IFNULL(d2.program, '')) SEPARATOR '||') FROM $col_table col JOIN tbl_researchdata d2 ON col.researcher_id = d2.id WHERE col.$col_fk = r.id AND col.researcher_id != r.researcherID)";
             }
 
-            // FIXED: Removed d.so_file and r.moa_file here so the query no longer crashes!
             $query = "SELECT d.department AS `Department`, 
                              d.firstName, d.familyName, d.academic_rank, d.program,
                              {$co_author_subquery} AS `Co_Researchers_Raw`,
@@ -375,7 +374,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                 foreach ($row as $k => $v) {
                     $kl = strtolower($k);
                     
-                    if (in_array($kl, ['id', 'researcherid', 'lead_author_id', 'lead_researcher_id', 'status', 'department', 'college', 'firstname', 'familyname', 'academic_rank', 'program', 'co_researchers_raw', 'lead_proponent', 'co_authors', 'so_file', 'moa_file', 'has_files', 'file', 'terminal_report_file', 'attachments', 'coauth', 'terminal_report'])) continue;
+                    // THE FIX: 'cover_photo' has been added to the exclude list so it doesn't show up in the table matrix
+                    if (in_array($kl, ['id', 'researcherid', 'lead_author_id', 'lead_researcher_id', 'status', 'department', 'college', 'firstname', 'familyname', 'academic_rank', 'program', 'co_researchers_raw', 'lead_proponent', 'co_authors', 'so_file', 'moa_file', 'has_files', 'file', 'terminal_report_file', 'attachments', 'coauth', 'terminal_report', 'cover_photo'])) continue;
                     
                     if (trim((string)$v) === 'Legacy Replaced') {
                         $real_data = '';
@@ -830,7 +830,6 @@ function updateDropdownText($container) {
 
         if (checkedCount === totalCount) {
             $checkAll.prop('checked', true);
-            // THE FIX: Removed the forced 'All ' text! It will now print exactly what is in data-name
             $btnText.text(typeName).removeClass('text-danger text-warning').addClass('text-primary');
         } else if (checkedCount === 0) {
             $checkAll.prop('checked', false);
@@ -840,7 +839,6 @@ function updateDropdownText($container) {
             $btnText.text($items.filter(':checked').next('label').text()).removeClass('text-danger text-primary').addClass('text-warning text-dark');
         } else {
             $checkAll.prop('checked', false);
-            // Just adds "Selected" at the end (e.g., "3 Categories Selected")
             $btnText.text(checkedCount + ' Selected').removeClass('text-danger text-primary').addClass('text-warning text-dark');
         }
         
@@ -987,7 +985,6 @@ function updateDropdownText($container) {
                             for (var i=0; i<data.header.length; i++) {
                                 var headerText = data.header[i].toLowerCase().trim();
                                 if (headerText === 'college' || headerText === 'department') deptIndex = i;
-                                // THE FIX: Added 'category' so Excel sorting still works perfectly
                                 if (headerText === 'category' || headerText === 'module' || headerText === 'module category') modIndex = i;
                             }
                             if (deptIndex !== -1) {
