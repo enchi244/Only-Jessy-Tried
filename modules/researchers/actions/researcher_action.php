@@ -130,6 +130,7 @@ if(isset($_POST["action"])) {
                 ':departments_units'     => strtoupper($units), // <-- ADDED
                 ':program'               => $_POST['program'] ?? $_POST['programu'] ?? '',
                 ':academic_rank'         => $_POST['academic_rank'] ?? $_POST['academic_ranku'] ?? '',
+                ':academic_rank_others' => $_POST['academic_rank_others'] ?? '',
                 ':bachelor_degree'       => strtoupper($_POST['bachelor_degree'] ?? $_POST['bachelor_degreeu'] ?? ''),
                 ':bachelor_institution'  => strtoupper($_POST['bachelor_institution'] ?? $_POST['bachelor_institutionu'] ?? ''),
                 ':bachelor_YearGraduated'=> strtoupper($_POST['bachelor_YearGraduated'] ?? $_POST['bachelor_YearGraduatedu'] ?? ''),
@@ -177,6 +178,7 @@ if(isset($_POST["action"])) {
             $data['departments_units'] = $row['departments_units']; // <-- ADDED
             $data['program'] = $row['program'];
             $data['academic_rank'] = $row['academic_rank'];
+            $data['academic_rank_others'] = $row['academic_rank_others'];
             $data['bachelor_degree'] = $row['bachelor_degree'];
             $data['bachelor_institution'] = $row['bachelor_institution'];
             $data['bachelor_YearGraduated'] = $row['bachelor_YearGraduated'];
@@ -210,6 +212,7 @@ if(isset($_POST["action"])) {
             ':departments_units'      => strtoupper($units), // <-- ADDED
             ':program'                => $_POST['programu'] ?? $_POST['program'] ?? '',
             ':academic_rank'          => $_POST['academic_ranku'] ?? $_POST['academic_rank'] ?? '',
+            ':academic_rank_others' => $_POST['academic_rank_others'] ?? '',
             ':bachelor_degree'        => strtoupper($_POST['bachelor_degreeu'] ?? $_POST['bachelor_degree'] ?? ''),
             ':bachelor_institution'   => strtoupper($_POST['bachelor_institutionu'] ?? $_POST['bachelor_institution'] ?? ''),
             ':bachelor_YearGraduated' => strtoupper($_POST['bachelor_YearGraduatedu'] ?? $_POST['bachelor_YearGraduated'] ?? ''),

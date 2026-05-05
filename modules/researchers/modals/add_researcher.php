@@ -61,7 +61,6 @@
                                     echo '<option value="'.$category["category_name"].'">'.$category["category_name"].'</option>';
                                 }
                                 ?>
-                                <option value="Others">Others</option>
                             </select>
                         </div>
                         <div class="col-md-3 mb-2">
@@ -85,27 +84,20 @@
                             <label for="academic_rank">Academic Rank (Optional)</label>
                             <select name="academic_rank" id="academic_rank" class="form-control" data-parsley-trigger="change">
                                 <option value="">Select Rank</option>
-                                <option value="Instructor I">Instructor I</option>
-                                <option value="Instructor II">Instructor II</option>
-                                <option value="Instructor III">Instructor III</option>
-                                <option value="Assistant Professor I">Assistant Professor I</option>
-                                <option value="Assistant Professor II">Assistant Professor II</option>
-                                <option value="Assistant Professor III">Assistant Professor III</option>
-                                <option value="Assistant Professor IV">Assistant Professor IV</option>
-                                <option value="Associate Professor I">Associate Professor I</option>
-                                <option value="Associate Professor II">Associate Professor II</option>
-                                <option value="Associate Professor III">Associate Professor III</option>
-                                <option value="Associate Professor IV">Associate Professor IV</option>
-                                <option value="Associate Professor V">Associate Professor V</option>
-                                <option value="Professor I">Professor I</option>
-                                <option value="Professor II">Professor II</option>
-                                <option value="Professor III">Professor III</option>
-                                <option value="Professor IV">Professor IV</option>
-                                <option value="Professor V">Professor V</option>
-                                <option value="Professor VI">Professor VI</option>
-                                <option value="College Professor">College Professor</option>
-                                <option value="University Professor">University Professor</option>
+                                <?php
+                                $object->query = "SELECT rank_name FROM tbl_academic_rank WHERE rank_status = 'Enable' ORDER BY rank_name ASC";
+                                $rank_result = $object->get_result();
+                                foreach($rank_result as $rank) {
+                                    echo '<option value="'.$rank["rank_name"].'">'.$rank["rank_name"].'</option>';
+                                }
+                                ?>
                             </select>
+                        </div>
+                        
+                        <!-- This drops to a new row beautifully -->
+                        <div class="col-md-3 mt-3 mb-2">
+                            <label for="academic_rank_others">Specify Rank</label>
+                            <input type="text" name="academic_rank_others" id="academic_rank_others" class="form-control" placeholder="Specify if 'Others'" disabled />
                         </div>
                     </div>
 
@@ -170,7 +162,6 @@
                             <input type="text" name="postYearGraduate" id="postYearGraduate" class="form-control" placeholder="YYYY" maxlength="4" />
                         </div>
                     </div>
-
                 </div>
                 
                 <div class="modal-footer border-top-0 pt-3">
@@ -188,8 +179,6 @@
 document.addEventListener("DOMContentLoaded", function() {
     const idInput = document.getElementById('researcherID');
     const toggleSwitch = document.getElementById('toggleCustomID');
-    const deptSelect = document.getElementById('department');
-    const deptUnitsInput = document.getElementById('departments_units');
 
     // Handle Custom ID Toggle
     toggleSwitch.addEventListener('change', function() {
@@ -203,14 +192,23 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // Handle Department/Units Toggle
-    deptSelect.addEventListener('change', function() {
-        if (this.value === 'Others') {
-            deptUnitsInput.disabled = false;
-            deptUnitsInput.focus();
+    // Handle Department/Units Toggle Using jQuery
+    $('#department').on('change', function() {
+        var selectedVal = $(this).val();
+        if (selectedVal && selectedVal.toLowerCase() === 'others') {
+            $('#departments_units').prop('disabled', false);
         } else {
-            deptUnitsInput.disabled = true;
-            deptUnitsInput.value = ''; // Wipe out value if they switch away
+            $('#departments_units').prop('disabled', true).val(''); 
+        }
+    });
+
+    // Handle Academic Rank Toggle Using jQuery
+    $('#academic_rank').on('change', function() {
+        var selectedVal = $(this).val();
+        if (selectedVal && selectedVal.toLowerCase() === 'others') {
+            $('#academic_rank_others').prop('disabled', false).focus();
+        } else {
+            $('#academic_rank_others').prop('disabled', true).val(''); 
         }
     });
 
@@ -221,7 +219,7 @@ document.addEventListener("DOMContentLoaded", function() {
             $('#modal_title_text').text('Add Researcher');
             $('#modal_icon').removeClass('fa-user-edit').addClass('fa-user-plus');
             $('#submit_button').val('Save Researcher');
-            $('#customIdSwitchWrapper').show(); // Allow custom ID on creation
+            $('#customIdSwitchWrapper').show(); 
             
             if (!toggleSwitch.checked) {
                 const year = new Date().getFullYear();
@@ -235,8 +233,8 @@ document.addEventListener("DOMContentLoaded", function() {
             $('#modal_title_text').text('Edit Researcher');
             $('#modal_icon').removeClass('fa-user-plus').addClass('fa-user-edit');
             $('#submit_button').val('Update Researcher');
-            $('#customIdSwitchWrapper').hide(); // Hide toggle to prevent changing ID
-            idInput.readOnly = true;            // Lock the ID
+            $('#customIdSwitchWrapper').hide(); 
+            idInput.readOnly = true;
             idInput.classList.add('bg-light');
         }
     });
@@ -248,8 +246,9 @@ document.addEventListener("DOMContentLoaded", function() {
         $('#hidden_id').val('');
         toggleSwitch.checked = false;
         
-        // Reset the dynamic dropdown UI
-        deptUnitsInput.disabled = true;
+        // Reset the dynamic dropdown UI locks
+        $('#departments_units').prop('disabled', true);
+        $('#academic_rank_others').prop('disabled', true);
     });
 
     // Auto-Capitalize Inputs

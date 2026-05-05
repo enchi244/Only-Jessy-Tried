@@ -166,28 +166,36 @@ $(document).ready(function() {
         var editForm = $('#researcher_form');
         
         if (editForm.length > 0) { 
-            editForm[0].reset(); 
-            var parsleyInstance = editForm.parsley(); 
-            if (parsleyInstance) { parsleyInstance.reset(); } 
-        }
+             editForm[0].reset(); 
+             var parsleyInstance = editForm.parsley(); 
+             if (parsleyInstance) { parsleyInstance.reset(); } 
+         }
         $('#form_message_rm').html('');
-
+        
         $.ajax({
             url: "actions/researcher_action.php",
             method: "POST",
             data: {id: id, action: 'fetch_single'},
             dataType: 'JSON',
             success: function(data) {
-                // Populate the unified modal fields (removed 'u' suffix)
+                // Populate the unified modal fields
                 $('#researcherID').val(data.researcherID); 
                 $('#familyName').val(data.familyName); 
                 $('#firstName').val(data.firstName); 
                 $('#middleName').val(data.middleName); 
                 $('#Suffix').val(data.Suffix); 
+                
                 $('#department').val(data.department).trigger('change'); 
                 $('#departments_units').val(data.departments_units);
                 $('#program').val(data.program); 
-                $('#academic_rank').val(data.academic_rank); 
+                
+                // ---> HERE IS THE EXACT PLACEMENT FOR ACADEMIC RANK <---
+                $('#academic_rank').val(data.academic_rank).trigger('change');
+                if(data.academic_rank === 'Others') {
+                    $('#academic_rank_others').val(data.academic_rank_others);
+                }
+                // --------------------------------------------------------
+
                 $('#bachelor_degree').val(data.bachelor_degree); 
                 $('#bachelor_institution').val(data.bachelor_institution); 
                 $('#bachelor_YearGraduated').val(data.bachelor_YearGraduated); 
@@ -199,7 +207,7 @@ $(document).ready(function() {
                 $('#doctorateYearGraduate').val(data.doctorateYearGraduate); 
                 $('#postDegree').val(data.postDegree); 
                 $('#postInstitution').val(data.postInstitution); 
-                $('#postYearGraduate').val(data.postYearGraduate);
+                $('#postYearGraduate').val(data.postYearGraduate); 
                 
                 // Set action to Edit so the modal styles itself automatically
                 $('#action').val('Edit');

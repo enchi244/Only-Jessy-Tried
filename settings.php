@@ -30,6 +30,11 @@ include 'includes/header.php';
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" id="rank-tab" data-toggle="tab" href="#rank" role="tab" aria-controls="rank" aria-selected="false">
+                        <i class="fas fa-award fa-sm fa-fw mr-2 text-gray-400"></i>Academic Ranks
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" id="disciplines-tab" data-toggle="tab" href="#disciplines" role="tab" aria-controls="disciplines" aria-selected="false">
                         <i class="fas fa-book fa-sm fa-fw mr-2 text-gray-400"></i>Disciplines
                     </a>
@@ -52,6 +57,10 @@ include 'includes/header.php';
                 
                 <div class="tab-pane fade show active" id="colleges" role="tabpanel" aria-labelledby="colleges-tab">
                     <?php include 'modules/colleges/colleges.php'; ?>
+                </div>
+
+                <div class="tab-pane fade" id="rank" role="tabpanel" aria-labelledby="rank-tab">
+                    <?php include 'modules/academic_ranks/academic_ranks.php'; ?>
                 </div>
 
                 <div class="tab-pane fade" id="disciplines" role="tabpanel" aria-labelledby="disciplines-tab">
@@ -411,6 +420,7 @@ $(document).ready(function(){
         });
     });
 
+
     // ==========================================
     // 4. AGENDA & SDG TRACKER SCRIPT
     // ==========================================
@@ -470,5 +480,102 @@ $(document).ready(function(){
         $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
     });
 
+});
+</script>
+<script>
+$(document).ready(function(){
+    // Academic Rank Datatable
+    var rankDataTable = $('#rank_table').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "order": [],
+        "ajax": {
+            url: "modules/academic_ranks/academic_rank_action.php",
+            type: "POST",
+            data: {action: 'fetch'}
+        },
+        "columnDefs": [{"targets": [1, 2], "orderable": false}]
+    });
+
+    $('#add_rank').click(function(){
+        $('#rank_form')[0].reset();
+        $('#modal_title_rank').text('Add Academic Rank');
+        $('#action_rank').val('Add');
+        $('#submit_button_rank').val('Add');
+        $('#rankModal').modal('show');
+        $('#form_message_rank').html('');
+    });
+
+    $('#rank_form').on('submit', function(event){
+        event.preventDefault();
+        $.ajax({
+            url: "modules/academic_ranks/academic_rank_action.php",
+            method: "POST",
+            data: $(this).serialize(),
+            dataType: 'json',
+            beforeSend: function(){
+                $('#submit_button_rank').attr('disabled', 'disabled').val('Wait...');
+            },
+            success: function(data){
+                $('#submit_button_rank').attr('disabled', false);
+                if(data.error != ''){
+                    $('#form_message_rank').html(data.error);
+                    $('#submit_button_rank').val($('#action_rank').val());
+                } else {
+                    $('#rankModal').modal('hide');
+                    Swal.fire('Success!', data.success.replace(/<\/?[^>]+(>|$)/g, ""), 'success');
+                    rankDataTable.ajax.reload();
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '.edit_button_rank', function(){
+        var rank_id = $(this).data('id');
+        $('#rank_form')[0].reset();
+        $('#form_message_rank').html('');
+        $.ajax({
+            url: "modules/academic_ranks/academic_rank_action.php",
+            method: "POST",
+            data: {rank_id: rank_id, action: 'fetch_single'},
+            dataType: 'JSON',
+            success: function(data){
+                $('#rank_name').val(data.rank_name);
+                $('#modal_title_rank').text('Edit Academic Rank');
+                $('#action_rank').val('Edit');
+                $('#submit_button_rank').val('Edit');
+                $('#rankModal').modal('show');
+                $('#hidden_id_rank').val(rank_id);
+            }
+        });
+    });
+
+    $(document).on('click', '.delete_button_rank', function(){
+        var id = $(this).data('id');
+        var status = $(this).data('status');
+        var next_status = (status == 'Enable') ? 'Disable' : 'Enable';
+        
+        Swal.fire({
+            title: 'Change Status?',
+            text: "Are you sure you want to " + next_status + " this rank?",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#f23e5d',
+            cancelButtonColor: '#858796',
+            confirmButtonText: 'Yes, ' + next_status + ' it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "modules/academic_ranks/academic_rank_action.php",
+                    method: "POST",
+                    data: {id: id, action: 'delete', next_status: next_status},
+                    success: function(data){
+                        Swal.fire('Status Updated!', 'The rank is now ' + next_status + 'd.', 'success');
+                        rankDataTable.ajax.reload();
+                    }
+                });
+            }
+        });
+    });
 });
 </script>

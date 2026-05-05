@@ -40,6 +40,7 @@ if(isset($_POST["action"]) && $_POST["action"] == 'Add')
             ':department'            => $_POST['department'] ?? $_POST['departmentu'] ?? '',
             ':program'               => $_POST['program'] ?? $_POST['programu'] ?? '',
             ':academic_rank'         => $_POST['academic_rank'] ?? '', // NEW FIELD
+            ':academic_rank_others'  => $_POST['academic_rank_others'] ?? '', // Add this line
             ':bachelor_degree'       => strtoupper($_POST['bachelor_degree'] ?? $_POST['bachelor_degreeu'] ?? ''),
             ':bachelor_institution'  => strtoupper($_POST['bachelor_institution'] ?? $_POST['bachelor_institutionu'] ?? ''),
             ':bachelor_YearGraduated'=> strtoupper($_POST['bachelor_YearGraduated'] ?? $_POST['bachelor_YearGraduatedu'] ?? ''),
@@ -64,6 +65,7 @@ if(isset($_POST["action"]) && $_POST["action"] == 'Add')
             department, 
             program,
             academic_rank, 
+            academic_rank_others,
             bachelor_degree, 
             bachelor_institution, 
             bachelor_YearGraduated, 
@@ -87,6 +89,7 @@ if(isset($_POST["action"]) && $_POST["action"] == 'Add')
             :department, 
             :program, 
             :academic_rank,
+            :academic_rank_others,
             :bachelor_degree, 
             :bachelor_institution, 
             :bachelor_YearGraduated, 
