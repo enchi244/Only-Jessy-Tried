@@ -238,8 +238,7 @@ $(document).ready(function() {
             var currentAction = $('#action').val();
             
             // Route Add vs Edit to proper files
-            var targetUrl = (currentAction === 'Edit') ? 'actions/update_researcher.php' : 'actions/researcher_action.php';
-            
+            var targetUrl = (currentAction === 'Edit') ? 'actions/update_researcher.php' : 'actions/addresearcher_action.php';            
             // Generate standard payload from form
             var payload = $(this).serialize();
             

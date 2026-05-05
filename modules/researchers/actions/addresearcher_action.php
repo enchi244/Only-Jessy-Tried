@@ -38,6 +38,7 @@ if(isset($_POST["action"]) && $_POST["action"] == 'Add')
             ':middleName'            => strtoupper($_POST['middleName'] ?? $_POST['middleNameu'] ?? ''),
             ':Suffix'                => strtoupper($_POST['Suffix'] ?? $_POST['Suffixu'] ?? ''),
             ':department'            => $_POST['department'] ?? $_POST['departmentu'] ?? '',
+            ':departments_units'     => $_POST['departments_units'] ?? '',
             ':program'               => $_POST['program'] ?? $_POST['programu'] ?? '',
             ':academic_rank'         => $_POST['academic_rank'] ?? '', // NEW FIELD
             ':academic_rank_others'  => $_POST['academic_rank_others'] ?? '', // Add this line
@@ -63,6 +64,7 @@ if(isset($_POST["action"]) && $_POST["action"] == 'Add')
             middleName, 
             Suffix, 
             department, 
+            departments_units,
             program,
             academic_rank, 
             academic_rank_others,
@@ -87,6 +89,7 @@ if(isset($_POST["action"]) && $_POST["action"] == 'Add')
             :middleName, 
             :Suffix, 
             :department, 
+            :departments_units,
             :program, 
             :academic_rank,
             :academic_rank_others,
