@@ -482,9 +482,12 @@ $(document).ready(function(){
 
 });
 </script>
+
 <script>
 $(document).ready(function(){
-    // Academic Rank Datatable
+    // ==========================================
+    // 6. ACADEMIC RANK SCRIPT
+    // ==========================================
     var rankDataTable = $('#rank_table').DataTable({
         "processing": true,
         "serverSide": true,
@@ -550,7 +553,8 @@ $(document).ready(function(){
         });
     });
 
-    $(document).on('click', '.delete_button_rank', function(){
+    // Handle Status Toggle
+    $(document).on('click', '.status_button_rank', function(){
         var id = $(this).data('id');
         var status = $(this).data('status');
         var next_status = (status == 'Enable') ? 'Disable' : 'Enable';
@@ -568,9 +572,36 @@ $(document).ready(function(){
                 $.ajax({
                     url: "modules/academic_ranks/academic_rank_action.php",
                     method: "POST",
-                    data: {id: id, action: 'delete', next_status: next_status},
+                    data: {id: id, action: 'change_status', status: status, next_status: next_status},
                     success: function(data){
                         Swal.fire('Status Updated!', 'The rank is now ' + next_status + 'd.', 'success');
+                        rankDataTable.ajax.reload();
+                    }
+                });
+            }
+        });
+    });
+
+    // Handle Permanent Deletion
+    $(document).on('click', '.delete_button_rank', function(){
+        var id = $(this).data('id');
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74a3b',
+            cancelButtonColor: '#858796',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "modules/academic_ranks/academic_rank_action.php",
+                    method: "POST",
+                    data: {id: id, action: 'delete'},
+                    success: function(data){
+                        Swal.fire('Deleted!', 'The academic rank has been permanently deleted.', 'success');
                         rankDataTable.ajax.reload();
                     }
                 });
