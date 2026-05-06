@@ -22,7 +22,6 @@ function format_file_badges($concat_categories, $researcher_id, $tab_id, $base_u
     if(empty($cats)) return "<span class='text-muted'><i class='fas fa-times-circle'></i> None Attached</span>";
     
     $html = '';
-    // Append the open_id to the URL if it was provided so the modal auto-opens
     $open_param = $record_id ? "&open_id={$record_id}" : "";
     
     foreach($cats as $cat) {
@@ -48,13 +47,32 @@ if(isset($_POST["action"])) {
         $data = array();
         $dept_query = ($department === 'Unknown') ? "(department = 'Unknown' OR department = '' OR department IS NULL)" : "department = '$department'";
         
-        function isYearMatch($row, $from_year, $to_year) {
+        // OPTION B FIX: Universal Date Parser matching strict target dates per table
+        function isYearMatch($row, $from_year, $to_year, $table_name) {
             if ($from_year === 'all' || $to_year === 'all') return true;
-            $date_cols = ['user_created_on', 'date_paper', 'started_date', 'completed_date', 'start_date', 'publication_date', 'date_applied', 'date_granted', 'date_train', 'date_published'];
-            foreach ($date_cols as $dc) {
-                if (isset($row[$dc]) && !empty(trim((string)$row[$dc])) && strtolower(trim((string)$row[$dc])) !== 'null') {
-                    $val_clean = trim((string)$row[$dc]);
-                    if (preg_match('/^\d{2}-\d{4}$/', $val_clean)) { $val_clean = "01-" . $val_clean; }
+            
+            $target_col = '';
+            if ($table_name === 'tbl_researchconducted') $target_col = 'started_date';
+            elseif ($table_name === 'tbl_publication') $target_col = 'publication_date';
+            elseif ($table_name === 'tbl_itelectualprop') $target_col = 'date_applied';
+            elseif ($table_name === 'tbl_paperpresentation') $target_col = 'date_paper';
+            elseif ($table_name === 'tbl_trainingsattended') $target_col = 'date_train';
+            elseif ($table_name === 'tbl_extension_project_conducted') $target_col = 'start_date';
+            elseif ($table_name === 'tbl_research_policy') $target_col = 'date_published';
+
+            if (!empty($target_col) && isset($row[$target_col])) {
+                $val_clean = trim((string)$row[$target_col]);
+                if (!empty($val_clean) && strtolower($val_clean) !== 'null' && $val_clean !== '0000-00-00') {
+                    $val_clean = str_replace('/', '-', $val_clean);
+                    $parts = explode('-', $val_clean);
+                    if (count($parts) === 1 && strlen($parts[0]) === 4) { $val_clean = $parts[0] . '-01-01'; }
+                    if (count($parts) === 2) {
+                        if (strlen($parts[1]) === 4) $val_clean = $parts[1] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-01';
+                        else if (strlen($parts[0]) === 4) $val_clean = $parts[0] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-01';
+                    }
+                    if (count($parts) === 3) {
+                        if (strlen($parts[2]) === 4) $val_clean = $parts[2] . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+                    }
                     $ts = strtotime($val_clean);
                     if ($ts !== false) {
                         $record_year = date('Y', $ts);
@@ -71,38 +89,39 @@ if(isset($_POST["action"])) {
             $object->query = "SELECT id, firstName, familyName FROM tbl_researchdata WHERE $dept_query AND status = 1";
             $dept_researchers = getSafeRows($object);
 
-            if ($from_year === 'all' || $to_year === 'all') {
-                foreach($dept_researchers as $row) {
-                    $data[] = array("id" => $row["id"], "text" => $row["firstName"]." ".$row["familyName"]);
-                }
-            } else {
-                $active_ids = [];
-                $tables = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted', 'tbl_research_policy'];
-                
-                foreach ($tables as $tbl) {
-                    if (in_array($tbl, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation'])) {
-                        $col_table = ''; $col_fk = '';
-                        if ($tbl == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
-                        if ($tbl == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
-                        if ($tbl == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
-                        
+            $active_ids = [];
+            
+            $tables = ['tbl_researchconducted', 'tbl_publication', 'tbl_itelectualprop', 'tbl_paperpresentation', 'tbl_trainingsattended', 'tbl_extension_project_conducted', 'tbl_research_policy'];
+            
+            foreach ($tables as $tbl) {
+                if (in_array($tbl, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation', 'tbl_itelectualprop'])) {
+                    $col_table = ''; $col_fk = '';
+                    if ($tbl == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
+                    if ($tbl == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
+                    if ($tbl == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
+                    if ($tbl == 'tbl_itelectualprop') { $col_table = 'tbl_ip_collaborators'; $col_fk = 'ip_id'; }
+                    
+                    if ($col_table !== '') {
                         $object->query = "SELECT r.*, col.researcher_id as col_res_id FROM {$tbl} r LEFT JOIN {$col_table} col ON r.id = col.{$col_fk} WHERE r.status = 1";
                     } else {
                         $object->query = "SELECT r.* FROM {$tbl} r WHERE r.status = 1";
                     }
-                    
-                    foreach (getSafeRows($object) as $r) {
-                        if (isYearMatch($r, $from_year, $to_year)) {
-                            if (!empty($r['researcherID'])) $active_ids[$r['researcherID']] = true;
-                            if (!empty($r['col_res_id'])) $active_ids[$r['col_res_id']] = true;
-                        }
-                    }
+                } else {
+                    $object->query = "SELECT r.* FROM {$tbl} r WHERE r.status = 1";
                 }
                 
-                foreach ($dept_researchers as $row) {
-                    if (isset($active_ids[$row['id']])) {
-                        $data[] = array("id" => $row["id"], "text" => $row["firstName"]." ".$row["familyName"]);
+                // PRODUCTIVE ONLY: A researcher is ONLY added to active_ids if they have an output!
+                foreach (getSafeRows($object) as $r) {
+                    if (isYearMatch($r, $from_year, $to_year, $tbl)) {
+                        if (!empty($r['researcherID'])) $active_ids[$r['researcherID']] = true;
+                        if (!empty($r['col_res_id'])) $active_ids[$r['col_res_id']] = true;
                     }
+                }
+            }
+            
+            foreach ($dept_researchers as $row) {
+                if (isset($active_ids[$row['id']])) {
+                    $data[] = array("id" => $row["id"], "text" => $row["firstName"]." ".$row["familyName"]);
                 }
             }
         }
@@ -117,18 +136,23 @@ if(isset($_POST["action"])) {
             if($type == 'policy') $tbl = 'tbl_research_policy';
             
             if ($tbl !== '') {
-                if (in_array($tbl, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation'])) {
+                if (in_array($tbl, ['tbl_researchconducted', 'tbl_publication', 'tbl_paperpresentation', 'tbl_itelectualprop'])) {
                     $col_table = ''; $col_fk = '';
                     if ($tbl == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
                     if ($tbl == 'tbl_publication') { $col_table = 'tbl_publication_collaborators'; $col_fk = 'publication_id'; }
                     if ($tbl == 'tbl_paperpresentation') { $col_table = 'tbl_paper_collaborators'; $col_fk = 'paper_id'; }
+                    if ($tbl == 'tbl_itelectualprop') { $col_table = 'tbl_ip_collaborators'; $col_fk = 'ip_id'; }
                     
-                    $object->query = "SELECT r.*, COALESCE(d.department, d_main.department) as calc_dept 
-                                      FROM {$tbl} r 
-                                      LEFT JOIN {$col_table} col ON r.id = col.{$col_fk} 
-                                      LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
-                                      LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
-                                      WHERE r.status = 1";
+                    if ($col_table !== '') {
+                        $object->query = "SELECT r.*, COALESCE(d.department, d_main.department) as calc_dept 
+                                          FROM {$tbl} r 
+                                          LEFT JOIN {$col_table} col ON r.id = col.{$col_fk} 
+                                          LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
+                                          LEFT JOIN tbl_researchdata d_main ON r.researcherID = d_main.id
+                                          WHERE r.status = 1";
+                    } else {
+                        $object->query = "SELECT r.*, d.department as calc_dept FROM {$tbl} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.status = 1";
+                    }
 
                 } else {
                     $object->query = "SELECT r.*, d.department as calc_dept FROM {$tbl} r LEFT JOIN tbl_researchdata d ON r.researcherID = d.id WHERE r.status = 1";
@@ -139,10 +163,10 @@ if(isset($_POST["action"])) {
                     $item_dept = !empty($row['calc_dept']) ? $row['calc_dept'] : 'Unknown';
                     
                     if ($item_dept === $department || ($department === 'Unknown' && ($item_dept === 'Unknown' || empty($item_dept)))) {
-                        if (isYearMatch($row, $from_year, $to_year)) {
+                        if (isYearMatch($row, $from_year, $to_year, $tbl)) {
                             if (!isset($seen_ids[$row['id']])) {
                                 $seen_ids[$row['id']] = true;
-                                $text = isset($row["title"]) ? $row["title"] : 'Untitled Record';
+                                $text = isset($row["title"]) ? $row["title"] : (isset($row["policy_title"]) ? $row["policy_title"] : 'Untitled Record');
                                 $data[] = array("id" => $row["id"], "text" => $text);
                             }
                         }
@@ -265,7 +289,7 @@ if(isset($_POST["action"])) {
                 $html .= "</td></tr>";
 
                 // 4. Paper Presentation
-                $object->query = "SELECT tbl_paperpresentation.id, title, conference_title, date_paper, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = tbl_paperpresentation.id AND entity_type = 'pp') AS file_cats FROM tbl_paperpresentation WHERE researcherID = '$id' AND status = 1";
+                $object->query = "SELECT tbl_paperpresentation.id, title, conference_title, date_paper, (SELECT GROUP_CONCAT(file_category SEPARATOR '||') FROM tbl_rde_files WHERE entity_id = tbl_paperpresentation.id AND entity_type = 'pp') AS file_cats FROM tbl_paperpresentation WHERE (id IN (SELECT paper_id FROM tbl_paper_collaborators WHERE researcher_id = '$id') OR researcherID = '$id') AND status = 1";
                 $res4 = getSafeRows($object);
                 $html .= "<tr><th>Paper Presentations</th><td>";
                 if(count($res4) > 0) {
@@ -361,7 +385,6 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Approved Budget</th><td>{$row['approved_budget']}</td></tr>";
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['stat']}</span></td></tr>";
                 
-                // --- MAGIC LONG TEXT FIX ---
                 if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
                     $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
                 }
@@ -397,7 +420,6 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>End Date</th><td>{$row['end']}</td></tr>";
                 $html .= "<tr><th>Publication Date</th><td>{$row['publication_date']}</td></tr>";
                 
-                // --- MAGIC LONG TEXT FIX ---
                 if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
                     $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
                 }
@@ -477,7 +499,6 @@ if(isset($_POST["action"])) {
                 
                 $html .= "<tr><th>Validity Status</th><td>{$ip_status_badge}</td></tr>";
                 
-                // --- MAGIC LONG TEXT FIX ---
                 if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
                     $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
                 }
@@ -501,7 +522,6 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Type</th><td>{$row['type']}</td></tr>";
                 $html .= "<tr><th>Discipline</th><td>{$row['discipline']}</td></tr>";
                 
-                // --- MAGIC LONG TEXT FIX ---
                 if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
                     $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
                 }
@@ -526,7 +546,6 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Sponsor Org</th><td>{$row['sponsor_org']}</td></tr>";
                 $html .= "<tr><th>Total Hours</th><td>{$row['totnh']}</td></tr>";
                 
-                // --- MAGIC LONG TEXT FIX ---
                 if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
                     $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
                 }
@@ -551,7 +570,6 @@ if(isset($_POST["action"])) {
                 $html .= "<tr><th>Partners</th><td>{$row['partners']}</td></tr>";
                 $html .= "<tr><th>Status</th><td><span class='badge badge-secondary'>{$row['status_exct']}</span></td></tr>";
                 
-                // --- MAGIC LONG TEXT FIX ---
                 if (isset($row['abstract']) && !empty(trim($row['abstract']))) {
                     $html .= "<tr><th>Abstract</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>".nl2br(htmlspecialchars($row['abstract']))."</td></tr>";
                 }
@@ -599,7 +617,6 @@ if(isset($_POST["action"])) {
 
                     $clean_label = ucwords(str_replace('_', ' ', $k));
                     
-                    // --- MAGIC LONG TEXT FIX ---
                     if (strlen($v) > 150 || in_array($kl, ['abstract', 'summary', 'content', 'description'])) {
                         $html .= "<tr><th>{$clean_label}</th><td style='white-space: pre-wrap; text-align: justify; word-break: break-word;'>" . nl2br(htmlspecialchars((string)$v)) . "</td></tr>";
                     } else {

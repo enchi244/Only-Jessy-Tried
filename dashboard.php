@@ -26,7 +26,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         }
     }
 
-    // THE FIX: Universal Custom Date Parser for Legacy Formats
     function dashboard_safe_strtotime($date_str) {
         if (empty($date_str) || $date_str === '0000-00-00' || strtolower($date_str) === 'null') return false;
         $date_str = trim(str_replace('/', '-', $date_str));
@@ -42,17 +41,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
         return strtotime($date_str);
     }
 
-    function getFilteredData($conn, $table, $from_year, $to_year, $is_researcher = false, $distinct_col = null, $title_col = 'title', $base_depts = [], &$global_active_researchers = null) {
+    function getFilteredData($conn, $table, $from_year, $to_year, $distinct_col = null, $title_col = 'title', $base_depts = [], &$global_active_researchers = null) {
         $total_rows = 0; 
         $dept_counts = $base_depts; 
         $distinct_vals = [];
         $unique_records = []; 
         $dept_tracked_items = []; 
 
-        if ($is_researcher) {
-            $query = "SELECT id as active_res_id, department, user_created_on FROM {$table} WHERE status = 1";
-        } 
-        else if ($table === 'tbl_researchconducted') {
+        if ($table === 'tbl_researchconducted') {
             $query = "SELECT COALESCE(d.id, d_main.id) as active_res_id, COALESCE(d.department, d_main.department) as department, r.* FROM {$table} r 
                       LEFT JOIN tbl_research_collaborators col ON r.id = col.research_id 
                       LEFT JOIN tbl_researchdata d ON col.researcher_id = d.id
@@ -86,20 +82,27 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
 
         $res = @$conn->query($query);
         if ($res) {
+            
+            // STRICT MODE: Only check specific target dates!
+            $target_col = '';
+            if ($table === 'tbl_researchconducted') $target_col = 'started_date';
+            elseif ($table === 'tbl_publication') $target_col = 'publication_date';
+            elseif ($table === 'tbl_itelectualprop') $target_col = 'date_applied'; 
+            elseif ($table === 'tbl_paperpresentation') $target_col = 'date_paper';
+            elseif ($table === 'tbl_trainingsattended') $target_col = 'date_train';
+            elseif ($table === 'tbl_extension_project_conducted') $target_col = 'start_date';
+            elseif ($table === 'tbl_research_policy') $target_col = 'date_published';
+
             while($row = $res->fetch_assoc()) {
                 $match = ($from_year === 'all' || $to_year === 'all');
                 
                 if (!$match) {
-                    $date_cols = ['user_created_on', 'date_paper', 'started_date', 'completed_date', 'start_date', 'publication_date', 'date_applied', 'date_granted', 'date_train'];
-                    foreach ($date_cols as $dc) {
-                        if (isset($row[$dc])) {
-                            $ts = dashboard_safe_strtotime($row[$dc]);
-                            if ($ts !== false) {
-                                $record_year = date('Y', $ts);
-                                if ($record_year >= $from_year && $record_year <= $to_year) {
-                                    $match = true;
-                                    break;
-                                }
+                    if (!empty($target_col) && isset($row[$target_col])) {
+                        $ts = dashboard_safe_strtotime($row[$target_col]);
+                        if ($ts !== false) {
+                            $record_year = date('Y', $ts);
+                            if ($record_year >= $from_year && $record_year <= $to_year) {
+                                $match = true;
                             }
                         }
                     }
@@ -108,36 +111,33 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
                 if ($match) {
                     $dept = !empty($row['department']) ? $row['department'] : 'Unknown';
                     
+                    // PRODUCTIVE ONLY: Add the researcher to the global active list!
                     if (isset($row['active_res_id']) && !empty($row['active_res_id']) && $global_active_researchers !== null) {
                         $global_active_researchers[$row['active_res_id']] = $dept;
                     }
 
-                    if (!$is_researcher) {
-                        $total_rows++;
-                        
-                        $item_id = isset($row['id']) ? $row['id'] : uniqid();
+                    $total_rows++;
+                    
+                    $item_id = isset($row['id']) ? $row['id'] : uniqid();
 
-                        if (!isset($dept_tracked_items[$dept])) {
-                            $dept_tracked_items[$dept] = [];
-                        }
-
-                        if (!isset($dept_tracked_items[$dept][$item_id])) {
-                            $dept_tracked_items[$dept][$item_id] = true;
-                            if(!isset($dept_counts[$dept])) $dept_counts[$dept] = 0;
-                            $dept_counts[$dept]++;
-                        }
-                        
-                        if ($distinct_col && isset($row[$distinct_col]) && !empty(trim($row[$distinct_col]))) {
-                            $distinct_vals[trim($row[$distinct_col])] = true;
-                        }
-                        
-                        $unique_records[$item_id] = true;
+                    if (!isset($dept_tracked_items[$dept])) {
+                        $dept_tracked_items[$dept] = [];
                     }
+
+                    if (!isset($dept_tracked_items[$dept][$item_id])) {
+                        $dept_tracked_items[$dept][$item_id] = true;
+                        if(!isset($dept_counts[$dept])) $dept_counts[$dept] = 0;
+                        $dept_counts[$dept]++;
+                    }
+                    
+                    if ($distinct_col && isset($row[$distinct_col]) && !empty(trim($row[$distinct_col]))) {
+                        $distinct_vals[trim($row[$distinct_col])] = true;
+                    }
+                    
+                    $unique_records[$item_id] = true;
                 }
             }
         }
-
-        if ($is_researcher) { return []; } 
 
         $chart_data = [];
         foreach($dept_counts as $dept => $cnt) {
@@ -156,14 +156,15 @@ if (isset($_POST['action']) && $_POST['action'] == 'filter_dashboard') {
 
     $global_active_researchers = [];
 
-    getFilteredData($conn, 'tbl_researchdata', $from_year, $to_year, true, null, null, $all_depts, $global_active_researchers);
-    $chart2 = getFilteredData($conn, 'tbl_researchconducted', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
-    $chart3 = getFilteredData($conn, 'tbl_publication', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
-    $chart4 = getFilteredData($conn, 'tbl_itelectualprop', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
-    $chart5 = getFilteredData($conn, 'tbl_paperpresentation', $from_year, $to_year, false, 'discipline', 'title', $all_depts, $global_active_researchers);
-    $chart6 = getFilteredData($conn, 'tbl_trainingsattended', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
-    $chart7 = getFilteredData($conn, 'tbl_extension_project_conducted', $from_year, $to_year, false, null, 'title', $all_depts, $global_active_researchers);
-
+    // Removed the empty tbl_researchdata check so we ONLY get researchers who produced an output below
+    $chart2 = getFilteredData($conn, 'tbl_researchconducted', $from_year, $to_year, null, 'title', $all_depts, $global_active_researchers);
+    $chart3 = getFilteredData($conn, 'tbl_publication', $from_year, $to_year, null, 'title', $all_depts, $global_active_researchers);
+    $chart4 = getFilteredData($conn, 'tbl_itelectualprop', $from_year, $to_year, null, 'title', $all_depts, $global_active_researchers);
+    $chart5 = getFilteredData($conn, 'tbl_paperpresentation', $from_year, $to_year, 'discipline', 'title', $all_depts, $global_active_researchers);
+    $chart6 = getFilteredData($conn, 'tbl_trainingsattended', $from_year, $to_year, null, 'title', $all_depts, $global_active_researchers);
+    $chart7 = getFilteredData($conn, 'tbl_extension_project_conducted', $from_year, $to_year, null, 'title', $all_depts, $global_active_researchers);
+    
+    // Tally up the completely accurate productive researcher list
     $chart1_dept_counts = $all_depts;
     foreach ($global_active_researchers as $res_id => $dept) {
         $dept = !empty($dept) ? $dept : 'Unknown';
@@ -276,7 +277,7 @@ $totalDisciplines = $object->Get_total_disciplines();
             
            <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">From:</span>
             <select id="filterFromYear" class="mr-3">
-                <option value="all" selected>Select Year</option>
+                <option value="all" selected>Current</option>
                 <?php 
                     $curr_year = date("Y");
                     for($y = $curr_year; $y >= 2010; $y--) {
@@ -287,7 +288,7 @@ $totalDisciplines = $object->Get_total_disciplines();
             
             <span class="text-xs font-weight-bold text-gray-500 mr-1 text-uppercase">To:</span>
             <select id="filterToYear" class="mr-2">
-                <option value="all" selected>Select Year</option>
+                <option value="all" selected>Present</option>
                 <?php 
                     for($y = $curr_year; $y >= 2010; $y--) {
                         echo "<option value=\"$y\">$y</option>";
@@ -1047,7 +1048,6 @@ $totalDisciplines = $object->Get_total_disciplines();
                                 };
                             });
 
-                            // THE FIX: Add 15% headroom to the top of the chart so labels don't get cut off!
                             if (!chartObj.options.axisY) {
                                 chartObj.options.axisY = {};
                             }
