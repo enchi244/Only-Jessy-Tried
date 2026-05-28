@@ -64,6 +64,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
     if ($repp === 'all' || $repp === 'all_modules') {
         $tables_to_process = $allowed_tables;
     } else {
+        // THE FIX: Explode by '||' instead of ',' to protect commas in names
         $requested_tables = explode('||', $repp);
         foreach ($requested_tables as $req) {
             if (in_array(trim($req), $allowed_tables)) {
@@ -201,6 +202,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
                       
             $where_clauses = [];
             
+            // THE FIX: Explode by '||' instead of ','
             if ($department !== 'all' && !empty($department)) {
                 $arr = explode('||', $department);
                 $escaped = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string(trim($v)) . "'"; }, $arr);
@@ -244,6 +246,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'preview_report') {
             if (count($where_clauses) > 0) {
                 $query .= " AND " . implode(" AND ", $where_clauses);
             }
+            
+            // THE FIX: Order by ID descending so the newest records appear first!
+            $query .= " ORDER BY r.id DESC";
             
             $stmt = $conn->prepare($query);
             $stmt->execute();

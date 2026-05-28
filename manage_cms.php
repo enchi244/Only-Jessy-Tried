@@ -17,26 +17,22 @@ $conn = @new mysqli("localhost", "root", "", "rms");
 if ($conn->connect_error) { die("Database connection failed: " . $conn->connect_error); }
 $conn->set_charset("utf8mb4");
 
+// 5. Handle success/error messages cleanly via URL parameters
 $msg = "";
-// =========================================================
-// FETCH EDIT NEWS DATA
-// =========================================================
-$edit_news = null;
-
-if(isset($_GET['edit_news'])) {
-    $id = (int)$_GET['edit_news'];
-    $res = $conn->query("SELECT * FROM tbl_cms_news WHERE id=$id");
-    if($res && $res->num_rows > 0) {
-        $edit_news = $res->fetch_assoc();
-    }
+if(isset($_GET['msg'])) {
+    $m = $_GET['msg'];
+    if($m == 'updated') $msg = "<div class='alert alert-info alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Content updated successfully!</div>";
+    if($m == 'added') $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Successfully added!</div>";
+    if($m == 'deleted') $msg = "<div class='alert alert-warning alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>🗑️ Item successfully deleted.</div>";
 }
+
 $upload_dir = 'uploads/cms/';
 if (!is_dir($upload_dir)) { @mkdir($upload_dir, 0777, true); }
 
+// =========================================================
+// FORM ACTIONS (USING POST/REDIRECT/GET TO PREVENT BUGS)
+// =========================================================
 
-// =========================================================
-// FORM ACTIONS
-// =========================================================
 // 1. Save Text
 if (isset($_POST['save_text'])) {
     $about = $conn->real_escape_string($_POST['about_text']);
@@ -45,7 +41,7 @@ if (isset($_POST['save_text'])) {
     $core = $conn->real_escape_string($_POST['core_responsibilities']);
     
     $conn->query("UPDATE tbl_cms_about SET about_text='$about', mission_text='$mission', vision_text='$vision', core_responsibilities='$core' WHERE id=1");
-    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Landing Page text updated!</div>";
+    header("Location: manage_cms.php?msg=updated"); exit;
 }
 
 // 2. Add Carousel Image
@@ -55,22 +51,25 @@ if (isset($_POST['add_carousel']) && !empty($_FILES['c_image']['name'])) {
     if (move_uploaded_file($_FILES["c_image"]["tmp_name"], $target)) {
         $alt = $conn->real_escape_string($_POST['alt_text']);
         $conn->query("INSERT INTO tbl_cms_carousel (image_path, alt_text) VALUES ('$target', '$alt')");
-        $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Carousel image added!</div>";
+        header("Location: manage_cms.php?msg=added"); exit;
     }
 }
 
 // 3. Add News
-if (isset($_POST['add_news']) && !empty($_FILES['n_image']['name'])) {
-    $filename = "news_" . time() . "_" . basename($_FILES["n_image"]["name"]);
-    $target = $upload_dir . $filename;
-    if (move_uploaded_file($_FILES["n_image"]["tmp_name"], $target)) {
-        $title = $conn->real_escape_string($_POST['title']);
-        $summary = $conn->real_escape_string($_POST['summary']);
-        $content = $conn->real_escape_string($_POST['content']);
-        $date = $conn->real_escape_string($_POST['date_published']);
-        $conn->query("INSERT INTO tbl_cms_news (title, summary, content, image_path, date_published) VALUES ('$title', '$summary', '$content', '$target', '$date')");
-        $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ News article published!</div>";
+if (isset($_POST['add_news'])) {
+    $title = $conn->real_escape_string($_POST['title']);
+    $summary = $conn->real_escape_string($_POST['summary']);
+    $content = $conn->real_escape_string($_POST['content']);
+    $date = $conn->real_escape_string($_POST['date_published']);
+
+    if (!empty($_FILES['n_image']['name'])) {
+        $filename = "news_" . time() . "_" . basename($_FILES["n_image"]["name"]);
+        $target = $upload_dir . $filename;
+        if (move_uploaded_file($_FILES["n_image"]["tmp_name"], $target)) {
+            $conn->query("INSERT INTO tbl_cms_news (title, summary, content, image_path, date_published) VALUES ('$title', '$summary', '$content', '$target', '$date')");
+        }
     }
+    header("Location: manage_cms.php?msg=added"); exit;
 }
 
 // 3B. Update News
@@ -87,7 +86,7 @@ if (isset($_POST['update_news'])) {
 
         if (move_uploaded_file($_FILES["n_image"]["tmp_name"], $target)) {
             $old = $conn->query("SELECT image_path FROM tbl_cms_news WHERE id=$id")->fetch_assoc();
-            if($old && file_exists($old['image_path'])) { unlink($old['image_path']); }
+            if($old && file_exists($old['image_path'])) { @unlink($old['image_path']); }
 
             $conn->query("UPDATE tbl_cms_news 
                 SET title='$title', summary='$summary', content='$content', image_path='$target', date_published='$date'
@@ -98,34 +97,37 @@ if (isset($_POST['update_news'])) {
             SET title='$title', summary='$summary', content='$content', date_published='$date'
             WHERE id=$id");
     }
-    $msg = "<div class='alert alert-info alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✏️ News updated successfully!</div>";
+    header("Location: manage_cms.php?msg=updated"); exit;
 }
 
-// 4. Save Header Logos
+// 4. Save Header Logos & Hero Image
 if (isset($_POST['upload_logos'])) {
-    $logos_to_process = ['logo_wmsu', 'logo_rdec', 'logo_third'];
+    $logos_to_process = ['logo_wmsu', 'logo_rdec', 'logo_third', 'hero_image'];
     foreach ($logos_to_process as $logo_key) {
         if (isset($_FILES[$logo_key]) && $_FILES[$logo_key]['error'] == 0) {
             $filename = $logo_key . "_" . time() . "_" . basename($_FILES[$logo_key]["name"]);
             $target = $upload_dir . $filename;
             if (move_uploaded_file($_FILES[$logo_key]["tmp_name"], $target)) {
                 $conn->query("UPDATE tbl_site_settings SET setting_value='$target' WHERE setting_key='$logo_key'");
+                if ($conn->affected_rows == 0) {
+                    $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('$logo_key', '$target')");
+                }
             }
         }
     }
-    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Logos updated successfully!</div>";
+    header("Location: manage_cms.php?msg=updated"); exit;
 }
 
 // 5. Save Category Names
 if (isset($_POST['save_category_names'])) {
-    $cats = ['cat_research', 'cat_publication', 'cat_ext', 'cat_ip', 'cat_pp', 'cat_train'];
+    $cats = ['cat_research', 'cat_publication', 'cat_ext', 'cat_ip', 'cat_pp', 'cat_train', 'cat_policy'];
     foreach($cats as $c) {
         if(isset($_POST[$c])) {
             $val = $conn->real_escape_string($_POST[$c]);
             $conn->query("UPDATE tbl_site_settings SET setting_value='$val' WHERE setting_key='$c'");
         }
     }
-    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Report Categories renamed successfully!</div>";
+    header("Location: manage_cms.php?msg=updated"); exit;
 }
 
 // 5B. Save RDE Database Settings
@@ -137,7 +139,7 @@ if (isset($_POST['save_rde_settings'])) {
     if ($conn->affected_rows == 0) {
         $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('display_full_abstract', '$display_full')");
     }
-    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ RDE Settings updated successfully!</div>";
+    header("Location: manage_cms.php?msg=updated"); exit;
 }
 
 // 5C. Save Footer Map Setting
@@ -159,7 +161,7 @@ if (isset($_POST['save_map'])) {
     if ($conn->affected_rows == 0) {
         $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('google_map_embed', '$map_embed')");
     }
-    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Footer Map updated successfully!</div>";
+    header("Location: manage_cms.php?msg=updated"); exit;
 }
 
 // 5D. NEW: Save Footer Contacts
@@ -180,7 +182,7 @@ if (isset($_POST['save_footer_contacts'])) {
             $conn->query("INSERT IGNORE INTO tbl_site_settings (setting_key, setting_value) VALUES ('$key', '$val')");
         }
     }
-    $msg = "<div class='alert alert-success alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>✅ Footer Contacts updated successfully!</div>";
+    header("Location: manage_cms.php?msg=updated"); exit;
 }
 
 // 6. Deletions
@@ -198,11 +200,22 @@ if (isset($_GET['del_news'])) {
     $conn->query("DELETE FROM tbl_cms_news WHERE id=$id");
     header("Location: manage_cms.php?msg=deleted"); exit;
 }
-if(isset($_GET['msg']) && $_GET['msg'] == 'deleted') {
-    $msg = "<div class='alert alert-warning alert-dismissible'><button type='button' class='close' data-dismiss='alert'>&times;</button>🗑️ Item successfully deleted.</div>";
+
+// =========================================================
+// FETCH RENDER DATA
+// =========================================================
+
+// Check if editing a specific news article
+$edit_news = null;
+if(isset($_GET['edit_news'])) {
+    $id = (int)$_GET['edit_news'];
+    $res = $conn->query("SELECT * FROM tbl_cms_news WHERE id=$id");
+    if($res && $res->num_rows > 0) {
+        $edit_news = $res->fetch_assoc();
+    }
 }
 
-// Fetch Text
+// Fetch Landing Page Text
 $cms_text = ['about_text'=>'', 'mission_text'=>'', 'vision_text'=>'', 'core_responsibilities'=>''];
 $res_txt = $conn->query("SELECT * FROM tbl_cms_about WHERE id=1");
 if ($res_txt && $res_txt->num_rows > 0) { $cms_text = $res_txt->fetch_assoc(); }
@@ -215,14 +228,15 @@ if($set_res) {
         $site_settings[$r['setting_key']] = $r['setting_value'];
     }
 }
-// Default fallbacks for categories if they are somehow empty
+
+// Default fallbacks for categories
 $cat_research = !empty($site_settings['cat_research']) ? $site_settings['cat_research'] : 'Research Conducted';
 $cat_pub = !empty($site_settings['cat_publication']) ? $site_settings['cat_publication'] : 'Publications';
 $cat_ext = !empty($site_settings['cat_ext']) ? $site_settings['cat_ext'] : 'Extension Projects';
 $cat_ip = !empty($site_settings['cat_ip']) ? $site_settings['cat_ip'] : 'Intellectual Property';
 $cat_pp = !empty($site_settings['cat_pp']) ? $site_settings['cat_pp'] : 'Paper Presentations';
 $cat_train = !empty($site_settings['cat_train']) ? $site_settings['cat_train'] : 'Trainings Attended';
-
+$cat_policy = !empty($site_settings['cat_policy']) ? $site_settings['cat_policy'] : 'Research Policy';
 
 // =========================================================
 // INCLUDE TEMPLATE HEADER
@@ -238,12 +252,8 @@ include('includes/header.php');
 
 <div class="row">
 
-    <!-- ============================================== -->
-    <!-- LEFT COLUMN -->
-    <!-- ============================================== -->
     <div class="col-lg-6 mb-4">
         
-        <!-- CARD: LANDING PAGE TEXT -->
         <div class="card border-left-primary shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-align-left mr-1"></i> 1. Landing Page Text</h6>
@@ -272,7 +282,6 @@ include('includes/header.php');
             </div>
         </div>
 
-        <!-- CARD: CAROUSEL IMAGES -->
         <div class="card border-left-success shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-images mr-1"></i> 2. Carousel Images</h6>
@@ -309,7 +318,6 @@ include('includes/header.php');
             </div>
         </div>
 
-        <!-- CARD: NEWS & UPDATES -->
         <div class="card border-left-info shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-newspaper mr-1"></i> 3. News & Updates</h6>
@@ -354,13 +362,11 @@ include('includes/header.php');
                                 <textarea class="form-control form-control-sm" name="content" rows="4" required><?php echo $edit_news['content'] ?? ''; ?></textarea>
                             </div>
 
-                            <button type="submit"
-                                name="<?php echo $edit_news ? 'update_news' : 'add_news'; ?>"
-                                class="btn btn-info btn-sm btn-block">
-
+                            <button type="submit" name="<?php echo $edit_news ? 'update_news' : 'add_news'; ?>" class="btn btn-info btn-sm btn-block">
                                 <i class="fas fa-paper-plane"></i>
                                 <?php echo $edit_news ? 'Update Article' : 'Publish Article'; ?>
                             </button>
+                            
                             <?php if($edit_news): ?>
                             <a href="manage_cms.php" class="btn btn-secondary btn-sm mt-2 w-100">
                                 Cancel Editing
@@ -408,12 +414,8 @@ include('includes/header.php');
     </div>
 
 
-    <!-- ============================================== -->
-    <!-- RIGHT COLUMN -->
-    <!-- ============================================== -->
     <div class="col-lg-6 mb-4">
         
-        <!-- CARD: MANAGE CATEGORIES -->
         <div class="card border-left-secondary shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-secondary"><i class="fas fa-tags mr-1"></i> Rename Report Categories</h6>
@@ -445,13 +447,16 @@ include('includes/header.php');
                             <label class="small font-weight-bold mb-1">Module: Trainings</label>
                             <input type="text" class="form-control form-control-sm" name="cat_train" value="<?php echo htmlspecialchars($cat_train); ?>" required>
                         </div>
+                        <div class="form-group col-md-12 mb-2">
+                            <label class="small font-weight-bold mb-1">Module: Research Policy</label>
+                            <input type="text" class="form-control form-control-sm" name="cat_policy" value="<?php echo htmlspecialchars($cat_policy); ?>" required>
+                        </div>
                     </div>
                     <button type="submit" name="save_category_names" class="btn btn-secondary btn-sm btn-block mt-2"><i class="fas fa-save"></i> Save Category Names</button>
                 </form>
             </div>
         </div>
 
-        <!-- CARD: RDE DATABASE SETTINGS -->
         <div class="card border-left-info shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-database mr-1"></i> RDE Database Settings</h6>
@@ -470,42 +475,47 @@ include('includes/header.php');
             </div>
         </div>
 
-        <!-- CARD: MANAGE LOGOS -->
         <div class="card border-left-warning shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-warning"><i class="fas fa-images mr-1"></i> Header Logos</h6>
+                <h6 class="m-0 font-weight-bold text-warning"><i class="fas fa-images mr-1"></i> Site Images (Logos & Hero)</h6>
             </div>
             <div class="card-body">
                 <form method="POST" action="manage_cms.php" enctype="multipart/form-data">
                     <div class="row">
-                        <div class="col-md-4 text-center mb-3">
+                        <div class="col-md-3 text-center mb-3">
                             <label class="small font-weight-bold">WMSU Logo</label>
                             <div class="mb-2">
                                 <img src="<?php echo !empty($site_settings['logo_wmsu']) ? $site_settings['logo_wmsu'] : '../img/placeholder.png'; ?>" class="img-thumbnail" style="height: 80px; width: 80px; object-fit: contain;">
                             </div>
                             <input type="file" name="logo_wmsu" class="form-control-file small" accept="image/*">
                         </div>
-                        <div class="col-md-4 text-center mb-3">
+                        <div class="col-md-3 text-center mb-3">
                             <label class="small font-weight-bold">RDEC Logo</label>
                             <div class="mb-2">
                                 <img src="<?php echo !empty($site_settings['logo_rdec']) ? $site_settings['logo_rdec'] : '../img/placeholder.png'; ?>" class="img-thumbnail" style="height: 80px; width: 80px; object-fit: contain;">
                             </div>
                             <input type="file" name="logo_rdec" class="form-control-file small" accept="image/*">
                         </div>
-                        <div class="col-md-4 text-center mb-3">
+                        <div class="col-md-3 text-center mb-3">
                             <label class="small font-weight-bold">3rd Logo</label>
                             <div class="mb-2">
                                 <img src="<?php echo !empty($site_settings['logo_third']) ? $site_settings['logo_third'] : '../img/placeholder.png'; ?>" class="img-thumbnail" style="height: 80px; width: 80px; object-fit: contain;">
                             </div>
                             <input type="file" name="logo_third" class="form-control-file small" accept="image/*">
                         </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <label class="small font-weight-bold text-primary">Hero Image</label>
+                            <div class="mb-2">
+                                <img src="<?php echo !empty($site_settings['hero_image']) ? $site_settings['hero_image'] : 'img/research_center.jpg'; ?>" class="img-thumbnail" style="height: 80px; width: 100%; object-fit: cover;">
+                            </div>
+                            <input type="file" name="hero_image" class="form-control-file small" accept="image/*">
+                        </div>
                     </div>
-                    <button type="submit" name="upload_logos" class="btn btn-warning btn-sm btn-block text-dark font-weight-bold"><i class="fas fa-save"></i> Save Logos</button>
+                    <button type="submit" name="upload_logos" class="btn btn-warning btn-sm btn-block text-dark font-weight-bold"><i class="fas fa-save"></i> Save Images</button>
                 </form>
             </div>
         </div>
 
-        <!-- CARD: FOOTER MAP SETTINGS -->
         <div class="card border-left-danger shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-map-marked-alt mr-1"></i> Footer Map Location</h6>
@@ -524,7 +534,6 @@ include('includes/header.php');
             </div>
         </div>
 
-        <!-- CARD: FOOTER CONTACT SETTINGS -->
         <div class="card border-left-danger shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-address-card mr-1"></i> Footer Contact Information</h6>

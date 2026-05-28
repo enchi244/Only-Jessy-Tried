@@ -210,7 +210,8 @@ $label_map = [
     'discipline' => 'Discipline',
     'partners' => 'Partners',
     'terminal_report' => 'Terminal Report',
-    'ip_validity_status' => 'Validity Status'
+    'ip_validity_status' => 'Validity Status',
+    'based_on_research' => 'Based on Research'
 ];
 
 foreach ($modules_to_run as $mod) {
@@ -219,23 +220,6 @@ foreach ($modules_to_run as $mod) {
     <h3 style='color: #2c7be5; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #e3e6f0; padding-bottom: 5px;'>
         {$mod['title']}
     </h3>";
-    
-    $html_chunks[] = "
-    <table width='100%' border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 20px;'>
-        <thead style='background-color: #f8f9fc; color: #4e73df; font-size: 11px; text-transform: uppercase;'>
-            <tr>
-                <th width='25%' align='left' style='padding: 10px;'>Title</th>
-                <th width='33%' align='left' style='padding: 10px;'>Authors</th>";
-                
-    if ($mod['has_status']) {
-        $html_chunks[] = "<th width='10%' align='center' style='padding: 10px;'>Status</th>";
-    }
-
-    $html_chunks[] = "
-                <th width='32%' align='left' style='padding: 10px;'>Details</th>
-            </tr>
-        </thead>
-        <tbody>";
     
     $col_table = ''; $col_fk = '';
     if ($mod['table'] == 'tbl_researchconducted') { $col_table = 'tbl_research_collaborators'; $col_fk = 'research_id'; }
@@ -296,13 +280,16 @@ foreach ($modules_to_run as $mod) {
         $unique_items[$itm['id']] = $itm;
     }
     
+    // --- STEP 1: PRE-SCAN DATA TO BUILD DYNAMIC COLUMNS ---
+    $valid_items = [];
+    $dynamic_keys = [];
+    
     foreach ($unique_items as $item) {
         $date_matched = false;
         if ($is_all_time) { 
             $date_matched = true; 
         } else {
-            $col_start = '';
-            $col_end = '';
+            $col_start = ''; $col_end = '';
             
             if ($mod['table'] == 'tbl_researchconducted') {
                 $col_start = 'started_date'; $col_end = 'completed_date';
@@ -316,22 +303,14 @@ foreach ($modules_to_run as $mod) {
             $row_end_ts = safe_strtotime($item[$col_end] ?? '');
 
             if ($col_start === $col_end) {
-                if ($row_start_ts !== false && $row_start_ts >= $from_date_ts && $row_start_ts <= $to_date_ts) {
-                    $date_matched = true;
-                }
+                if ($row_start_ts !== false && $row_start_ts >= $from_date_ts && $row_start_ts <= $to_date_ts) { $date_matched = true; }
             } else {
                 if ($row_start_ts !== false && $row_end_ts !== false) {
-                    if ($row_start_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) {
-                        $date_matched = true;
-                    }
+                    if ($row_start_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) { $date_matched = true; }
                 } else if ($row_start_ts !== false) {
-                    if ($row_start_ts >= $from_date_ts && $row_start_ts <= $to_date_ts) {
-                        $date_matched = true;
-                    }
+                    if ($row_start_ts >= $from_date_ts && $row_start_ts <= $to_date_ts) { $date_matched = true; }
                 } else if ($row_end_ts !== false) {
-                    if ($row_end_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) {
-                        $date_matched = true;
-                    }
+                    if ($row_end_ts >= $from_date_ts && $row_end_ts <= $to_date_ts) { $date_matched = true; }
                 }
             }
         }
@@ -348,138 +327,93 @@ foreach ($modules_to_run as $mod) {
 
         if ($date_matched && $status_matched) {
             $found_items = true;
-            $title_clean = htmlspecialchars($item['title'] ?? 'Untitled');
             
+            // Format IP Status Early
             if ($mod['table'] == 'tbl_itelectualprop') {
                 $ip_status = "N/A";
                 if (!empty($item['date_granted']) && $item['date_granted'] != '0000-00-00' && $item['date_granted'] != 'null') {
                     $granted_ts = safe_strtotime($item['date_granted']);
                     $ip_type = strtolower(trim($item['type'] ?? ''));
-                    $duration_years = 0;
-                    $is_copyright = false;
+                    $duration_years = 0; $is_copyright = false;
                     
-                    if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) {
-                        $duration_years = 20;
-                    } elseif (strpos($ip_type, 'industrial design') !== false) {
-                        $duration_years = 5;
-                    } elseif (strpos($ip_type, 'trademark') !== false) {
-                        $duration_years = 10;
-                    } elseif (strpos($ip_type, 'copyright') !== false) {
-                        $is_copyright = true;
-                    }
+                    if (strpos($ip_type, 'patent') !== false || strpos($ip_type, 'invention') !== false) { $duration_years = 20; } 
+                    elseif (strpos($ip_type, 'industrial design') !== false) { $duration_years = 5; } 
+                    elseif (strpos($ip_type, 'trademark') !== false) { $duration_years = 10; } 
+                    elseif (strpos($ip_type, 'copyright') !== false) { $is_copyright = true; }
                     
-                    if ($is_copyright) {
-                        $ip_status = "Valid (Lifetime + 50 yrs)";
-                    } elseif ($duration_years > 0 && $granted_ts !== false) {
+                    if ($is_copyright) { $ip_status = "Valid (Lifetime + 50 yrs)"; } 
+                    elseif ($duration_years > 0 && $granted_ts !== false) {
                         $expiry_ts = strtotime("+$duration_years years", $granted_ts);
-                        if (time() > $expiry_ts) {
-                            $ip_status = "Expired";
-                        } else {
-                            $ip_status = "Active / Valid";
-                        }
-                    } else {
-                        $ip_status = "Active"; 
-                    }
-                } else {
-                    $ip_status = "Pending";
-                }
+                        if (time() > $expiry_ts) { $ip_status = "Expired"; } 
+                        else { $ip_status = "Active / Valid"; }
+                    } else { $ip_status = "Active"; }
+                } else { $ip_status = "Pending"; }
                 $item['ip_validity_status'] = $ip_status;
             }
 
-            $detail_str = "";
-            foreach ($item as $k => $v) {
-                $kl = strtolower($k);
-                if (in_array($kl, $exclude_keys) || trim((string)$v) === '' || is_numeric($k) || $kl === 'academic_rank' || $kl === 'program') continue;
-                if (in_array($kl, ['file', 'terminal_report_file', 'attachments', 'so_file', 'moa_file', 'coauth'])) continue;
-                
-                // --- MAGIC FIX FOR POLICY RESEARCH ID IN EXPORTS ---
-                if (in_array($kl, ['research_id', 'research_conducted_id', 'research_conducted']) && $mod['table'] === 'tbl_research_policy') {
-                    $rc_title = "Unknown Research (ID: " . htmlspecialchars($v) . ")";
-                    if (!empty($v) && is_numeric($v)) {
-                        $sub_obj = new rms();
-                        $sub_obj->query = "SELECT title FROM tbl_researchconducted WHERE id = '$v'";
-                        $sub_res = getSafeRows($sub_obj);
-                        if (count($sub_res) > 0) {
-                            $rc_title = $sub_res[0]['title'];
+            // Format Policy Research Title Early
+            if ($mod['table'] == 'tbl_research_policy') {
+                foreach ($item as $k => $v) {
+                    $kl = strtolower($k);
+                    if (in_array($kl, ['research_id', 'research_conducted_id', 'research_conducted'])) {
+                        $rc_title = "Unknown Research (ID: " . htmlspecialchars($v) . ")";
+                        if (!empty($v) && is_numeric($v)) {
+                            $sub_obj = new rms();
+                            $sub_obj->query = "SELECT title FROM tbl_researchconducted WHERE id = '$v'";
+                            $sub_res = getSafeRows($sub_obj);
+                            if (count($sub_res) > 0) { $rc_title = $sub_res[0]['title']; }
                         }
+                        $item['based_on_research'] = $rc_title;
+                        unset($item[$k]);
+                        break;
                     }
-                    $k = 'Based on Research';
-                    $v = $rc_title;
-                    $kl = 'based_on_research';
-                }
-                // ---------------------------------------------------
-
-                if (trim((string)$v) === 'Legacy Replaced') {
-                    $real_data = '';
-                    $cat = '';
-                    
-                    if ($kl === 'terminal_report') $cat = 'Terminal Report';
-                    if ($kl === 'moa') $cat = 'MOA';
-                    if ($kl === 'so') $cat = 'SO';
-                    
-                    if ($cat !== '') {
-                        $file_table = '';
-                        $file_col = '';
-                        
-                        if ($mod['table'] == 'tbl_extension_project_conducted') {
-                            $file_table = 'tbl_extension_files';
-                            $file_col = 'extension_id';
-                        } else if ($mod['table'] == 'tbl_researchconducted') {
-                            $file_table = 'tbl_research_files'; 
-                            $file_col = 'research_id';
-                        }
-                        
-                        if ($file_table !== '') {
-                            try {
-                                $sub_obj = new rms();
-                                $sub_obj->query = "SELECT file_name FROM $file_table WHERE $file_col = '".$item['id']."' AND file_category = '$cat'";
-                                $files = clone $sub_obj;
-                                $files_result = getSafeRows($files);
-                                $fnames = [];
-                                if ($files_result) { foreach($files_result as $f) { $fnames[] = $f['file_name']; } }
-                                if(count($fnames) > 0) { $real_data = implode(", ", $fnames); }
-                                else { $real_data = "No File Attached"; }
-                            } catch (Exception $e) {
-                                $real_data = "See Attached Files"; 
-                            }
-                        }
-                    }
-                    
-                    if ($real_data !== '') { 
-                        $v = $real_data; 
-                    } else { 
-                        $v = 'See Attached Files'; 
-                    }
-                }
-
-                $clean_label = isset($label_map[$kl]) ? $label_map[$kl] : ucwords(str_replace('_', ' ', $k));
-                $clean_val = htmlspecialchars((string)$v);
-                
-                if (($kl === 'approved_budget' || $kl === 'budget') && is_numeric(str_replace(['₱', ',', ' '], '', $clean_val))) {
-                    $clean_val = '₱' . number_format((float)str_replace(['₱', ',', ' '], '', $clean_val), 2);
-                }
-                
-                // --- MAGIC LONG TEXT FIX (PDF/WORD) ---
-                if (strlen($v) > 150 || in_array($kl, ['abstract', 'summary', 'content', 'description', 'remarks'])) {
-                    $detail_str .= "<div style='margin-top: 8px; margin-bottom: 8px; line-height: 1.4;'><strong style='color:#7a869a; font-size:10px; text-transform:uppercase;'>{$clean_label}:</strong><br><div style='color:#12263f; font-size:11px; text-align: justify; margin-top: 4px;'>".nl2br($clean_val)."</div></div>";
-                } else {
-                    $detail_str .= "<div style='margin-bottom: 4px; line-height: 1.4;'><span style='color:#7a869a; font-size:10px;'>{$clean_label}:</span> <span style='color:#12263f; font-weight:bold; font-size:11px;'>{$clean_val}</span></div>";
                 }
             }
-            if ($detail_str === "") $detail_str = "<span style='color: #999; font-style: italic;'>No extra details available</span>";
+            
+            // Collect valid dynamic column keys
+            foreach ($item as $k => $v) {
+                $kl = strtolower($k);
+                if (in_array($kl, $exclude_keys) || trim((string)$v) === '' || is_numeric($k) || in_array($kl, ['academic_rank', 'program', 'file', 'terminal_report_file', 'attachments', 'so_file', 'moa_file', 'coauth'])) continue;
+                if (!in_array($k, $dynamic_keys)) { $dynamic_keys[] = $k; }
+            }
+            
+            $valid_items[] = $item;
+        }
+    }
+    
+    // --- STEP 2: RENDER THE DYNAMIC TABLE ---
+    if ($found_items) {
+        // Table Container (Using 9px font to save horizontal space)
+        $html_chunks[] = "<table width='100%' border='1' cellpadding='4' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 9px; margin-bottom: 20px;'>";
+        
+        // Table Header
+        $html_chunks[] = "<thead style='background-color: #f8f9fc; color: #4e73df; font-size: 9px; text-transform: uppercase;'><tr>";
+        $html_chunks[] = "<th align='left' style='padding: 6px;'>Title</th>";
+        $html_chunks[] = "<th align='left' style='padding: 6px;'>Authors</th>";
+        if ($mod['has_status']) { $html_chunks[] = "<th align='center' style='padding: 6px;'>Status</th>"; }
+        
+        // Print dynamic headers
+        foreach ($dynamic_keys as $dk) {
+            $kl = strtolower($dk);
+            $header_label = isset($label_map[$kl]) ? $label_map[$kl] : ucwords(str_replace('_', ' ', $dk));
+            $html_chunks[] = "<th align='left' style='padding: 6px;'>{$header_label}</th>";
+        }
+        $html_chunks[] = "</tr></thead><tbody>";
 
+        // Table Rows
+        foreach ($valid_items as $item) {
+            $title_clean = htmlspecialchars($item['title'] ?? 'Untitled');
+            
+            // Build Authors Component
             $lead_name = htmlspecialchars($item['Lead_Researcher'] ?? 'Unknown');
             $lead_rank = htmlspecialchars($item['academic_rank'] ?? '');
             $lead_prog = htmlspecialchars($item['program'] ?? '');
             
-            $lead_display = "<strong>{$lead_name}</strong> <span style='font-size: 9px; color: #d9534f;'>(Lead)</span>";
+            $lead_display = "<strong>{$lead_name}</strong> <span style='font-size: 8px; color: #d9534f;'>(Lead)</span>";
             $lead_meta = [];
             if (!empty($lead_rank)) $lead_meta[] = $lead_rank;
             if (!empty($lead_prog)) $lead_meta[] = $lead_prog;
-            
-            if (!empty($lead_meta)) {
-                $lead_display .= "<br><span style='font-size: 10px; color: #555555;'>" . implode(" • ", $lead_meta) . "</span>";
-            }
+            if (!empty($lead_meta)) { $lead_display .= "<br><span style='font-size: 8px; color: #555555;'>" . implode(" • ", $lead_meta) . "</span>"; }
 
             $co_authors_display = '<span style="color: #999; font-style: italic;">None</span>';
             if ($col_table !== '') {
@@ -490,7 +424,6 @@ foreach ($modules_to_run as $mod) {
                 if (!empty($co_res[0]['coauths'])) { 
                     $co_list = explode('||', $co_res[0]['coauths']);
                     $co_html_arr = [];
-                    
                     foreach ($co_list as $co_data) {
                         $parts = explode('|', $co_data);
                         if (count($parts) >= 1) {
@@ -502,41 +435,82 @@ foreach ($modules_to_run as $mod) {
                             $c_meta = [];
                             if (!empty($c_rank)) $c_meta[] = $c_rank;
                             if (!empty($c_prog)) $c_meta[] = $c_prog;
-
-                            if (!empty($c_meta)) {
-                                $c_display .= " <span style='font-size: 9.5px; color: #666;'>(" . implode(" • ", $c_meta) . ")</span>";
-                            }
-                            $co_html_arr[] = "<div style='margin-bottom: 3px;'>{$c_display}</div>";
+                            if (!empty($c_meta)) { $c_display .= " <span style='font-size: 8px; color: #666;'>(" . implode(" • ", $c_meta) . ")</span>"; }
+                            $co_html_arr[] = "<div style='margin-bottom: 2px;'>{$c_display}</div>";
                         }
                     }
                     $co_authors_display = implode("", $co_html_arr);
                 }
             }
 
-            $authors_combined = "<div style='margin-bottom: 4px;'>" . $lead_display . "</div>";
-            if ($co_authors_display !== '<span style="color: #999; font-style: italic;">None</span>') {
-                $authors_combined .= $co_authors_display;
-            }
+            $authors_combined = "<div style='margin-bottom: 3px;'>" . $lead_display . "</div>";
+            if ($co_authors_display !== '<span style="color: #999; font-style: italic;">None</span>') { $authors_combined .= $co_authors_display; }
 
+            // Print Row Basics
             $html_chunks[] = "<tr style='page-break-inside: avoid;'>";
-            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'><strong>{$title_clean}</strong></td>";
-            $html_chunks[] = "<td valign='top' style='padding: 10px; color: #12263f;'>{$authors_combined}</td>";
+            $html_chunks[] = "<td valign='top' style='padding: 6px; color: #12263f;'><strong>{$title_clean}</strong></td>";
+            $html_chunks[] = "<td valign='top' style='padding: 6px; color: #12263f;'>{$authors_combined}</td>";
             
             if ($mod['has_status']) {
                 $s_val = htmlspecialchars($item['stat'] ?? $item['status_exct'] ?? 'Unknown');
-                $html_chunks[] = "<td valign='top' align='center' style='padding: 10px; color: #12263f;'><strong>{$s_val}</strong></td>";
+                $html_chunks[] = "<td valign='top' align='center' style='padding: 6px; color: #12263f;'><strong>{$s_val}</strong></td>";
             }
 
-            $html_chunks[] = "<td valign='top' style='padding: 10px;'>{$detail_str}</td>";
+            // Print Dynamic Columns
+            foreach ($dynamic_keys as $dk) {
+                $v = $item[$dk] ?? '';
+                $kl = strtolower($dk);
+                
+                if (trim((string)$v) === 'Legacy Replaced') {
+                    $real_data = ''; $cat = '';
+                    if ($kl === 'terminal_report') $cat = 'Terminal Report';
+                    if ($kl === 'moa') $cat = 'MOA';
+                    if ($kl === 'so') $cat = 'SO';
+                    
+                    if ($cat !== '') {
+                        $file_table = ''; $file_col = '';
+                        if ($mod['table'] == 'tbl_extension_project_conducted') { $file_table = 'tbl_extension_files'; $file_col = 'extension_id'; } 
+                        else if ($mod['table'] == 'tbl_researchconducted') { $file_table = 'tbl_research_files'; $file_col = 'research_id'; }
+                        
+                        if ($file_table !== '') {
+                            try {
+                                $sub_obj = new rms();
+                                $sub_obj->query = "SELECT file_name FROM $file_table WHERE $file_col = '".$item['id']."' AND file_category = '$cat'";
+                                $files = clone $sub_obj;
+                                $files_result = getSafeRows($files);
+                                $fnames = [];
+                                if ($files_result) { foreach($files_result as $f) { $fnames[] = $f['file_name']; } }
+                                if(count($fnames) > 0) { $real_data = implode(", ", $fnames); }
+                            } catch (Exception $e) {}
+                        }
+                    }
+                    $v = ($real_data !== '') ? $real_data : 'See Attached Files';
+                }
+
+                $clean_val = htmlspecialchars((string)$v);
+                
+                if (($kl === 'approved_budget' || $kl === 'budget') && is_numeric(str_replace(['₱', ',', ' '], '', $clean_val))) {
+                    $clean_val = '₱' . number_format((float)str_replace(['₱', ',', ' '], '', $clean_val), 2);
+                }
+                
+                // Format long text or abstract
+                if (strlen($v) > 150 || in_array($kl, ['abstract', 'summary', 'content', 'description', 'remarks'])) {
+                    $cell_content = "<div style='text-align: justify; margin-top: 2px;'>".nl2br($clean_val)."</div>";
+                } else {
+                    $cell_content = empty($clean_val) ? "<span style='color: #999; font-style: italic;'>N/A</span>" : $clean_val;
+                }
+                
+                $html_chunks[] = "<td valign='top' style='padding: 6px; color: #12263f;'>{$cell_content}</td>";
+            }
+            
             $html_chunks[] = "</tr>";
         }
+        $html_chunks[] = "</tbody></table>";
+    } else {
+        $colspan = $mod['has_status'] ? 3 : 2;
+        $html_chunks[] = "<table width='100%' border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; border-color: #d1d3e2; font-family: Arial, sans-serif; font-size: 11px; margin-bottom: 20px;'>";
+        $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr></table>";
     }
-    
-    if (!$found_items) {
-        $colspan = $mod['has_status'] ? 4 : 3;
-        $html_chunks[] = "<tr><td colspan='{$colspan}' align='center' style='color: #858796; font-style: italic; padding: 20px;'>No records found for this category.</td></tr>";
-    }
-    $html_chunks[] = "</tbody></table>";
 }
 
 $doc_name = (!empty($researcher_id)) ? 'Researcher_Portfolio_' : 'Data_Extraction_Report_';
