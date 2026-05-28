@@ -77,7 +77,6 @@ if($news_query){
 
     <nav id="navbar">
         <div class="nav-container">
-<!-- UPDATED DYNAMIC LOGOS (CIRCULAR) -->
 <div class="logo">
     <a href="index.php" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
         <?php if(!empty($site_settings['logo_wmsu'])): ?>
@@ -143,7 +142,7 @@ if($news_query){
             </div>
         </div>
         <div class="hero-image-container fade-in-up delay-1">
-            <img src="img/research_center.jpg" alt="SDMU Hero Image" class="interactive-img">
+            <img src="<?php echo !empty($site_settings['hero_image']) ? htmlspecialchars($site_settings['hero_image']) : 'img/research_center.jpg'; ?>" alt="SDMU Hero Image" class="interactive-img">
         </div>
     </header>
 
@@ -323,7 +322,7 @@ if($news_query){
         </div>
     </footer>
 
-    <div id="newsModal" class="modal-overlay">
+    <div id="newsModal" class="modal-overlay" style="display:none;">
         <div class="modal-content">
             <button class="modal-close" aria-label="Close modal">&times;</button>
             <div class="modal-body">
@@ -340,6 +339,8 @@ if($news_query){
     <script src="js/public_app.js"></script>
     <script>
     document.addEventListener("DOMContentLoaded", function() {
+        
+        // 1. PAGINATION LOGIC
         const cards = document.querySelectorAll('.js-news-card');
         const prevBtn = document.getElementById('prevNewsBtn');
         const nextBtn = document.getElementById('nextNewsBtn');
@@ -383,23 +384,77 @@ if($news_query){
             }
         }
 
-        prevBtn.addEventListener('click', function() {
-            if (currentPage > 1) {
-                currentPage--;
-                updateGrid();
-            }
-        });
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updateGrid();
+                }
+            });
+        }
 
-        nextBtn.addEventListener('click', function() {
-            if (currentPage < totalPages) {
-                currentPage++;
-                updateGrid();
-            }
-        });
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updateGrid();
+                }
+            });
+        }
 
         if (cards.length > 0) {
             updateGrid();
         }
+
+        // 2. MODAL LOGIC FIX (Bypass external JS issues)
+        const modal = document.getElementById('newsModal');
+        const closeBtn = document.querySelector('.modal-close');
+        const modalImg = document.getElementById('modalImage');
+        const modalDate = document.getElementById('modalDate');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalFullText = document.getElementById('modalFullText');
+
+        document.querySelectorAll('.read-more').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Get the parent card
+                const card = this.closest('.news-card');
+                
+                // Extract Data
+                const title = card.querySelector('h3').innerText;
+                const date = card.querySelector('.news-date').innerText;
+                const imgSrc = card.querySelector('img').src;
+                
+                // EXTRACT FULL CONTENT HTML
+                const fullContent = card.querySelector('.hidden-full-content').innerHTML;
+                
+                // Inject Data into Modal
+                modalTitle.innerText = title;
+                modalDate.innerText = date;
+                modalImg.src = imgSrc;
+                modalFullText.innerHTML = fullContent; // Use innerHTML to keep paragraphs!
+                
+                // Show Modal
+                modal.style.display = 'flex';
+                modal.classList.add('active'); // Just in case CSS expects an active class
+            });
+        });
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            if(e.target === modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
+        });
+
     });
     </script>
 </body>
